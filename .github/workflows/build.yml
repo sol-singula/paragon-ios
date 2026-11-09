@@ -28,4 +28,5 @@ jobs:
           grep -q "BUILD SUCCEEDED" build.log
       - name: Errors
         if: failure()
-        run: grep -n -B2 -A12 -E "error:|Undefined symbols|ld: " build.log | head -150 || true
+        run: |
+          grep -n -B2 -A12 -E "error:|Undefined symbols|ld: " build.log | head -150 || true
