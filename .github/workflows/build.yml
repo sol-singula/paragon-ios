@@ -13,11 +13,11 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: XcodeGen
-        run: brew install xcodegen && xcodegen generate
       - name: Placeholder secrets
         run: |
           printf 'SUPABASE_URL = https:/$()/example.supabase.co\nSUPABASE_ANON_KEY = placeholder\n' > Config/Secrets.xcconfig
+      - name: XcodeGen
+        run: brew install xcodegen && xcodegen generate
       - name: Build (iOS Simulator)
         run: |
           set -o pipefail
