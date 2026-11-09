@@ -62,6 +62,17 @@ struct SettingsView: View {
                     }
                     .listRowBackground(Theme.card)
 
+                    Section(label: "Notifications") {
+                        NavigationLink { NotificationsView().hidesSystemTabBar() } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Notifications").font(.ui).foregroundStyle(Theme.text)
+                                Text("Texts, calls, Atlas, quiet hours: what tells you and how.")
+                                    .font(.meta).foregroundStyle(Theme.muted)
+                            }
+                        }
+                    }
+                    .listRowBackground(Theme.card)
+
                     if session.me?.isFounder == true {
                         Section(label: "Founders") {
                             NavigationLink { CostsView().hidesSystemTabBar() } label: {
