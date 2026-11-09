@@ -17,6 +17,11 @@ import TwilioVoice
 /// - **Placing.** `place(thread:)` starts a CallKit call and connects with
 ///   `thread_id`, exactly what the desktop sends; paragon-voice's `outbound`
 ///   picks the line.
+/// - **Sounds** (founder, 2026-11-09). An incoming call rings "Low Classic"
+///   (`Sounds/ringtone-low-classic.caf`, CallKit's `ringtoneSound`, which the
+///   system loops until it is answered, declined or cancelled). An outgoing
+///   call plays "Pulse" (`Sounds/ringback-pulse.caf`, looped by an
+///   AVAudioPlayer) from `callDidStartRinging` until it connects or ends.
 ///
 /// Every CallKit/PushKit/Twilio callback arrives on the main queue (each is
 /// set up that way below), so the nonisolated delegate methods step onto
@@ -56,6 +61,7 @@ final class CallManager: NSObject {
     @ObservationIgnored private var outgoingThread: [UUID: String] = [:]
     @ObservationIgnored private var endedByUs: Set<UUID> = []
     @ObservationIgnored private var pushDone: (() -> Void)?
+    @ObservationIgnored private var ringback: AVAudioPlayer?
     private let audioDevice = DefaultAudioDevice()
 
     // MARK: Start-up
@@ -72,6 +78,7 @@ final class CallManager: NSObject {
         config.maximumCallsPerCallGroup = 1
         config.supportedHandleTypes = [.generic, .phoneNumber]
         config.includesCallsInRecents = true
+        config.ringtoneSound = "ringtone-low-classic.caf"
         let p = CXProvider(configuration: config)
         p.setDelegate(self, queue: nil)
         provider = p
@@ -213,7 +220,26 @@ final class CallManager: NSObject {
 
     // MARK: Bookkeeping
 
+    /// Pulse, while our call rings the other end. Plays in the call's audio
+    /// session (CallKit activates it), so it follows speaker and route.
+    private func startRingback() {
+        if ringback == nil, let url = Bundle.main.url(forResource: "ringback-pulse", withExtension: "caf") {
+            ringback = try? AVAudioPlayer(contentsOf: url)
+            ringback?.numberOfLoops = -1
+            ringback?.prepareToPlay()
+        }
+        guard let p = ringback, !p.isPlaying else { return }
+        p.currentTime = 0
+        p.play()
+    }
+
+    private func stopRingback() {
+        ringback?.stop()
+        ringback?.currentTime = 0
+    }
+
     private func cleanup(_ uuid: UUID) {
+        if active?.uuid == uuid { stopRingback() }
         invites[uuid] = nil
         calls[uuid] = nil
         outgoingThread[uuid] = nil
@@ -346,12 +372,16 @@ extension CallManager: NotificationDelegate {
 extension CallManager: CallDelegate {
     nonisolated func callDidStartRinging(call: Call) {
         let uuid = call.uuid
-        MainActor.assumeIsolated { self.set(uuid) { $0.phase = .ringing } }
+        MainActor.assumeIsolated {
+            self.set(uuid) { $0.phase = .ringing }
+            if let uuid, self.active?.uuid == uuid, self.active?.direction == .outgoing { self.startRingback() }
+        }
     }
 
     nonisolated func callDidConnect(call: Call) {
         let uuid = call.uuid
         MainActor.assumeIsolated {
+            self.stopRingback()
             if let uuid, self.active?.direction == .outgoing { self.provider?.reportOutgoingCall(with: uuid, connectedAt: Date()) }
             self.set(uuid) { $0.phase = .connected; $0.connectedAt = Date() }
         }
@@ -371,6 +401,7 @@ extension CallManager: CallDelegate {
         let uuid = call.uuid
         MainActor.assumeIsolated {
             NSLog("Paragon: call failed: \(error.localizedDescription)")
+            self.stopRingback()
             guard let uuid else { return }
             self.provider?.reportCall(with: uuid, endedAt: Date(), reason: .failed)
             self.cleanup(uuid)
@@ -380,6 +411,7 @@ extension CallManager: CallDelegate {
     nonisolated func callDidDisconnect(call: Call, error: Error?) {
         let uuid = call.uuid
         MainActor.assumeIsolated {
+            self.stopRingback()
             guard let uuid else { return }
             if !self.endedByUs.contains(uuid) {
                 self.provider?.reportCall(with: uuid, endedAt: Date(), reason: error == nil ? .remoteEnded : .failed)
@@ -394,6 +426,7 @@ extension CallManager: CallDelegate {
 extension CallManager: CXProviderDelegate {
     nonisolated func providerDidReset(_ provider: CXProvider) {
         MainActor.assumeIsolated {
+            self.stopRingback()
             self.audioDevice.isEnabled = false
             for (_, c) in self.calls { c.disconnect() }
             for (_, i) in self.invites { i.reject() }

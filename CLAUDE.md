@@ -25,6 +25,11 @@ need to be able to ring the phone and send notifications".
   CallManager owns CallKit, PushKit and Twilio Voice; every callback is on the
   main queue. A VoIP push must always be reported to CallKit (iOS kills the app
   otherwise), even one that turns out not to be a call.
+- **Call sounds** (founder, 2026-11-09), the desktop's too: incoming rings
+  "Low Classic" (`Sounds/ringtone-low-classic.caf`, CallKit's
+  `ringtoneSound`); outgoing plays "Pulse" (`Sounds/ringback-pulse.caf`,
+  AVAudioPlayer) from `callDidStartRinging` to connect or end. `Sounds/` is a
+  resources entry in project.yml. 44.1 kHz mono PCM, one 6 s loop each.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.
