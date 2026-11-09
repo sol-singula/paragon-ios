@@ -198,7 +198,7 @@ struct PersonalThreadView: View {
     @State private var thread: PersonalThread?
     @State private var error: String?
     @State private var draft = ""
-    @State private var sending = false
+    @State private var outbox = Outbox.shared
     @State private var scrollKey = 0
     @State private var infoOpen = false
 
@@ -221,8 +221,8 @@ struct PersonalThreadView: View {
                 if let p = t.person, p.askType == true {
                     WhoIsThisBar(personId: p.id, name: p.name) { _ in Task { await load() } }
                 }
-                TimelineList(events: t.timeline ?? [], scrollKey: scrollKey)
-                Composer(draft: $draft, label: t.sendLabel, sending: sending,
+                TimelineList(events: t.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(threadId))
+                Composer(draft: $draft, label: t.sendLabel,
                          blocked: t.person?.isStopped == true ? "They replied STOP" : nil,
                          placeholder: Composer.placeholder(for: t.person?.name ?? name, named: t.person?.hasName != false),
                          send: send)
@@ -233,25 +233,23 @@ struct PersonalThreadView: View {
         .background(Theme.bg)
         .toolbar(.hidden, for: .navigationBar)
         .task { while !Task.isCancelled { await load(); try? await Task.sleep(for: .seconds(6)) } }
+        .onChange(of: outbox.settled[threadId] ?? 0) { _, _ in Task { await load() } }
         .sheet(isPresented: $infoOpen) {
             if let p = thread?.person { ContactInfoSheet(personId: p.id, threadId: threadId) { Task { await load() } } }
         }
     }
 
     private func load() async {
-        do { thread = try await API.personalThread(threadId); error = nil }
+        do {
+            thread = try await API.personalThread(threadId); error = nil
+            if let t = thread { outbox.reconcile(thread: threadId, events: t.timeline ?? []) }
+        }
         catch { self.error = error.localizedDescription }
     }
 
-    private func send(_ files: [SharedFile]) async -> Bool {
-        let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty || !files.isEmpty else { return false }
-        sending = true
-        defer { sending = false }
-        do {
-            try await API.send(thread: threadId, body: body, attachments: files)
-            draft = ""; await load(); scrollKey += 1
-            return true
-        } catch { self.error = error.localizedDescription; return false }
+    private func send(_ body: String, _ files: [OutFile]) {
+        guard !body.isEmpty || !files.isEmpty else { return }
+        outbox.send(thread: threadId, body: body, files: files)
+        scrollKey += 1
     }
 }

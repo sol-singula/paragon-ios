@@ -77,3 +77,16 @@ need to be able to ring the phone and send notifications".
   headers are `SectionLabel` / `Section(label:)`: small, uppercase,
   letter-spaced. Branch marks are solid circles with white letters (dark on
   Blackswan's white).
+
+- **Instant send, 0.10.15 (build 2), 2026-11-09** (founder: "the second we
+  hit send, it should go to the conversation"): Send never waits. Texts go
+  to `Outbox` (`Core/Outbox.swift`), Team posts to `TeamOutbox`: the bubble
+  shows at once with the local pictures, our face and "Sending…", the box
+  clears and keeps the keyboard; uploads and `paragon-send` /
+  `paragon_team_post` run behind, one at a time per thread so order holds.
+  A text steps aside when the timeline has its `message_id` (or the same
+  words out within two minutes); a Team post as soon as the post answers
+  with the message. A failure stays rose, "Not sent · Tap to retry", with
+  the server's reason, and Delete in its menu. The stores outlive the
+  screen. Every rule is still the server's (line, locks, STOP). The build
+  number goes up with every upload.

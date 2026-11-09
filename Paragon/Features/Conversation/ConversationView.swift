@@ -13,7 +13,7 @@ struct ConversationView: View {
     @State private var view: PersonView?
     @State private var error: String?
     @State private var draft = ""
-    @State private var sending = false
+    @State private var outbox = Outbox.shared
     @State private var scrollKey = 0
     @State private var house: URL?
     @State private var houseBig = false
@@ -29,8 +29,8 @@ struct ConversationView: View {
                     WhoIsThisBar(personId: v.person.id, name: v.person.name) { _ in Task { await load() } }
                 }
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
-                TimelineList(events: v.timeline ?? [], scrollKey: scrollKey)
-                Composer(draft: $draft, label: v.sendLabel, sending: sending,
+                TimelineList(events: v.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(v.threadId ?? currentThread))
+                Composer(draft: $draft, label: v.sendLabel,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
                          send: send)
@@ -45,6 +45,8 @@ struct ConversationView: View {
         .background(Theme.bg)
         .toolbar(.hidden, for: .navigationBar)
         .task(id: threadId) { await poll() }
+        // A send went: read the thread now, so the real text takes its place.
+        .onChange(of: outbox.settled[currentThread ?? ""] ?? 0) { _, _ in Task { await load() } }
         .task(id: personId) { await loadHouse() }
         .onAppear { Presence.shared.focus(personId: personId, name: view?.person.name) }
         .onDisappear { Presence.shared.focus(personId: nil, name: nil) }
@@ -124,6 +126,7 @@ struct ConversationView: View {
     private func load() async {
         do {
             view = try await API.person(personId, thread: threadId)
+            if let v = view, let t = v.threadId { outbox.reconcile(thread: t, events: v.timeline ?? []) }
             if view == nil { error = "This conversation isn't yours to see." } else { error = nil }
         } catch {
             self.error = error.localizedDescription
@@ -137,22 +140,12 @@ struct ConversationView: View {
         }
     }
 
-    private func send(_ files: [SharedFile]) async -> Bool {
-        guard let t = currentThread else { return false }
-        let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty || !files.isEmpty else { return false }
-        sending = true
-        defer { sending = false }
-        do {
-            try await API.send(thread: t, body: body, attachments: files)
-            draft = ""
-            await load()
-            scrollKey += 1
-            return true
-        } catch {
-            self.error = error.localizedDescription
-            return false
-        }
+    /// Into the thread at once; the Outbox sends it from the thread's own
+    /// line through paragon-send, which keeps every rule (locks, STOP).
+    private func send(_ body: String, _ files: [OutFile]) {
+        guard let t = currentThread, !body.isEmpty || !files.isEmpty else { return }
+        outbox.send(thread: t, body: body, files: files)
+        scrollKey += 1
     }
 
     private func call() {

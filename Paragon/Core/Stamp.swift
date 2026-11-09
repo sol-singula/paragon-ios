@@ -58,6 +58,11 @@ enum Stamp {
         return "\(monthDay.string(from: d)) · \(time.string(from: d))"
     }
 
+    static func exact(_ d: Date) -> String {
+        if Calendar.current.isDateInToday(d) { return time.string(from: d) }
+        return "\(monthDay.string(from: d)) · \(time.string(from: d))"
+    }
+
     static func duration(_ seconds: Double?) -> String {
         guard let s = seconds, s > 0 else { return "" }
         let n = Int(s)

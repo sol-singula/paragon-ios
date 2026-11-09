@@ -37,6 +37,12 @@ actor ImageCache {
     private let store = NSCache<NSURL, UIImage>()
     private var waiting: [URL: Task<UIImage?, Never>] = [:]
 
+    /// A picture we already hold (one we just sent), so its link shows it
+    /// at once instead of loading it again.
+    func put(_ url: URL, _ image: UIImage) {
+        store.setObject(image, forKey: url as NSURL)
+    }
+
     func image(_ url: URL) async -> UIImage? {
         if let hit = store.object(forKey: url as NSURL) { return hit }
         if let w = waiting[url] { return await w.value }
