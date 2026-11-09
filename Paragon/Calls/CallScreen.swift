@@ -171,3 +171,39 @@ struct CallBar: View {
         }
     }
 }
+
+/// After a connected call ends (founder, 2026-11-09): Add promise, or Follow
+/// up later (WHO = me, WHAT "Follow up with <name>"). × dismisses it; it goes
+/// by itself after 30 s, and the next call clears it.
+struct CallFollowUpBar: View {
+    let ended: CallManager.Ended
+    let open: (PromiseTarget) -> Void
+    @Environment(CallManager.self) private var calls
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Call with \(ended.name) ended").font(.meta).foregroundStyle(Theme.secondary).lineLimit(1)
+            Spacer(minLength: 4)
+            Button {
+                open(PromiseTarget(threadId: ended.thread, personId: nil, name: ended.name))
+                calls.clearEnded()
+            } label: { Text("Add promise").font(.metaMedium) }
+            .buttonStyle(.bordered).tint(Theme.violet).controlSize(.small)
+            Button {
+                open(PromiseTarget(threadId: ended.thread, personId: nil, name: ended.name, prefill: "Follow up with \(ended.name)"))
+                calls.clearEnded()
+            } label: { Text("Follow up later").font(.metaMedium) }
+            .buttonStyle(.bordered).tint(Theme.teal).controlSize(.small)
+            Button { calls.clearEnded() } label: {
+                Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.muted)
+                    .frame(width: 28, height: 28).contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss")
+        }
+        .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 6)
+        .background(Theme.card)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+}

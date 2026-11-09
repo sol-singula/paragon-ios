@@ -22,6 +22,8 @@ struct PromiseTarget: Identifiable, Hashable {
     let personId: String?
     let name: String
     var mode: Mode = .add
+    /// WHAT filled in ("Follow up with Ryan", after a call). WHO is me either way.
+    var prefill: String? = nil
 
     var id: String {
         switch mode {
@@ -125,29 +127,47 @@ enum DueTime {
     }
 }
 
+/// Instant (founder, 2026-11-09: "it should APPEAR instant"): what was just
+/// done here, hidden from every list the moment it is tapped, so it cannot be
+/// tapped twice. A refusal takes it back out. Read anywhere (the models'
+/// `rowItems`); `InboxModel.localTick` makes the screens redraw.
+final class GoneIDs: @unchecked Sendable {
+    static let shared = GoneIDs()
+    private let lock = NSLock()
+    private var ids: Set<String> = []
+    func contains(_ id: String) -> Bool { lock.lock(); defer { lock.unlock() }; return ids.contains(id) }
+    @MainActor func hide(_ id: String) { lock.lock(); ids.insert(id); lock.unlock(); InboxModel.shared.localTick += 1 }
+    @MainActor func putBack(_ id: String) { lock.lock(); ids.remove(id); lock.unlock(); InboxModel.shared.localTick += 1 }
+}
+
 /// Done (kept), Not needed (dismissed), for a promise or any other card.
+/// Instant: gone at once, the call behind it, back with the reason on a no.
 enum ItemActions {
     @MainActor
     static func done(_ id: String, promise: Bool, onDone: @escaping () -> Void) {
+        guard !GoneIDs.shared.contains(id) else { return }
+        GoneIDs.shared.hide(id)
+        Toast.shared.show(promise ? "Promise kept" : "Done")
         Task {
             do {
                 if promise { try await API.promiseDone(id, outcome: "kept") }
                 else { try await API.atlasCardAct(id, action: "done") }
-                Toast.shared.show(promise ? "Promise kept" : "Done")
                 onDone()
-            } catch { Toast.shared.show(error.localizedDescription, error: true) }
+            } catch { GoneIDs.shared.putBack(id); Toast.shared.show(error.localizedDescription, error: true) }
         }
     }
 
     @MainActor
     static func notNeeded(_ id: String, promise: Bool, onDone: @escaping () -> Void) {
+        guard !GoneIDs.shared.contains(id) else { return }
+        GoneIDs.shared.hide(id)
+        Toast.shared.show("Cleared: not needed")
         Task {
             do {
                 if promise { try await API.promiseDone(id, outcome: "dismissed") }
                 else { try await API.atlasCardAct(id, action: "release", note: "Not needed") }
-                Toast.shared.show("Cleared: not needed")
                 onDone()
-            } catch { Toast.shared.show(error.localizedDescription, error: true) }
+            } catch { GoneIDs.shared.putBack(id); Toast.shared.show(error.localizedDescription, error: true) }
         }
     }
 }
@@ -192,6 +212,11 @@ struct PromiseSheet: View {
     @State private var busy = false
     @State private var error: String?
     @FocusState private var whatFocused: Bool
+    /// A vague WHEN ("soon", "today", "this_week") that Atlas places; nil = `due`.
+    @State private var vague: String?
+    @State private var slot: PromiseSlot?
+    @State private var slotLoading = false
+    @State private var slotError: String?
 
     init(target: PromiseTarget, onSaved: @escaping (_ owner: PromisePerson?) -> Void) {
         self.target = target
@@ -203,7 +228,7 @@ struct PromiseSheet: View {
             _text = State(initialValue: t)
         default:
             _due = State(initialValue: Self.inAnHour())
-            _text = State(initialValue: "")
+            _text = State(initialValue: target.prefill ?? "")
         }
     }
 
@@ -261,6 +286,20 @@ struct PromiseSheet: View {
         .presentationDetents(showsWho && showsWhen ? [.large] : [.medium, .large])
         .presentationBackground(Theme.bg)
         .task { if showsWho { await loadPeople() } }
+        // Where Atlas would put it, again whenever WHO changes.
+        .task(id: "\(vague ?? "")|\(owner ?? "")") { await loadSlot() }
+    }
+
+    private var isAdd: Bool { if case .add = target.mode { return true }; return false }
+
+    private func loadSlot() async {
+        guard let hint = vague, owner != nil else { slot = nil; slotError = nil; return }
+        let chosen = people.first { $0.id == owner }
+        slotLoading = true
+        slot = nil; slotError = nil
+        do { slot = try await API.promiseSlot(thread: target.threadId, owner: chosen?.isMe == true ? nil : owner, hint: hint) }
+        catch { if !Task.isCancelled { slotError = error.localizedDescription } }
+        slotLoading = false
     }
 
     // MARK: WHO
@@ -330,13 +369,47 @@ struct PromiseSheet: View {
         return out
     }
 
+    /// The vague WHEN chips (founder, 2026-11-09): Atlas picks the time.
+    private static let vagueChips: [(hint: String, label: String)] = [("soon", "Soon"), ("today", "Today"), ("this_week", "This week")]
+
     private var when: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionLabel("When", trailing: DueTime.label(due))
+            SectionLabel("When", trailing: vague == nil ? DueTime.label(due) : (slot?.label.map { "Atlas: \($0)" } ?? "Atlas picks"))
+            if isAdd {
+                HStack(spacing: 6) {
+                    ForEach(Self.vagueChips, id: \.hint) { c in
+                        let on = vague == c.hint
+                        Button { vague = c.hint } label: {
+                            Text(c.label).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                                .foregroundStyle(on ? Theme.violet : Theme.text)
+                                .padding(.horizontal, 10).frame(height: 32)
+                                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(on ? Theme.violet.opacity(0.16) : Theme.hover))
+                                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(on ? Theme.violet.opacity(0.5) : Theme.violet.opacity(0.25)))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("Atlas picks the time, around your other promises")
+                    }
+                }
+                if vague != nil {
+                    Group {
+                        if let s = slot {
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let l = s.label { Text("Atlas: \(l)").font(.metaMedium).foregroundStyle(Theme.text) }
+                                if let w = s.why { Text(w).font(.meta).foregroundStyle(Theme.muted) }
+                            }
+                        } else if let e = slotError {
+                            Text("Could not place it: \(e)").font(.meta).foregroundStyle(Theme.rose)
+                        } else if slotLoading {
+                            Text("Atlas is placing it…").font(.meta).foregroundStyle(Theme.muted)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
             HStack(spacing: 6) {
                 ForEach(chips) { c in
-                    let on = abs(c.date.timeIntervalSince(due)) < 60
-                    Button { due = c.date } label: {
+                    let on = vague == nil && abs(c.date.timeIntervalSince(due)) < 60
+                    Button { vague = nil; due = c.date } label: {
                         Text(c.label).font(.system(size: 13, weight: .medium)).lineLimit(1)
                             .foregroundStyle(on ? Theme.teal : Theme.text)
                             .padding(.horizontal, 10).frame(height: 32)
@@ -346,7 +419,7 @@ struct PromiseSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-            DatePicker("Pick a time", selection: $due, in: min(due, Date())...Date().addingTimeInterval(364 * 86_400))
+            DatePicker("Pick a time", selection: Binding(get: { due }, set: { due = $0; vague = nil }), in: min(due, Date())...Date().addingTimeInterval(364 * 86_400))
                 .font(.ui).foregroundStyle(Theme.secondary)
                 .tint(Theme.teal)
         }
@@ -389,39 +462,52 @@ struct PromiseSheet: View {
         peopleLoaded = true
     }
 
+    /// Instant (founder, 2026-11-09): the sheet closes and the toast says it
+    /// the moment Save is tapped; the call runs behind it, and a refusal is a
+    /// toast with the server's words (the lists read again).
     private func save() {
         busy = true
         error = nil
         let chosen = people.first { $0.id == owner }
-        Task {
-            do {
-                switch target.mode {
-                case .add:
-                    try await API.promiseAdd(thread: target.threadId, owner: chosen?.isMe == true ? nil : owner, due: due, text: trimmed)
-                    Toast.shared.show(chosen?.isMe == false ? "Promised to \(chosen!.first) · due \(DueTime.label(due))"
-                                                           : "Promised · due \(DueTime.label(due))")
-                case .hand(let id, let promise):
-                    guard let owner = owner else { busy = false; return }
+        let toOther = chosen != nil && chosen?.isMe != true
+        let text = trimmed, due = due, vague = vague, slotLabel = slot?.label, onSaved = onSaved, target = target
+        let work: () async throws -> Void
+        switch target.mode {
+        case .add:
+            let to = toOther ? owner : nil
+            let when = vague == nil ? DueTime.label(due) : (slotLabel ?? "when Atlas places it")
+            Toast.shared.show(toOther ? "Promised to \(chosen!.first) · due \(when)" : "Promised · due \(when)")
+            if toOther, let p = target.personId { InboxModel.shared.clear(personId: p) }
+            work = {
+                if let hint = vague { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: hint, text: text) }
+                else { try await API.promiseAdd(thread: target.threadId, owner: to, due: due, text: text) }
+            }
+        case .hand(let id, let promise):
+            guard let owner = owner else { busy = false; return }
+            Toast.shared.show("Handed to \(chosen?.first ?? "them")")
+            if toOther { GoneIDs.shared.hide(id) }
+            work = {
+                do {
                     if promise { try await API.promiseReassign(id, owner: owner) }
                     else { try await API.atlasCardHand(id, to: owner) }
-                    Toast.shared.show("Handed to \(chosen?.first ?? "them")")
-                case .change(let id, let promise, let before, let was):
-                    let moved = Stamp.date(before).map { abs($0.timeIntervalSince(due)) >= 60 } ?? true
-                    if promise {
-                        let edited = trimmed != was.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard moved || edited else { dismiss(); return }
-                        try await API.promiseUpdate(id, due: moved ? due : nil, text: edited ? trimmed : nil)
-                    } else {
-                        guard moved else { dismiss(); return }
-                        try await API.atlasCardAct(id, action: "move", due: API.iso.string(from: due))
-                    }
-                    Toast.shared.show(moved ? "Due \(DueTime.label(due))" : "Promise updated")
-                }
-                onSaved(chosen)
-                dismiss()
-            } catch {
-                self.error = error.localizedDescription
-                busy = false
+                } catch { if toOther { GoneIDs.shared.putBack(id) }; throw error }
+            }
+        case .change(let id, let promise, let before, let was):
+            let moved = Stamp.date(before).map { abs($0.timeIntervalSince(due)) >= 60 } ?? true
+            let edited = promise && text != was.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard moved || edited else { dismiss(); return }
+            Toast.shared.show(moved ? "Due \(DueTime.label(due))" : "Promise updated")
+            work = {
+                if promise { try await API.promiseUpdate(id, due: moved ? due : nil, text: edited ? text : nil) }
+                else { try await API.atlasCardAct(id, action: "move", due: API.iso.string(from: due)) }
+            }
+        }
+        dismiss()
+        Task { @MainActor in
+            do { try await work(); onSaved(chosen) }
+            catch {
+                Toast.shared.show(error.localizedDescription, error: true)
+                await InboxModel.shared.load()
             }
         }
     }
@@ -435,9 +521,41 @@ struct OpenPromises: View {
     let hand: (ThreadPromise) -> Void
     let changed: () -> Void
 
+    @State private var inbox = InboxModel.shared
+    @State private var expanded = false
+
+    /// Calm with many (founder, 2026-11-09): one block, "2 promises · next
+    /// due Fri 9:00 am" over the soonest; tap it for the rest. What was just
+    /// done here is already gone (`GoneIDs`).
+    private var list: [ThreadPromise] {
+        _ = inbox.localTick
+        return promises.filter { !GoneIDs.shared.contains($0.id) }
+            .sorted { (Stamp.date($0.dueAt) ?? .distantFuture) < (Stamp.date($1.dueAt) ?? .distantFuture) }
+    }
+
     var body: some View {
+        let all = list
+        let rows = all.count > 1 && !expanded ? Array(all.prefix(1)) : all
         VStack(spacing: 0) {
-            ForEach(Array(promises.enumerated()), id: \.element.id) { i, p in
+            if all.count > 1 {
+                Button { withAnimation(.snappy) { expanded.toggle() } } label: {
+                    HStack(spacing: 6) {
+                        Text("\(all.count) promises").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.secondary)
+                        if let d = Stamp.date(all.first?.dueAt) {
+                            Text("· next due \(DueTime.label(d))").font(.system(size: 12))
+                                .foregroundStyle(d <= Date() ? Theme.rose : Theme.muted).lineLimit(1)
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(expanded ? "Shows only the soonest" : "Shows every promise")
+                Rectangle().fill(Theme.violet.opacity(0.18)).frame(height: 1)
+            }
+            ForEach(Array(rows.enumerated()), id: \.element.id) { i, p in
                 if i > 0 { Rectangle().fill(Theme.violet.opacity(0.18)).frame(height: 1) }
                 row(p)
             }
@@ -445,6 +563,9 @@ struct OpenPromises: View {
         .background(Theme.violet.opacity(0.07))
         .overlay(alignment: .leading) { Rectangle().fill(Theme.violet.opacity(0.8)).frame(width: 2) }
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+        .opacity(all.isEmpty ? 0 : 1)
+        .frame(height: all.isEmpty ? 0 : nil)
+        .clipped()
     }
 
     private func row(_ p: ThreadPromise) -> some View {

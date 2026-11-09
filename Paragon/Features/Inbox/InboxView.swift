@@ -48,7 +48,7 @@ struct InboxView: View {
                 case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
                 }
             }
-            .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await model.load() } } }
+            .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { model.clear(personId: r.personId) }) { Task { await model.load() } } }
             .sheet(item: $promising) { t in
                 PromiseSheet(target: t) { owner in
                     // Given to someone else: off my inbox at once.
@@ -124,7 +124,7 @@ struct InboxView: View {
             } else if items.count > 1 {
                 Section {
                     ForEach(items) { i in
-                        Menu(i.what) {
+                        Menu(Stamp.date(i.dueAt).map { "\(i.what) · \(DueTime.label($0))" } ?? i.what) {
                             ItemMenu(item: i, thread: t, personId: q.personId, name: q.name, open: { promising = $0 }, changed: reload)
                         }
                     }
@@ -266,10 +266,6 @@ struct InboxView: View {
 
     private var filterMenu: some View {
         Menu {
-            Picker("Sort", selection: $model.sort) {
-                Text("Most urgent first").tag(InboxModel.Sort.urgency)
-                Text("Most recent first").tag(InboxModel.Sort.recent)
-            }
             Menu("Branch") {
                 Button { model.brand = nil; Task { await model.load() } } label: {
                     if model.brand == nil { Label("All branches", systemImage: "checkmark") } else { Text("All branches") }
@@ -285,7 +281,7 @@ struct InboxView: View {
                 }
             }
         } label: {
-            Image(systemName: model.brand != nil || model.sort == .recent
+            Image(systemName: model.brand != nil
                   ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .foregroundStyle(Theme.secondary)
         }

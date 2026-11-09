@@ -50,11 +50,14 @@ struct MainTabs: View {
     @MainActor private var team: TeamModel { TeamModel.shared }
     @MainActor private var inbox: InboxModel { InboxModel.shared }
     @MainActor private var keyboard: KeyboardWatcher { KeyboardWatcher.shared }
+    /// The promise sheet the after-call banner opens.
+    @State private var followUp: PromiseTarget?
 
     var body: some View {
         @Bindable var router = router
         VStack(spacing: 0) {
             if calls.active != nil && !calls.showScreen { CallBar() }
+            else if calls.active == nil, let e = calls.ended { CallFollowUpBar(ended: e) { followUp = $0 } }
             // The system's bar is hidden on every screen (hidesSystemTabBar);
             // ParagonTabBar below is the one people see.
             TabView(selection: $router.tab) {
@@ -72,6 +75,8 @@ struct MainTabs: View {
         .animation(.easeOut(duration: 0.2), value: showsBar)
         // "Promised to Ryan · due 9:00 am" and the like.
         .overlay { ToastView() }
+        .animation(.easeOut(duration: 0.2), value: calls.ended)
+        .sheet(item: $followUp) { t in PromiseSheet(target: t) { _ in Task { await inbox.load() } } }
         .task { await alerts.poll() }
         .task { await inbox.poll() }
         .task { await team.poll() }

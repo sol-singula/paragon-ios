@@ -30,6 +30,22 @@ need to be able to ring the phone and send notifications".
   `ringtoneSound`); outgoing plays "Pulse" (`Sounds/ringback-pulse.caf`,
   AVAudioPlayer) from `callDidStartRinging` to connect or end. `Sounds/` is a
   resources entry in project.yml. 44.1 kHz mono PCM, one 6 s loop each.
+  Nothing of ours plays after connect (Pulse stops in `callDidConnect` and
+  never starts once connected). Levels (founder, 2026-11-09): Pulse at
+  player volume 0.35; `ringtone-low-classic.caf` is 6 dB quieter than the
+  desktop master (CallKit's ring follows the ringer volume). Call voice is
+  the system's (`.voiceChat` via Twilio's DefaultAudioDevice). A 31005 while
+  ringing out or within 10 s of connect reads "Call ended · They hung up
+  right away" and reports `.remoteEnded`.
+- **Build 7, 2026-11-09** (desktop 0.10.19 main): after a connected call,
+  `CallFollowUpBar` (Add promise / Follow up later, × or 30 s or the next
+  call clears it) opens `PromiseSheet`; WHEN has Soon / Today / This week
+  (`paragon_promise_slot` preview, `paragon_promise_add_vague`); Release's
+  reason box is focused on open; All sorts by last activity, Waiting by
+  urgency, no Sort picker; several promises fold into "N promises · next
+  due …"; Done / Not needed / Hand / Change / Add / Release are instant
+  (`GoneIDs`, `InboxModel.localTick`, back on a refusal); the timeline
+  re-settles at the bottom; the composer is one line, placeholder "Message".
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

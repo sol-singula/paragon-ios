@@ -22,6 +22,14 @@ import TwilioVoice
 ///   system loops until it is answered, declined or cancelled). An outgoing
 ///   call plays "Pulse" (`Sounds/ringback-pulse.caf`, looped by an
 ///   AVAudioPlayer) from `callDidStartRinging` until it connects or ends.
+///   Nothing of ours plays once a call connects (the person who answered
+///   could hear it). Levels (same day: rings were much louder than voices):
+///   Pulse plays at `pulseVolume`, and Low Classic is mastered 6 dB quieter
+///   (CallKit's ring follows the ringer volume, so the file is the lever).
+///   The call's own voice is the system's: Twilio's DefaultAudioDevice puts
+///   the session in playAndRecord / `.voiceChat`, and the volume buttons set it.
+/// - **After a call** that connected, `ended` asks for a follow-up (the
+///   founder's "Add promise" / "Follow up later"); the next call clears it.
 ///
 /// Every CallKit/PushKit/Twilio callback arrives on the main queue (each is
 /// set up that way below), so the nonisolated delegate methods step onto
@@ -47,6 +55,12 @@ final class CallManager: NSObject {
     }
 
     private(set) var active: Active?
+    /// A connected call that just ended, for the follow-up banner.
+    struct Ended: Equatable { let thread: String; let name: String; let at: Date }
+    private(set) var ended: Ended?
+    func clearEnded() { ended = nil }
+    /// Pulse's player volume (about -9 dB).
+    static let pulseVolume: Float = 0.35
     var showScreen = false
     private(set) var ringReady = false
     private(set) var ringStatus = "Checking…"
@@ -62,6 +76,7 @@ final class CallManager: NSObject {
     @ObservationIgnored private var endedByUs: Set<UUID> = []
     @ObservationIgnored private var pushDone: (() -> Void)?
     @ObservationIgnored private var ringback: AVAudioPlayer?
+    @ObservationIgnored private var endedClear: Task<Void, Never>?
     private let audioDevice = DefaultAudioDevice()
 
     // MARK: Start-up
@@ -145,6 +160,7 @@ final class CallManager: NSObject {
 
     func place(thread: String, name: String, brand: String?) {
         guard active == nil else { return }
+        ended = nil
         if AVAudioApplication.shared.recordPermission == .undetermined { askMic() }
         let uuid = UUID()
         outgoingThread[uuid] = thread
@@ -226,8 +242,11 @@ final class CallManager: NSObject {
         if ringback == nil, let url = Bundle.main.url(forResource: "ringback-pulse", withExtension: "caf") {
             ringback = try? AVAudioPlayer(contentsOf: url)
             ringback?.numberOfLoops = -1
+            ringback?.volume = Self.pulseVolume
             ringback?.prepareToPlay()
         }
+        // A late 'ringing' after the answer must never start it.
+        guard active?.phase != .connected, active?.connectedAt == nil else { return }
         guard let p = ringback, !p.isPlaying else { return }
         p.currentTime = 0
         p.play()
@@ -240,6 +259,16 @@ final class CallManager: NSObject {
 
     private func cleanup(_ uuid: UUID) {
         if active?.uuid == uuid { stopRingback() }
+        if let a = active, a.uuid == uuid, a.connectedAt != nil, !a.thread.isEmpty {
+            let e = Ended(thread: a.thread, name: a.name, at: Date())
+            ended = e
+            endedClear?.cancel()
+            endedClear = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(30))
+                guard !Task.isCancelled else { return }
+                if self?.ended == e { self?.ended = nil }
+            }
+        }
         invites[uuid] = nil
         calls[uuid] = nil
         outgoingThread[uuid] = nil
@@ -338,6 +367,7 @@ extension CallManager: NotificationDelegate {
             update.supportsGrouping = false
             update.supportsUngrouping = false
             if self.active == nil {
+                self.ended = nil
                 self.active = Active(uuid: uuid, direction: .incoming, name: from, brand: nil, thread: thread, phase: .ringing)
             }
             self.provider?.reportNewIncomingCall(with: uuid, update: update) { error in
@@ -397,13 +427,27 @@ extension CallManager: CallDelegate {
         MainActor.assumeIsolated { self.set(uuid) { $0.phase = .connected } }
     }
 
+    /// An outgoing call that ends with Twilio's 31005 "General error" while it
+    /// still rings, or within 10 s of the answer, is the far end hanging up
+    /// (during the recording whisper, say): "Call ended", not a failure.
+    /// No token, no mic, no network keep their own message.
+    private func hungUpRightAway(_ uuid: UUID?, _ error: Error?) -> Bool {
+        guard let error, let a = active, a.uuid == uuid else { return false }
+        let code = (error as NSError).code
+        guard code == 31005 || code == 31000 else { return false }
+        if let at = a.connectedAt { return Date().timeIntervalSince(at) < 10 }
+        return a.direction == .outgoing && a.phase == .ringing
+    }
+
     nonisolated func callDidFailToConnect(call: Call, error: Error) {
         let uuid = call.uuid
         MainActor.assumeIsolated {
             NSLog("Paragon: call failed: \(error.localizedDescription)")
             self.stopRingback()
             guard let uuid else { return }
-            self.provider?.reportCall(with: uuid, endedAt: Date(), reason: .failed)
+            let hungUp = self.hungUpRightAway(uuid, error)
+            self.provider?.reportCall(with: uuid, endedAt: Date(), reason: hungUp ? .remoteEnded : .failed)
+            Toast.shared.show(hungUp ? "Call ended · They hung up right away" : "Call problem: \(error.localizedDescription)", error: !hungUp)
             self.cleanup(uuid)
         }
     }
@@ -413,9 +457,11 @@ extension CallManager: CallDelegate {
         MainActor.assumeIsolated {
             self.stopRingback()
             guard let uuid else { return }
+            let hungUp = self.hungUpRightAway(uuid, error)
             if !self.endedByUs.contains(uuid) {
-                self.provider?.reportCall(with: uuid, endedAt: Date(), reason: error == nil ? .remoteEnded : .failed)
+                self.provider?.reportCall(with: uuid, endedAt: Date(), reason: error == nil || hungUp ? .remoteEnded : .failed)
             }
+            if hungUp { Toast.shared.show("Call ended · They hung up right away") }
             self.cleanup(uuid)
         }
     }

@@ -70,7 +70,8 @@ struct Composer: View {
                             }
                         }
                         TextField("", text: $draft, prompt: Text(placeholder).foregroundStyle(Theme.muted), axis: .vertical)
-                            .lineLimit(1...6)
+                            // One line, always (founder, 2026-11-09); long text scrolls inside it.
+                            .lineLimit(1)
                             .font(.ui).foregroundStyle(Theme.text)
                             .focused($focused)
                             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -145,10 +146,10 @@ struct Composer: View {
         }
     }
 
-    /// "Text Rachel", or "Text them" for a number with no name.
+    /// The empty box reads "Message".
     static func placeholder(for name: String?, named: Bool = true) -> String {
-        guard named, let n = name?.trimmingCharacters(in: .whitespaces), !n.isEmpty, n.first?.isLetter == true else { return "Text them" }
-        return "Text " + (n.split(separator: " ").first.map(String.init) ?? n)
+        // Plain, like the desktop's (founder, 2026-11-09: no suggested wording).
+        "Message"
     }
 
     /// The server's "Text as Solara · Utah" read as "Sends as Solara · Utah".

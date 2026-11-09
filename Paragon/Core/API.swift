@@ -176,6 +176,18 @@ enum API {
     }()
 
     /// The WHO picker for a conversation: me first, then who can take it.
+    /// Where Atlas would put a vague WHEN ("soon", "today", "this_week") for
+    /// that owner (nil = me): `paragon_promise_slot`.
+    static func promiseSlot(thread: String, owner: String?, hint: String) async throws -> PromiseSlot? {
+        try await rpc("paragon_promise_slot", ["p_thread": thread, "p_owner": owner, "p_hint": hint], as: PromiseSlot?.self)
+    }
+
+    /// Add a promise at the time Atlas places for a vague WHEN.
+    @discardableResult
+    static func promiseAddVague(thread: String, owner: String?, hint: String, text: String) async throws -> PromiseSlot? {
+        try await rpc("paragon_promise_add_vague", ["p_thread": thread, "p_owner": owner, "p_hint": hint, "p_text": text], as: PromiseSlot?.self)
+    }
+
     static func promisePeople(thread: String) async throws -> [PromisePerson] {
         (try await rpc("paragon_promise_people", ["p_thread": thread], as: LossyList<PromisePerson>?.self))?.items ?? []
     }

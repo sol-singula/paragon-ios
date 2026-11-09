@@ -98,12 +98,14 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     var firstThread: QueueThread? { threads?.first }
     var tone: ClockTone { status == "waiting" ? ClockTone(pct: pct) : .calm }
 
-    var isAtlas: Bool { atlas == true || !rowItems.isEmpty }
+    var isAtlas: Bool { allItems.isEmpty ? atlas == true : !rowItems.isEmpty }
     var isPrivate: Bool { self.`private` == true }
-    /// Every card and promise on the row, soonest first.
-    var rowItems: [RowItem] { items?.items ?? (card?.value.map { [$0] } ?? []) }
+    private var allItems: [RowItem] { items?.items ?? (card?.value.map { [$0] } ?? []) }
+    /// Every card and promise on the row, soonest first, less what was just
+    /// done here (`GoneIDs`, instant).
+    var rowItems: [RowItem] { allItems.filter { !GoneIDs.shared.contains($0.id) } }
     /// The leading item (soonest due).
-    var leadItem: RowItem? { card?.value ?? rowItems.first }
+    var leadItem: RowItem? { card?.value.flatMap { GoneIDs.shared.contains($0.id) ? nil : $0 } ?? rowItems.first }
     var isOverdue: Bool {
         if let o = overdue { return o && dueAt != nil }
         return (Stamp.date(dueAt) ?? .distantFuture) <= Date()
@@ -169,6 +171,16 @@ struct ThreadPromise: Decodable, Hashable, Identifiable {
 
 /// One person in the WHO picker (`paragon_promise_people`): me first, then
 /// who can take it; `whyNot` says why someone can't.
+/// Where Atlas puts a vague WHEN: "Tue 1:00 pm" and why. Also what
+/// `paragon_promise_add_vague` answers (its id, due_at and why).
+struct PromiseSlot: Decodable, Hashable {
+    let id: String?
+    let dueAt: String?
+    let label: String?
+    let why: String?
+    let hint: String?
+}
+
 struct PromisePerson: Decodable, Hashable, Identifiable {
     let id: String
     let name: String

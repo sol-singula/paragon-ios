@@ -8,10 +8,8 @@ final class InboxModel {
     static let shared = InboxModel()
 
     enum Show: Hashable { case waiting, owed, all }
-    enum Sort: Hashable { case urgency, recent }
 
     var show: Show = .waiting
-    var sort: Sort = .urgency
     /// Always homeowners only (founder, 2026-11-09: remove "contractors and
     /// internal too").
     let homeownersOnly = true
@@ -21,6 +19,9 @@ final class InboxModel {
     var search = ""
 
     private(set) var items: [QueueItem] = []
+    /// Bumped when something is hidden or put back here (`GoneIDs`), so every
+    /// list that reads rows redraws at once.
+    var localTick = 0
     private(set) var loaded = false
     private(set) var error: String?
 
@@ -32,11 +33,15 @@ final class InboxModel {
     /// What the server sent, less what was just cleared here.
     private var visible: [QueueItem] { cleared.isEmpty ? items : items.filter { cleared[$0.personId] == nil } }
 
-    /// The server's order is the urgency order (one rule, every client):
-    /// overdue first, then the soonest due, promises and cards in among the
-    /// waiting conversations. `sort_key` keeps it after any merge; an older
-    /// server without it gets its old order, waiting before owed.
+    /// One order per tab, no Sort control (founder, 2026-11-09): All is every
+    /// conversation, most recent activity first. Waiting (and Owed) is the
+    /// server's urgency order (one rule, every client): overdue first, then
+    /// the soonest due, promises and cards in among the waiting
+    /// conversations. `sort_key` keeps it after any merge; an older server
+    /// without it gets its old order, waiting before owed. The next
+    /// conversation after one closes follows this order.
     var shown: [QueueItem] {
+        _ = localTick
         let rows = visible
         let base: [QueueItem]
         switch show {
@@ -44,7 +49,7 @@ final class InboxModel {
         case .owed: base = rows.filter { $0.status == "owed" }
         case .all: base = rows
         }
-        if sort == .recent { return recent(base) }
+        if show == .all { return recent(base) }
         if base.contains(where: { $0.sortKey != nil }) {
             // Stable: equal or missing keys keep the server's order.
             return base.enumerated().sorted { a, b in

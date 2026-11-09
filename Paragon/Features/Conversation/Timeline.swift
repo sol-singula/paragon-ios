@@ -28,11 +28,28 @@ struct TimelineList: View {
             }
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
+            // Always at the bottom (founder, 2026-11-09: "I have to scroll down
+            // half a message"): on open and again as rows settle (pictures,
+            // call words), and whenever something new arrives.
+            .onAppear { settle(proxy) }
+            .onChange(of: events.first?.id) { _, _ in settle(proxy) }
+            .onChange(of: events.last?.id) { _, _ in settle(proxy) }
             .onChange(of: events.count) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             .onChange(of: pending.count) { old, new in if new > old { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } } }
             .onChange(of: scrollKey) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
         .fullScreenCover(item: $viewing) { v in ImageViewer(url: v.url) }
+    }
+
+    /// To the bottom now and once more as the lazy rows find their heights.
+    private func settle(_ proxy: ScrollViewProxy) {
+        proxy.scrollTo("bottom", anchor: .bottom)
+        Task { @MainActor in
+            for ms in [120, 400, 1000] {
+                try? await Task.sleep(for: .milliseconds(ms))
+                proxy.scrollTo("bottom", anchor: .bottom)
+            }
+        }
     }
 
     /// Who sent a text of ours: Atlas, or the teammate's name.

@@ -56,6 +56,9 @@ struct WhoIsThisBar: View {
 struct ReleaseSheet: View {
     let name: String
     let threadId: String
+    /// The moment Release is tapped (instant): take the row off now.
+    var onGone: (() -> Void)? = nil
+    /// After the server answers, yes or no.
     let onDone: () -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -91,14 +94,29 @@ struct ReleaseSheet: View {
             }
         }
         .presentationDetents([.medium])
+        // Ready to type the moment it opens (founder, 2026-11-09). Focus set
+        // while the sheet is still sliding in is dropped, so set it again
+        // once it has settled.
         .onAppear { focused = true }
+        .task {
+            try? await Task.sleep(for: .milliseconds(350))
+            if !focused { focused = true }
+        }
     }
 
+    /// Instant (founder, 2026-11-09): closes and leaves the list now; a
+    /// refusal is a toast with the reason, and the list reads again.
     private func release() {
         busy = true
-        Task {
-            do { try await API.releaseThread(threadId, reason: why.trimmingCharacters(in: .whitespacesAndNewlines)); onDone(); dismiss() }
-            catch { self.error = "Could not release it: \(error.localizedDescription)"; busy = false }
+        let reason = why.trimmingCharacters(in: .whitespacesAndNewlines)
+        let thread = threadId, name = name, onDone = onDone
+        Toast.shared.show("Released \(name)")
+        onGone?()
+        dismiss()
+        Task { @MainActor in
+            do { try await API.releaseThread(thread, reason: reason) }
+            catch { Toast.shared.show("Could not release it: \(error.localizedDescription)", error: true) }
+            onDone()
         }
     }
 }
