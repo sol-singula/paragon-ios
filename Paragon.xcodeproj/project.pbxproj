@@ -51,6 +51,7 @@
 		CA4417210661B52D92B1A27F /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20144B329707F8307DAAA282 /* API.swift */; };
 		CDA376FE842D089D31702075 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6035F3E49FE86048CAD2C599 /* InboxView.swift */; };
 		D07C4C9E38A887285506E3E8 /* TeamModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31BEE53F07A627F628236287 /* TeamModel.swift */; };
+		D27A9A23666ACE52AAC4C7DA /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1D2CECDBCEFAA975602601 /* NotificationsView.swift */; };
 		D681B194A9EB0B03661C762F /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFAC2046693956AFC3F5427 /* Face.swift */; };
 		D76249C70737E72DCA74615C /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB96A42A1AC076D41BC5631B /* Session.swift */; };
 		D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF93659363F43D9F38EA81F /* CostsView.swift */; };
@@ -103,6 +104,7 @@
 		C820DE09D57DC0C01BAE888B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRing.swift; sourceTree = "<group>"; };
 		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
+		CD1D2CECDBCEFAA975602601 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		CDE1DBC55AD2A92387B13971 /* DayGlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGlow.swift; sourceTree = "<group>"; };
 		D8AA41283D6004E9AAA4F251 /* Composer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Composer.swift; sourceTree = "<group>"; };
 		E17DE6809FADC88837910EC0 /* TeamBell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamBell.swift; sourceTree = "<group>"; };
@@ -287,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				2FF93659363F43D9F38EA81F /* CostsView.swift */,
+				CD1D2CECDBCEFAA975602601 /* NotificationsView.swift */,
 				B901470181B630BFD257C0AB /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -424,6 +427,7 @@
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
+				D27A9A23666ACE52AAC4C7DA /* NotificationsView.swift in Sources */,
 				729CBEFA52FD43A5739B0765 /* Outbox.swift in Sources */,
 				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
 				72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */,
@@ -464,7 +468,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -546,7 +550,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
