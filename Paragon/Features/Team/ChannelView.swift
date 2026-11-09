@@ -20,6 +20,7 @@ struct ChannelView: View {
     @State private var readMark: String?
     @State private var scrollKey = 0
     @State private var keepId: String?
+    @State private var outbox = TeamOutbox.shared
 
     private var channel: TeamChannel? { model.channel(channelId) }
     private var meId: String { session.me?.id ?? "" }
@@ -27,12 +28,9 @@ struct ChannelView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
-            if let msgs { list(msgs) } else { Spacer(); ProgressView().tint(Theme.muted); Spacer() }
+            if let msgs { list(shown(msgs)) } else { Spacer(); ProgressView().tint(Theme.muted); Spacer() }
             if let c = channel {
-                TeamComposer(channel: c, meId: meId, replyTo: $replyTo) { m in
-                    merge([m]); scrollKey += 1
-                    Task { await model.load() }
-                }
+                TeamComposer(channel: c, meId: meId, replyTo: $replyTo) { scrollKey += 1 }
             }
         }
         .background(Theme.bg)
@@ -99,6 +97,10 @@ struct ChannelView: View {
                                        onOpenPhoto: { viewing = ViewedImage(url: $0) }, onError: { error = $0 })
                             .id(m.id)
                     }
+                    // Mine on the way out, after everything else.
+                    ForEach(outbox.items(channelId).filter { $0.message == nil }) { p in
+                        PendingTeamRow(item: p, meId: meId)
+                    }
                     Color.clear.frame(height: 1).id("bottom")
                 }
                 .padding(.vertical, 6)
@@ -106,6 +108,7 @@ struct ChannelView: View {
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollKey) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
+            .onChange(of: outbox.items(channelId).count) { old, new in if new > old { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } } }
             .onChange(of: msgs.count) { old, new in
                 if let k = keepId { keepId = nil; proxy.scrollTo(k, anchor: .top) }
                 else if new > old { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
@@ -134,6 +137,16 @@ struct ChannelView: View {
 
     // MARK: Loading
 
+    /// The channel as read, plus what I posted that the next read has not
+    /// brought yet (paragon_team_post answers with the message itself, so it
+    /// takes the pending one's place at once).
+    private func shown(_ msgs: [TeamMessage]) -> [TeamMessage] {
+        let have = Set(msgs.map(\.id))
+        let mine = outbox.items(channelId).compactMap(\.message).filter { !have.contains($0.id) }
+        guard !mine.isEmpty else { return msgs }
+        return (msgs + mine).sorted { (Stamp.date($0.createdAt) ?? .distantPast) < (Stamp.date($1.createdAt) ?? .distantPast) }
+    }
+
     private func merge(_ incoming: [TeamMessage], replaceTail: Bool = false) {
         var map = Dictionary((msgs ?? []).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         if replaceTail, let from = incoming.compactMap({ Stamp.date($0.createdAt) }).min() {
@@ -151,6 +164,7 @@ struct ChannelView: View {
                 let page = try await API.teamRead(channel: channelId)
                 if msgs == nil { more = page.more == true }
                 merge(page.messages, replaceTail: true)
+                outbox.reconcile(channel: channelId, ids: Set((msgs ?? []).map(\.id)))
                 error = nil
             } catch {
                 if msgs == nil { msgs = [] }
@@ -177,6 +191,85 @@ struct ChannelView: View {
     private func markRead() {
         guard phase == .active, msgs != nil else { return }
         Task { await model.markRead(channelId) }
+    }
+}
+
+/// A post of mine still on its way: my face and name, "Sending…" where the
+/// time goes, the photos from the phone; rose with "Not sent · Tap to
+/// retry" and the reason when it failed, Delete in its menu.
+private struct PendingTeamRow: View {
+    let item: TeamOutbox.Item
+    let meId: String
+    @State private var model = TeamModel.shared
+    @State private var confirmDelete = false
+
+    var body: some View {
+        let failed = item.isFailed
+        HStack(alignment: .top, spacing: 8) {
+            MemberFace(id: meId, name: model.name(meId), url: model.photo(meId), size: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(model.name(meId)).font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.text)
+                    Text(failed ? "Not sent · Tap to retry" : "Sending…").font(.system(size: 11))
+                        .foregroundStyle(failed ? Theme.rose : Theme.muted)
+                }
+                if let r = item.replyTo {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrowshape.turn.up.left").font(.system(size: 10))
+                        Text(model.first(r.author)).fontWeight(.medium).foregroundStyle(Theme.secondary)
+                        Text(r.body.isEmpty ? (r.photos.isEmpty ? "" : "a photo") : r.body).lineLimit(1)
+                    }
+                    .font(.meta).foregroundStyle(Theme.muted)
+                    .padding(.leading, 8)
+                    .overlay(alignment: .leading) { Rectangle().fill(Theme.border).frame(width: 2) }
+                }
+                if !item.body.isEmpty {
+                    Text(TeamRichText.render(item.body, meId: meId))
+                        .font(.ui).foregroundStyle(failed ? Theme.secondary : Theme.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if !item.files.isEmpty {
+                    let cols = item.files.count == 1 ? [GridItem(.flexible())] : [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)]
+                    LazyVGrid(columns: cols, alignment: .leading, spacing: 6) {
+                        ForEach(item.files) { f in
+                            if let img = f.preview {
+                                Color.clear
+                                    .aspectRatio(img.size.height > 0 ? img.size.width / img.size.height : 4.0 / 3.0, contentMode: .fit)
+                                    .frame(maxHeight: item.files.count == 1 ? 300 : 160)
+                                    .overlay { Image(uiImage: img).resizable().scaledToFill() }
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            } else if let a = f.existing {
+                                TeamPhoto(a: a, maxHeight: item.files.count == 1 ? 300 : 160)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 320, alignment: .leading)
+                    .padding(.top, 2)
+                }
+                if let r = item.reason {
+                    Text(r).font(.system(size: 11)).foregroundStyle(Theme.rose.opacity(0.85)).lineLimit(3)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.top, 6).padding(.bottom, 2)
+        .background(failed ? Theme.rose.opacity(0.08) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { if failed { TeamOutbox.shared.retry(item) } }
+        .contextMenu {
+            if failed {
+                Button { TeamOutbox.shared.retry(item) } label: { Label("Retry", systemImage: "arrow.clockwise") }
+            }
+            if !item.body.isEmpty {
+                Button { UIPasteboard.general.string = item.body } label: { Label("Copy text", systemImage: "doc.on.doc") }
+            }
+            if failed {
+                Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash") }
+            }
+        }
+        .confirmationDialog("Delete this message?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) { TeamOutbox.shared.delete(item) }
+        } message: { Text("It was never posted.") }
     }
 }
 

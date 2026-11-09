@@ -159,10 +159,16 @@ enum API {
     /// Only paragon-send sends. Attachments are files already uploaded to
     /// the public paragon-shared bucket (`Storage.uploadShared`); the body
     /// may be empty when there are some.
-    static func send(thread: String, body: String, attachments: [SharedFile] = []) async throws {
-        struct Sent: Decodable { let ok: Bool? }
+    /// Returns the message's id (`paragon.messages.id`, the timeline's id)
+    /// when the function names it. `clientId` is ours, for the server to
+    /// echo back if it ever does; it never changes what is sent.
+    @discardableResult
+    static func send(thread: String, body: String, attachments: [SharedFile] = [], clientId: String? = nil) async throws -> String? {
+        struct Sent: Decodable { let ok: Bool?; let messageId: String? }
         let files: [[String: Any]] = attachments.map { ["path": $0.path, "name": $0.name, "type": $0.type] }
-        _ = try await function("paragon-send", body: ["thread_id": thread, "body": body, "attachments": files], as: Sent.self)
+        var payload: [String: Any?] = ["thread_id": thread, "body": body, "attachments": files]
+        if let clientId { payload["client_id"] = clientId }
+        return try await function("paragon-send", body: payload, as: Sent.self).messageId
     }
 
     /// The Street View image Nexus saved for their lead, or null.

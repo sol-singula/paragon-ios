@@ -4,25 +4,19 @@ import UniformTypeIdentifiers
 
 /// Write to a channel. "@" offers the channel's people, Atlas (when it is
 /// in the channel) and @everyone; photos and GIFs upload while you type.
-/// The draft is kept per channel.
+/// The draft is kept per channel. Send never waits: the post shows in the
+/// channel at once and the TeamOutbox uploads and posts it behind.
 struct TeamComposer: View {
     let channel: TeamChannel
     let meId: String
     @Binding var replyTo: TeamMessage?
-    let onSent: (TeamMessage) -> Void
-
-    private struct Pending: Identifiable {
-        let id = UUID()
-        let preview: UIImage?
-        var att: TeamAttachment?
-        var failed = false
-    }
+    /// Called the moment a post is handed over (to scroll to it).
+    let onSent: () -> Void
     private struct Option: Identifiable { let id: String; let label: String; let insert: String; let sub: String? }
 
     @State private var model = TeamModel.shared
     @State private var text = ""
-    @State private var pending: [Pending] = []
-    @State private var sending = false
+    @State private var pending: [TeamOutFile] = []
     @State private var picking = false
     @State private var picks: [PhotosPickerItem] = []
     @State private var gifs = false
@@ -77,8 +71,7 @@ struct TeamComposer: View {
                 Button { send() } label: {
                     ZStack {
                         Circle().fill(canSend ? Theme.teal : Theme.hover).frame(width: 34, height: 34)
-                        if sending { ProgressView().tint(.white) }
-                        else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.white : Theme.muted) }
+                        Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.white : Theme.muted)
                     }
                 }
                 .disabled(!canSend)
@@ -167,16 +160,12 @@ struct TeamComposer: View {
                     ZStack(alignment: .topTrailing) {
                         Group {
                             if let img = p.preview { Image(uiImage: img).resizable().scaledToFill() }
-                            else if let a = p.att { TeamPhoto(a: a, maxHeight: 64) }
+                            else if let a = p.existing { TeamPhoto(a: a, maxHeight: 64) }
                             else { Color.clear }
                         }
                         .frame(width: 64, height: 64)
                         .background(Theme.hover)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay {
-                            if p.att == nil && !p.failed { ZStack { Color.black.opacity(0.35); ProgressView().tint(.white) }.clipShape(RoundedRectangle(cornerRadius: 10)) }
-                        }
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(p.failed ? Theme.rose : .clear, lineWidth: 2))
                         Button { pending.removeAll { $0.id == p.id } } label: {
                             Image(systemName: "xmark").font(.system(size: 9, weight: .bold)).foregroundStyle(.white)
                                 .frame(width: 18, height: 18).background(Circle().fill(.black.opacity(0.65)))
@@ -193,53 +182,31 @@ struct TeamComposer: View {
         guard let data = try? await item.loadTransferable(type: Data.self) else { error = "That photo couldn't be read."; return }
         let mime = FileKind.sniff(data) ?? FileKind.mime(for: item.supportedContentTypes.first)
         let ext = UTType(mimeType: mime)?.preferredFilenameExtension ?? "img"
-        let p = Pending(preview: UIImage(data: data))
-        pending.append(p)
-        do {
-            let a = try await Storage.uploadTeam(channel: channel.id, data: data, name: "photo.\(ext)", type: mime)
-            if let i = pending.firstIndex(where: { $0.id == p.id }) { pending[i].att = a }
-            error = nil
-        } catch {
-            self.error = "Could not add the photo: \(error.localizedDescription)"
-            if let i = pending.firstIndex(where: { $0.id == p.id }) { pending[i].failed = true }
-        }
+        // The same checks the upload makes, now, so the post never fails on them.
+        guard Storage.teamTypes.contains(mime) else { error = "That is not a photo or GIF."; return }
+        guard data.count <= Storage.teamMax else { error = "That photo is over 10 MB."; return }
+        pending.append(TeamOutFile(name: "photo.\(ext)", type: mime, data: data, preview: ImageInfo.image(data), existing: nil))
+        error = nil
     }
 
+    /// A GIF the team sent before: copied into this channel when the post goes.
     private func addGif(_ a: TeamAttachment) {
-        let p = Pending(preview: nil)
-        pending.append(p)
-        Task {
-            do {
-                let copy = try await Storage.copyTeam(channel: channel.id, a)
-                if let i = pending.firstIndex(where: { $0.id == p.id }) { pending[i].att = copy }
-            } catch {
-                self.error = "Could not add the GIF: \(error.localizedDescription)"
-                pending.removeAll { $0.id == p.id }
-            }
-        }
+        pending.append(TeamOutFile(name: a.name ?? "gif", type: a.type ?? "image/gif", data: nil, preview: nil, existing: a))
     }
 
     // MARK: Sending
 
-    private var uploading: Bool { pending.contains { $0.att == nil && !$0.failed } }
-    private var ready: [TeamAttachment] { pending.compactMap(\.att) }
-    private var canSend: Bool { !sending && !uploading && (!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !ready.isEmpty) }
+    private var canSend: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !pending.isEmpty }
 
+    /// Into the channel at once; the box is ready for the next one and the
+    /// keyboard stays up.
     private func send() {
         guard canSend else { return }
-        sending = true
         let body = text
         let ids = (channel.members ?? []).filter { $0 != meId && body.contains("@\(model.first($0))") }
-        Task {
-            do {
-                let m = try await API.teamPost(channel: channel.id, body: body, attachments: ready, replyTo: replyTo?.id, mentions: ids)
-                text = ""; pending = []; replyTo = nil; error = nil
-                onSent(m)
-            } catch {
-                self.error = "Not sent: \(error.localizedDescription)"
-            }
-            sending = false
-        }
+        TeamOutbox.shared.post(channel: channel.id, body: body, files: pending, replyTo: replyTo, mentions: ids)
+        text = ""; pending = []; replyTo = nil; error = nil; emoji = false
+        onSent()
     }
 }
 

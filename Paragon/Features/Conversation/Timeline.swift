@@ -6,6 +6,8 @@ import SwiftUI
 struct TimelineList: View {
     let events: [TimelineEvent]
     var scrollKey: Int = 0
+    /// Ours on the way out (the Outbox), after everything else.
+    var pending: [Outbox.Item] = []
     @State private var viewing: ViewedImage?
 
     var body: some View {
@@ -14,7 +16,11 @@ struct TimelineList: View {
                 LazyVStack(spacing: 6) {
                     ForEach(Array(events.enumerated()), id: \.element.id) { i, e in
                         if showDay(i) { DayDivider(at: e.at) }
-                        if e.isCall { CallRow(e: e) } else { TextBubble(e: e, showFace: showFace(i), open: { viewing = ViewedImage(url: $0) }) }
+                        if e.isCall { CallRow(e: e) } else { TextBubble(e: e, showFace: showFace(i) && !(i == events.count - 1 && !pending.isEmpty), open: { viewing = ViewedImage(url: $0) }) }
+                    }
+                    if !pending.isEmpty && !lastIsToday { DayDivider(at: ISO8601DateFormatter().string(from: Date())) }
+                    ForEach(Array(pending.enumerated()), id: \.element.id) { i, p in
+                        PendingBubble(item: p, showFace: i == pending.count - 1)
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
@@ -23,6 +29,7 @@ struct TimelineList: View {
             .defaultScrollAnchor(.bottom)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: events.count) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
+            .onChange(of: pending.count) { old, new in if new > old { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } } }
             .onChange(of: scrollKey) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
         .fullScreenCover(item: $viewing) { v in ImageViewer(url: v.url) }
@@ -41,6 +48,11 @@ struct TimelineList: View {
         guard let s = sender(i) else { return false }
         guard sender(i + 1) == s, let a = Stamp.date(events[i].at), let b = Stamp.date(events[i + 1].at) else { return true }
         return !Calendar.current.isDate(a, inSameDayAs: b)
+    }
+
+    private var lastIsToday: Bool {
+        guard let d = Stamp.date(events.last?.at) else { return false }
+        return Calendar.current.isDateInToday(d)
     }
 
     private func showDay(_ i: Int) -> Bool {
@@ -149,6 +161,95 @@ struct TextBubble: View {
         }
         if failed { parts.append("Not delivered") }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// A text of ours that is still on its way: shown the moment Send is
+/// pressed with the local pictures and our face, "Sending…" under it; the
+/// usual time and name once it went; rose with "Not sent · Tap to retry"
+/// and the reason when it didn't. Delete is in its menu.
+struct PendingBubble: View {
+    let item: Outbox.Item
+    var showFace = true
+
+    @Environment(Session.self) private var session
+    @Environment(TeamStore.self) private var team
+    @State private var confirmDelete = false
+
+    var body: some View {
+        let failed = item.isFailed
+        HStack(alignment: .bottom, spacing: 5) {
+            VStack(alignment: .trailing, spacing: 3) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if !item.body.isEmpty {
+                        Text(item.body).font(.ui).foregroundStyle(Theme.text).textSelection(.enabled)
+                    }
+                    ForEach(item.files) { f in
+                        if let img = f.preview {
+                            Image(uiImage: img).resizable().scaledToFill()
+                                .frame(width: 200, height: 200)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        } else {
+                            Label(f.name, systemImage: "paperclip").font(.meta).foregroundStyle(Theme.cyan).lineLimit(1)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(bubble.fill(failed ? Theme.rose.opacity(0.22) : Theme.outBubble))
+                .overlay(bubble.stroke(failed ? Theme.rose.opacity(0.7) : Color.clear, lineWidth: 1))
+                .contentShape(Rectangle())
+                .onTapGesture { if failed { Outbox.shared.retry(item) } }
+                .contextMenu {
+                    if failed {
+                        Button { Outbox.shared.retry(item) } label: { Label("Retry", systemImage: "arrow.clockwise") }
+                    }
+                    if !item.body.isEmpty {
+                        Button { UIPasteboard.general.string = item.body } label: { Label("Copy text", systemImage: "doc.on.doc") }
+                    }
+                    if failed {
+                        Button(role: .destructive) { confirmDelete = true } label: { Label("Delete", systemImage: "trash") }
+                    }
+                }
+                .confirmationDialog("Delete this text?", isPresented: $confirmDelete, titleVisibility: .visible) {
+                    Button("Delete", role: .destructive) { Outbox.shared.delete(item) }
+                } message: { Text("It was never sent.") }
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(meta).font(.system(size: 11)).foregroundStyle(failed ? Theme.rose : Theme.muted)
+                    if let r = item.reason {
+                        Text(r).font(.system(size: 11)).foregroundStyle(Theme.rose.opacity(0.85))
+                            .multilineTextAlignment(.trailing).lineLimit(3)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .onTapGesture { if failed { Outbox.shared.retry(item) } }
+            }
+            Group {
+                if showFace, let me = session.me {
+                    if let m = team.byId[me.id] { MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 20, showPresence: false) }
+                    else { Face(name: me.name, url: nil, size: 20) }
+                } else {
+                    Color.clear
+                }
+            }
+            .frame(width: 20, height: 20)
+            .padding(.bottom, 19)
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.leading, 40)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(failed ? "Not sent. Double tap to try again." : "")
+    }
+
+    private var bubble: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: 16, bottomLeadingRadius: 16, bottomTrailingRadius: 5, topTrailingRadius: 16, style: .continuous)
+    }
+
+    private var meta: String {
+        switch item.state {
+        case .queued, .sending: return "Sending…"
+        case .sent(_, let at): return [Stamp.exact(at), session.me?.first].compactMap { $0 }.joined(separator: " · ")
+        case .failed: return "Not sent · Tap to retry"
+        }
     }
 }
 
