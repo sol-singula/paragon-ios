@@ -27,6 +27,7 @@
 		53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6864F9B471EC96A354A53915 /* PushManager.swift */; };
 		644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */; };
 		6495C707FC76307A0175E5A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B901470181B630BFD257C0AB /* SettingsView.swift */; };
+		729CBEFA52FD43A5739B0765 /* Outbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D1915B383F0486B0556152 /* Outbox.swift */; };
 		72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 386E0F473B7D7AE55DC2693A /* PersonTools.swift */; };
 		7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1111AC1D38C9D489F3F967BC /* BranchMark.swift */; };
 		7E1A76B853569E06501D44E8 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = D1DC09E0656E913B2245BE60 /* TwilioVoice */; };
@@ -96,6 +97,7 @@
 		A58B17D88C0E7D4AB45A5DD2 /* Supa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supa.swift; sourceTree = "<group>"; };
 		B901470181B630BFD257C0AB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		C2D1915B383F0486B0556152 /* Outbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Outbox.swift; sourceTree = "<group>"; };
 		C820DE09D57DC0C01BAE888B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRing.swift; sourceTree = "<group>"; };
 		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
@@ -224,6 +226,7 @@
 				20144B329707F8307DAAA282 /* API.swift */,
 				9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */,
 				C820DE09D57DC0C01BAE888B /* Models.swift */,
+				C2D1915B383F0486B0556152 /* Outbox.swift */,
 				24B083394A6A4A5A74F03710 /* Presence.swift */,
 				CC33203CA6ABF49F46B6E591 /* Router.swift */,
 				FB96A42A1AC076D41BC5631B /* Session.swift */,
@@ -410,6 +413,7 @@
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
+				729CBEFA52FD43A5739B0765 /* Outbox.swift in Sources */,
 				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
 				72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */,
 				BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */,
@@ -448,7 +452,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -456,7 +460,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -530,7 +534,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -538,7 +542,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
