@@ -1,0 +1,31 @@
+name: Build
+
+# Compiles the app for the simulator on every push, unsigned, so a change
+# that doesn't build is caught before anyone opens Xcode. It never signs,
+# archives or uploads anything.
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: XcodeGen
+        run: brew install xcodegen && xcodegen generate
+      - name: Placeholder secrets
+        run: |
+          printf 'SUPABASE_URL = https:/$()/example.supabase.co\nSUPABASE_ANON_KEY = placeholder\n' > Config/Secrets.xcconfig
+      - name: Build (iOS Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild -project Paragon.xcodeproj -scheme Paragon -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|warning: .*(Swift|swift)|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+      - name: Errors
+        if: failure()
+        run: grep -n "error:" build.log | head -80 || true
