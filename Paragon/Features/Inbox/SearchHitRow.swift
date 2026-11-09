@@ -9,6 +9,9 @@ struct SearchHitRow: View {
     let symbol: String
     var busy = false
     var callDisabled = false
+    /// A client nobody has texted yet: "No texts yet", and Call reads
+    /// "Start and call".
+    var neverTexted = false
     let onOpen: () -> Void
     let onText: () -> Void
     let onCall: () -> Void
@@ -17,22 +20,26 @@ struct SearchHitRow: View {
         HStack(spacing: 10) {
             Button(action: onOpen) {
                 HStack(spacing: 10) {
-                    if hit.type == "conversation" {
-                        BranchMark(brand: hit.brand, size: 30)
+                    if hit.type == "conversation" || hit.brand != nil {
+                        BranchMark(brand: hit.brand, size: 34)
                     } else {
                         Image(systemName: symbol)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.muted)
-                            .frame(width: 30, height: 30)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Theme.secondary)
+                            .frame(width: 34, height: 34)
                             .background(Circle().fill(Theme.hover))
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(hit.name).font(.uiMedium).foregroundStyle(Theme.text).lineLimit(1)
-                            if let s = hit.status, !s.isEmpty { StatusChip(name: s, color: StatusChip.color(hit.statusColor)) }
-                        }
-                        if let sub = hit.secondary, !sub.isEmpty {
-                            Text(sub).font(.meta).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+                        Text(hit.name).font(.name).foregroundStyle(Theme.text).lineLimit(1)
+                        HStack(spacing: 5) {
+                            let sub = neverTexted ? "No texts yet" : hit.secondary
+                            if let sub, !sub.isEmpty {
+                                Text(sub).font(.system(size: 14)).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+                            }
+                            if let s = hit.status, !s.isEmpty {
+                                if let sub, !sub.isEmpty { Text("·").font(.system(size: 14)).foregroundStyle(Theme.muted) }
+                                StatusChip(name: s, color: StatusChip.color(hit.statusColor)).layoutPriority(1)
+                            }
                         }
                     }
                     Spacer(minLength: 4)
@@ -43,38 +50,18 @@ struct SearchHitRow: View {
             .buttonStyle(.plain)
 
             if hit.isPerson {
-                ActionPill(symbol: "message.fill", label: "Text", tint: Theme.teal, action: onText)
-                    .accessibilityLabel("Text \(hit.name)")
-                ActionPill(symbol: "phone.fill", label: "Call", tint: Theme.green, action: onCall)
-                    .disabled(callDisabled)
-                    .opacity(callDisabled ? 0.4 : 1)
-                    .accessibilityLabel("Call \(hit.name)")
+                HStack(spacing: 6) {
+                    PillButton(label: "Text", action: onText)
+                        .accessibilityLabel("Text \(hit.name)")
+                    PillButton(label: neverTexted ? "Start and call" : "Call", tone: .call, action: onCall)
+                        .disabled(callDisabled)
+                        .opacity(callDisabled ? 0.4 : 1)
+                        .accessibilityLabel(neverTexted ? "Start a conversation with \(hit.name) and call" : "Call \(hit.name)")
+                }
+                .fixedSize()
             }
         }
-        .padding(.vertical, 4)
         .disabled(busy)
-    }
-}
-
-/// A round action beside a result. Borderless so a List row with three
-/// buttons sends each tap to its own.
-private struct ActionPill: View {
-    let symbol: String
-    let label: String
-    let tint: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(width: 34, height: 34)
-                .background(Circle().fill(tint.opacity(0.14)))
-                .overlay(Circle().strokeBorder(tint.opacity(0.3)))
-        }
-        .buttonStyle(.borderless)
-        .help(label)
     }
 }
 
@@ -88,8 +75,8 @@ struct StatusChip: View {
             .font(.tag)
             .foregroundStyle(color)
             .lineLimit(1)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(RoundedRectangle(cornerRadius: 4).fill(color.opacity(0.14)))
+            .padding(.horizontal, 6).padding(.vertical, 1)
+            .background(RoundedRectangle(cornerRadius: 6).fill(color.opacity(0.16)))
     }
 
     /// "#22C55E" (or "22C55E"); anything else is muted.

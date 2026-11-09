@@ -56,7 +56,7 @@ private struct DayDivider: View {
     var body: some View {
         let d = Stamp.date(at)
         let label = d.map { Calendar.current.isDateInToday($0) ? "Today" : Calendar.current.isDateInYesterday($0) ? "Yesterday" : Self.f.string(from: $0) } ?? ""
-        Text(label).font(.metaMedium).foregroundStyle(Theme.muted).padding(.vertical, 8)
+        Text(label).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.muted).padding(.vertical, 6)
     }
 }
 
@@ -72,7 +72,7 @@ struct TextBubble: View {
         let atlas = e.atlas == true
         let hasText = e.body?.isEmpty == false
         let media = e.mediaItems
-        HStack(alignment: .bottom, spacing: 8) {
+        HStack(alignment: .bottom, spacing: 5) {
             VStack(alignment: ours ? .trailing : .leading, spacing: 3) {
                 VStack(alignment: .leading, spacing: 6) {
                     if hasText || media.isEmpty {
@@ -102,44 +102,51 @@ struct TextBubble: View {
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(ours ? (atlas ? Theme.atlasBubble : Theme.outBubble) : Theme.card))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(ours ? (atlas ? Theme.violet.opacity(0.35) : Theme.teal.opacity(0.3)) : Theme.border))
+                .background(bubble.fill(ours ? (atlas ? Theme.atlasBubble : Theme.outBubble) : Theme.inBubble))
                 HStack(spacing: 4) {
                     if atlas { AtlasRing(size: 10) }
                     Text(meta).font(.system(size: 11)).foregroundStyle(failed ? Theme.rose : Theme.muted)
                 }
+                .padding(.horizontal, 2)
             }
             if ours {
                 // What we sent: the sender's face beside it (Atlas's for Atlas).
                 Group {
                     if showFace {
-                        if atlas { AtlasFace(size: 26) }
-                        else if let m = team.member(named: e.by) { MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 26) }
-                        else { Face(name: e.by?.isEmpty == false ? e.by! : "Sent from Quo", url: nil, size: 26) }
+                        if atlas { AtlasFace(size: 20) }
+                        else if let m = team.member(named: e.by) { MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 20, showPresence: false) }
+                        else { Face(name: e.by?.isEmpty == false ? e.by! : "Sent from Quo", url: nil, size: 20) }
                     } else {
                         Color.clear
                     }
                 }
-                .frame(width: 26, height: 26)
-                .padding(.bottom, 20)
+                .frame(width: 20, height: 20)
+                .padding(.bottom, 19)
             }
         }
         .frame(maxWidth: .infinity, alignment: ours ? .trailing : .leading)
-        .padding(ours ? .leading : .trailing, ours ? 36 : 48)
+        .padding(ours ? .leading : .trailing, ours ? 40 : 56)
+    }
+
+    /// Rounded 16 with the corner nearest the sender small, as a text
+    /// thread draws it.
+    private var bubble: UnevenRoundedRectangle {
+        let big: CGFloat = 16, small: CGFloat = 5
+        return e.isIn
+            ? UnevenRoundedRectangle(topLeadingRadius: big, bottomLeadingRadius: small, bottomTrailingRadius: big, topTrailingRadius: big, style: .continuous)
+            : UnevenRoundedRectangle(topLeadingRadius: big, bottomLeadingRadius: big, bottomTrailingRadius: small, topTrailingRadius: big, style: .continuous)
     }
 
     private var failed: Bool { ["failed", "undelivered"].contains(e.status ?? "") }
 
     private var meta: String {
-        var parts: [String] = []
+        // "9:14 am · Mason": the time, then who sent it.
+        var parts = [Stamp.exact(e.at)]
         if !e.isIn {
             if e.atlas == true { parts.append("Atlas") }
             else if e.automated == true { parts.append("Automated") }
-            else if let by = e.by, !by.isEmpty { parts.append(by) }
+            else if let by = e.by, !by.isEmpty { parts.append(by.split(separator: " ").first.map(String.init) ?? by) }
         }
-        parts.append(Stamp.exact(e.at))
         if failed { parts.append("Not delivered") }
         return parts.joined(separator: " · ")
     }

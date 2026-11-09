@@ -26,6 +26,11 @@ final class TeamModel {
         }
     }
 
+    /// Someone @mentioned me in a channel I hear from: the tab shows "@".
+    var mentioned: Bool {
+        channels.contains { $0.notify != "none" && ($0.mentions ?? 0) > 0 }
+    }
+
     var dndOn: Bool { TeamTime.isOn(overview?.me.dndUntil) }
 
     func channel(_ id: String) -> TeamChannel? { channels.first { $0.id == id } }

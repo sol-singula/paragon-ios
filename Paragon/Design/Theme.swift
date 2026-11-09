@@ -21,8 +21,9 @@ enum Theme {
     static let amber = Color(hex: 0xF59E0B)
     static let green = Color(hex: 0x22C55E)
 
-    /// Our side of a conversation.
-    static let outBubble = Color(hex: 0x14B8A6).opacity(0.16)
+    /// Their side of a conversation (the raised surface) and ours (teal at 18%).
+    static let inBubble = Color(hex: 0x29292C)
+    static let outBubble = Color(hex: 0x14B8A6).opacity(0.18)
     static let atlasBubble = Color(hex: 0x8B5CF6).opacity(0.16)
 
     static let atlasGradient = [Color(hex: 0xC4B5FD), Color(hex: 0x8B5CF6), Color(hex: 0x6D28D9), Color(hex: 0xC4B5FD)]
@@ -45,6 +46,10 @@ extension Font {
     static let meta = Font.system(size: 12.5)
     static let metaMedium = Font.system(size: 12.5, weight: .medium)
     static let tag = Font.system(size: 10.5, weight: .semibold)
+    /// The greeting over the inbox: the display face, 21 bold.
+    static let greeting = Font.system(size: 21, weight: .bold)
+    /// A row's name.
+    static let name = Font.system(size: 15, weight: .semibold)
 }
 
 /// A card on the canvas: the surface, a hairline, rounded 12.

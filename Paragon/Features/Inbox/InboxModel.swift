@@ -4,7 +4,10 @@ import Observation
 @Observable
 @MainActor
 final class InboxModel {
-    enum Show: Hashable { case waiting, all }
+    /// One for the app, so the tab bar can show the waiting count.
+    static let shared = InboxModel()
+
+    enum Show: Hashable { case waiting, owed, all }
     enum Sort: Hashable { case urgency, recent }
 
     var show: Show = .waiting
@@ -24,19 +27,28 @@ final class InboxModel {
         if show == .waiting {
             let w = items.filter { $0.status == "waiting" || $0.status == "owed" }
             base = sort == .recent ? recent(w) : w.filter { $0.status == "waiting" } + w.filter { $0.status == "owed" }
+        } else if show == .owed {
+            let o = items.filter { $0.status == "owed" }
+            base = sort == .recent ? recent(o) : o
         } else {
             base = sort == .recent ? recent(items) : items
         }
         return base
     }
 
-    var counts: (waiting: Int, late: Int) {
-        var waiting = 0, late = 0
-        for q in items where q.status == "waiting" || q.status == "owed" {
-            waiting += 1
-            if q.status == "waiting" && q.tone == .late { late += 1 }
+    /// Who is waiting on a reply, how many of them are late, and how many
+    /// replies we owe ("4 waiting · 1 late · 2 owed").
+    var counts: (waiting: Int, late: Int, owed: Int) {
+        var waiting = 0, late = 0, owed = 0
+        for q in items {
+            if q.status == "waiting" {
+                waiting += 1
+                if q.tone == .late { late += 1 }
+            } else if q.status == "owed" {
+                owed += 1
+            }
         }
-        return (waiting, late)
+        return (waiting, late, owed)
     }
 
     var brands: [String] {
@@ -69,6 +81,9 @@ final class InboxModel {
     // conversation listed once.
 
     private(set) var hits: [SearchHit] = []
+    /// A client in the results → their conversation's person, or "" when
+    /// nobody has texted them yet ("No texts yet", "Start and call").
+    private(set) var conversationOf: [String: String] = [:]
     private(set) var searching = false
     private(set) var searchedFor = ""
     private var searchTask: Task<Void, Never>?
@@ -97,7 +112,31 @@ final class InboxModel {
         hits = rows + people.filter { !leadNames.contains($0.name.lowercased()) }.prefix(8)
         searchedFor = q
         searching = false
+        await resolveLeads(rows.filter { $0.type == "lead" && (conversationOf[$0.id] ?? "").isEmpty }.prefix(10).map(\.id), for: q)
     }
+
+    /// Whether the first clients shown have a conversation, a few at a time.
+    private func resolveLeads(_ ids: [String], for q: String) async {
+        guard !ids.isEmpty else { return }
+        let found = await withTaskGroup(of: (String, String?).self) { group in
+            for id in ids {
+                group.addTask {
+                    let person: String?
+                    do { person = try await API.leadConversation(id) ?? "" } catch { person = nil }
+                    return (id, person)
+                }
+            }
+            var out: [(String, String?)] = []
+            for await r in group { out.append(r) }
+            return out
+        }
+        guard !Task.isCancelled, q == query else { return }
+        for (id, person) in found { if let person { conversationOf[id] = person } }
+    }
+
+    /// What is known about a client's conversation: the person, "" for none
+    /// yet, nil when not looked up.
+    func knownConversation(_ lead: String) -> String? { conversationOf[lead] }
 
     private static func siteHits(_ q: String) async -> [SearchHit] {
         let rows = (try? await API.globalSearch(q, limit: 30)) ?? []

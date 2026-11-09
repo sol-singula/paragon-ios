@@ -55,7 +55,7 @@ struct CostsView: View {
                 }
                 .listRowBackground(Theme.card)
 
-                Section("This range") {
+                Section(label: "This range") {
                     row("Everything", usd(thinking + twilio), color: Theme.text)
                     row("Thinking", usd(thinking), color: Theme.violet)
                     row("Twilio", usd(twilio), color: Color(hex: 0x10B981))
@@ -66,7 +66,7 @@ struct CostsView: View {
                 .listRowBackground(Theme.card)
 
                 if let byDay = c.byDay, !byDay.isEmpty {
-                    Section("By day") {
+                    Section(label: "By day") {
                         DayBars(days: byDay).frame(height: 120).padding(.vertical, 6)
                         HStack(spacing: 12) {
                             legend("Thinking", Theme.violet)
@@ -77,14 +77,14 @@ struct CostsView: View {
                 }
 
                 if let models = c.byModel, !models.isEmpty {
-                    Section("Thinking by model") {
+                    Section(label: "Thinking by model") {
                         ForEach(models, id: \.model) { m in row(modelLabel(m.model), usd(m.usd.value), sub: m.n.map { "\($0) reads" }) }
                     }
                     .listRowBackground(Theme.card)
                 }
 
                 if let clients = c.byClient, !clients.isEmpty {
-                    Section("Top clients") {
+                    Section(label: "Top clients") {
                         ForEach(Array(clients.prefix(15).enumerated()), id: \.offset) { _, x in row(x.name, usd(x.usd.value), sub: x.n.map { "\($0) reads" }) }
                         if let none = c.noClientUsd?.value, none > 0 { row("Not about a client", usd(none), color: Theme.muted) }
                     }
@@ -92,7 +92,7 @@ struct CostsView: View {
                 }
 
                 if let lines = c.twilioByLine, !lines.isEmpty {
-                    Section("Twilio by line") {
+                    Section(label: "Twilio by line") {
                         ForEach(lines, id: \.line) { l in
                             row(l.line, usd(l.usd.value), sub: "\(l.calls ?? 0) calls · \(l.texts ?? 0) texts")
                         }

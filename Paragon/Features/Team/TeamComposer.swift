@@ -76,9 +76,9 @@ struct TeamComposer: View {
                     .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(focused ? Theme.cyan.opacity(0.6) : Theme.inputBorder))
                 Button { send() } label: {
                     ZStack {
-                        Circle().fill(canSend ? Theme.cyan : Theme.hover).frame(width: 36, height: 36)
-                        if sending { ProgressView().tint(.black) }
-                        else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.black : Theme.muted) }
+                        Circle().fill(canSend ? Theme.teal : Theme.hover).frame(width: 34, height: 34)
+                        if sending { ProgressView().tint(.white) }
+                        else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.white : Theme.muted) }
                     }
                 }
                 .disabled(!canSend)

@@ -85,11 +85,13 @@ struct ChannelView: View {
                         let firstNew = isFirstNew(m, prev)
                         if newDay { TeamDayDivider(at: m.createdAt) }
                         if firstNew {
-                            HStack(spacing: 8) {
-                                Rectangle().fill(Color(hex: 0xE5484D).opacity(0.5)).frame(height: 1)
-                                Text("New").font(.system(size: 11, weight: .semibold)).foregroundStyle(Color(hex: 0xE5484D))
+                            // The rose "New" line (the mockup's `.newline`).
+                            HStack(spacing: 6) {
+                                Rectangle().fill(Theme.rose.opacity(0.5)).frame(height: 1)
+                                Text("New").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.rose)
+                                Rectangle().fill(Theme.rose.opacity(0.5)).frame(height: 1)
                             }
-                            .padding(.horizontal, 16).padding(.vertical, 4)
+                            .padding(.horizontal, 14).padding(.vertical, 4)
                         }
                         TeamMessageRow(m: m, meId: meId, isFounder: session.me?.isFounder == true,
                                        compact: !newDay && !firstNew && isRun(prev, m),

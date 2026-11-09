@@ -17,38 +17,8 @@ struct TeamView: View {
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.teamPath) {
-            List {
-                if !team.members.isEmpty {
-                    strip
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-                if let e = model.error {
-                    ErrorBanner(message: e) { Task { await model.load() } }
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-                Section {
-                    ForEach(model.channels) { c in
-                        NavigationLink(value: c.id) { ChannelRow(c: c) }
-                            .listRowBackground(Color.clear)
-                            .listRowSeparatorTint(Theme.border)
-                    }
-                } header: {
-                    Text("Channels").font(.metaMedium).foregroundStyle(Theme.muted).textCase(nil)
-                }
-                if model.loaded && model.channels.isEmpty {
-                    EmptyNote(title: "You're not in a channel yet", detail: "A founder adds people on the desktop, in Settings → Team chat.", symbol: "number")
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .dayGlow()
-            .navigationTitle("Team")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+            VStack(spacing: 0) {
+                TopBar(title: "Team") {
                     Button { dndOpen = true } label: {
                         HStack(spacing: 4) {
                             Image(systemName: model.dndOn ? "moon.fill" : "moon")
@@ -58,12 +28,47 @@ struct TeamView: View {
                     }
                     .accessibilityLabel("Do Not Disturb")
                 }
+                List {
+                    if !team.members.isEmpty {
+                        strip
+                            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 10, trailing: 0))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    }
+                    if let e = model.error {
+                        ErrorBanner(message: e) { Task { await model.load() } }
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                    Section {
+                        ForEach(model.channels) { c in
+                            NavigationLink(value: c.id) { ChannelRow(c: c) }
+                                .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 10, trailing: 16))
+                                .listRowBackground(Color.clear)
+                                .listRowSeparatorTint(Theme.border)
+                                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                        }
+                    } header: {
+                        SectionLabel("Channels")
+                            .padding(.top, 6).padding(.bottom, 4)
+                            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    }
+                    if model.loaded && model.channels.isEmpty {
+                        EmptyNote(title: "You're not in a channel yet", detail: "A founder adds people on the desktop, in Settings → Team chat.", symbol: "number")
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListHeaderHeight, 0)
+                .refreshable { await model.load() }
+                .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
             }
-            .refreshable { await model.load() }
+            .dayGlow()
+            .toolbar(.hidden, for: .navigationBar)
+            .hidesSystemTabBar()
             .task { await model.load() }
             .sheet(isPresented: $dndOpen) { DndSheet().presentationDetents([.medium, .large]) }
-            .navigationDestination(for: String.self) { id in ChannelView(channelId: id) }
-            .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
+            .navigationDestination(for: String.self) { id in ChannelView(channelId: id).hidesSystemTabBar() }
         }
     }
 
@@ -78,18 +83,18 @@ struct TeamView: View {
             return ra != rb ? ra < rb : a.name < b.name
         }
         return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
                 ForEach(sorted) { m in
                     let away = m.onCall != true && !presence.online.contains(m.id)
-                    VStack(spacing: 4) {
-                        MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 40)
+                    VStack(spacing: 3) {
+                        MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 38)
                         Text(m.id == me ? "You" : (m.name.split(separator: " ").first.map(String.init) ?? m.name))
                             .font(.system(size: 11)).foregroundStyle(Theme.secondary).lineLimit(1)
                         if m.onCall == true, let w = m.callWith, !w.isEmpty {
                             Text(w).font(.system(size: 9)).foregroundStyle(Color(hex: 0xE5484D)).lineLimit(1)
                         }
                     }
-                    .frame(width: 52)
+                    .frame(width: 48)
                     .opacity(away ? 0.5 : 1)
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -100,45 +105,52 @@ struct TeamView: View {
                     }
                     .accessibilityHint(canOpenPersonal && m.id != me ? "Opens \(m.name)\u{2019}s personal line" : "")
                 }
+                // Atlas, always here: the violet ring.
+                VStack(spacing: 3) {
+                    AtlasRing(size: 38)
+                    Text("Atlas").font(.system(size: 11)).foregroundStyle(Theme.secondary).lineLimit(1)
+                }
+                .frame(width: 48)
+                .accessibilityElement(children: .combine)
             }
             .padding(.horizontal, 16)
         }
     }
 }
 
+/// A channel (the mockup's `.chan`): a # tile, the name, what it is for,
+/// and a count: rose "@N" for a mention, grey for unread.
 struct ChannelRow: View {
     let c: TeamChannel
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "number").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.muted)
+            Text("#").font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.secondary)
+                .frame(width: 30, height: 30)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.hover))
             VStack(alignment: .leading, spacing: 2) {
-                Text(c.name)
-                    .font(c.showsUnread ? .system(size: 15, weight: .semibold) : .ui)
-                    .foregroundStyle(c.showsUnread || (c.mentions ?? 0) > 0 ? Theme.text : Theme.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(c.name)
+                        .font(.name)
+                        .foregroundStyle(c.showsUnread || (c.mentions ?? 0) > 0 ? Theme.text : Theme.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    if c.quietOrMuted { Image(systemName: "bell.slash").font(.system(size: 11)).foregroundStyle(Theme.muted) }
+                    if let m = c.mentions, m > 0 {
+                        CountBadge(text: "@\(m)")
+                            .accessibilityLabel("\(m) mention\(m == 1 ? "" : "s")")
+                    } else if c.showsUnread, let u = c.unread {
+                        CountBadge(text: u > 99 ? "99+" : "\(u)", quiet: true)
+                            .accessibilityLabel("\(u) unread")
+                    }
+                }
                 if let a = c.about, !a.isEmpty {
-                    Text(a).font(.meta).foregroundStyle(Theme.muted).lineLimit(1)
+                    Text(a).font(.system(size: 14)).foregroundStyle(Theme.secondary).lineLimit(1)
+                } else if let at = c.lastAt {
+                    Text("Last message \(Stamp.when(at))").font(.system(size: 14)).foregroundStyle(Theme.muted).lineLimit(1)
                 }
-            }
-            Spacer(minLength: 4)
-            if c.quietOrMuted { Image(systemName: "bell.slash").font(.system(size: 11)).foregroundStyle(Theme.muted) }
-            if let m = c.mentions, m > 0 {
-                HStack(spacing: 1) {
-                    Image(systemName: "at").font(.system(size: 9, weight: .bold))
-                    Text("\(m)").font(.system(size: 11, weight: .semibold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 6).padding(.vertical, 2)
-                .background(Capsule().fill(Color(hex: 0xE5484D)))
-                .accessibilityLabel("\(m) mention\(m == 1 ? "" : "s")")
-            } else if c.showsUnread, let u = c.unread {
-                Text(u > 99 ? "99+" : "\(u)").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.text)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Capsule().fill(Theme.hover))
             }
         }
-        .padding(.vertical, 4)
         .opacity(c.quietOrMuted ? 0.65 : 1)
     }
 }

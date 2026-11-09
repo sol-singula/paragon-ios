@@ -24,64 +24,67 @@ struct PersonalView: View {
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.personalPath) {
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if let m = member {
-                            Text("\(m.name)\u{2019}s line. What you send or call shows your face.")
-                                .font(.meta).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.tail)
+            VStack(spacing: 0) {
+                TopBar(title: title) {
+                    if member != nil {
+                        Button { router.openPersonal(of: nil) } label: {
+                            Image(systemName: "chevron.backward").font(.system(size: 18, weight: .semibold)).foregroundStyle(Theme.teal)
                         }
-                        let waiting = items.filter { $0.status == "waiting" }.count
-                        Segmented(options: [(Show.recent, "Recent"), (.waiting, waiting > 0 ? "Waiting \(waiting)" : "Waiting"), (.all, "All")], selection: $show)
+                        .accessibilityLabel("Back to my Personal")
                     }
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
-                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                } trailing: {
+                    if canOpenOthers { linesMenu }
                 }
-                if let e = error {
-                    ErrorBanner(message: e) { Task { await load() } }.listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-                ForEach(shown) { p in
-                    NavigationLink(value: Route.personal(threadId: p.threadId, name: p.name)) { PersonalRow(p: p) }
-                        .listRowBackground(Color.clear)
-                        .listRowSeparatorTint(Theme.border)
-                        .contextMenu {
-                            Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
-                                Label("Release…", systemImage: "tray.and.arrow.up")
+                List {
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let m = member {
+                                Text("\(m.name)\u{2019}s line. What you send or call shows your face.")
+                                    .font(.meta).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.tail)
                             }
-                            Button { info = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
-                                Label("Contact info", systemImage: "person.text.rectangle")
-                            }
+                            let waiting = items.filter { $0.status == "waiting" }.count
+                            Segmented(options: [(Show.waiting, waiting > 0 ? "Waiting \(waiting)" : "Waiting"), (.recent, "Recent"), (.all, "All")], selection: $show)
                         }
-                }
-                if loaded && shown.isEmpty {
-                    EmptyNote(title: emptyTitle, detail: items.isEmpty ? emptyDetail : nil, symbol: "person.crop.circle")
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .dayGlow()
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if member != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button { router.openPersonal(of: nil) } label: { Image(systemName: "chevron.backward") }
-                            .accessibilityLabel("Back to my Personal")
+                    }
+                    if let e = error {
+                        ErrorBanner(message: e) { Task { await load() } }.listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    }
+                    ForEach(shown) { p in
+                        NavigationLink(value: Route.personal(threadId: p.threadId, name: p.name)) { PersonalRow(p: p) }
+                            .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparatorTint(Theme.border)
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                            .contextMenu {
+                                Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
+                                    Label("Release…", systemImage: "tray.and.arrow.up")
+                                }
+                                Button { info = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
+                                    Label("Contact info", systemImage: "person.text.rectangle")
+                                }
+                            }
+                    }
+                    if loaded && shown.isEmpty {
+                        EmptyNote(title: emptyTitle, detail: items.isEmpty ? emptyDetail : nil, symbol: "person.crop.circle")
+                            .listRowBackground(Color.clear).listRowSeparator(.hidden)
                     }
                 }
-                if canOpenOthers {
-                    ToolbarItem(placement: .topBarTrailing) { linesMenu }
-                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .refreshable { await load() }
             }
-            .refreshable { await load() }
+            .dayGlow()
+            .toolbar(.hidden, for: .navigationBar)
+            .hidesSystemTabBar()
             .task(id: member) { items = []; loaded = false; await poll() }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await load() } } }
             .sheet(item: $info) { t in ContactInfoSheet(personId: t.personId, threadId: t.threadId) { Task { await load() } } }
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .personal(let t, let n): PersonalThreadView(threadId: t, name: n)
-                case .person(let p, let t): ConversationView(personId: p, threadId: t)
+                case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
+                case .person(let p, let t): ConversationView(personId: p, threadId: t).hidesSystemTabBar()
                 }
             }
         }
@@ -99,7 +102,7 @@ struct PersonalView: View {
                 }
             }
         } label: {
-            Image(systemName: "person.2.circle").foregroundStyle(member != nil ? Theme.cyan : Theme.secondary)
+            Image(systemName: "person.2.circle").foregroundStyle(member != nil ? Theme.teal : Theme.secondary)
         }
         .accessibilityLabel("Open a teammate's personal line")
     }
@@ -151,38 +154,39 @@ struct PersonalView: View {
     }
 }
 
+/// A row as the inbox draws one: a round face, the name semibold, the time
+/// on the right, the preview under it; "New" on a first contact.
 struct PersonalRow: View {
     let p: PersonalItem
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Initials(name: p.name, size: 34)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(p.name).font(p.status == "waiting" ? .uiMedium : .ui)
-                        .foregroundStyle(p.status == "waiting" ? Theme.text : Theme.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(p.name).font(.name)
+                        .foregroundStyle(p.status == "waiting" || p.askType == true ? Theme.text : Theme.secondary)
                         .lineLimit(1).truncationMode(.tail)
                     if p.askType == true {
                         Text("New").font(.tag).foregroundStyle(Theme.amber)
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(RoundedRectangle(cornerRadius: 4).fill(Theme.amber.opacity(0.15)))
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.amber.opacity(0.16)))
                             .accessibilityLabel("New: nobody has said who this is yet")
                     }
-                    if p.isSpam { Text("Spam").font(.system(size: 10)).foregroundStyle(Theme.muted) }
+                    if p.isSpam { Text("Spam").font(.tag).foregroundStyle(Theme.rose.opacity(0.8)) }
                     Spacer(minLength: 4)
                     Text(p.status == "waiting" ? Stamp.span(p.lastActivityAt) : Stamp.when(p.lastActivityAt))
-                        .font(.meta).monospacedDigit().foregroundStyle(p.status == "waiting" ? Theme.amber : Theme.muted)
+                        .font(.system(size: 13)).monospacedDigit().foregroundStyle(p.status == "waiting" ? Theme.amber : Theme.muted)
                         .lineLimit(1)
                 }
                 HStack(spacing: 4) {
                     if p.previewKind == "missed" { Image(systemName: "phone.down.fill").font(.system(size: 10)).foregroundStyle(Theme.rose) }
                     else if p.previewKind == "call" { Image(systemName: "phone.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
-                    Text(Preview.line(p.preview ?? p.line)).font(.meta)
+                    Text(Preview.line(p.preview ?? p.line)).font(.system(size: 14))
                         .foregroundStyle(p.previewKind == "missed" ? Theme.rose : Theme.secondary)
                         .lineLimit(1).truncationMode(.tail)
                 }
             }
         }
-        .padding(.vertical, 6)
     }
 }
 
@@ -190,6 +194,7 @@ struct PersonalThreadView: View {
     let threadId: String
     let name: String
     @Environment(CallManager.self) private var calls
+    @Environment(\.dismiss) private var dismiss
     @State private var thread: PersonalThread?
     @State private var error: String?
     @State private var draft = ""
@@ -199,6 +204,12 @@ struct PersonalThreadView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            ConversationHeader(initialsOnly: true, name: thread?.person?.name ?? name,
+                               subtitle: thread.map { $0.mine == false ? "\($0.lineOwner?.name ?? "A teammate")\u{2019}s line" : "Personal line" },
+                               back: { dismiss() },
+                               callDisabled: calls.active != nil, infoDisabled: thread?.person == nil,
+                               call: { calls.place(thread: threadId, name: name, brand: nil) },
+                               info: { infoOpen = true })
             if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
             if let t = thread {
                 if t.mine == false, let o = t.lineOwner {
@@ -212,24 +223,15 @@ struct PersonalThreadView: View {
                 }
                 TimelineList(events: t.timeline ?? [], scrollKey: scrollKey)
                 Composer(draft: $draft, label: t.sendLabel, sending: sending,
-                         blocked: t.person?.isStopped == true ? "They replied STOP" : nil, send: send)
+                         blocked: t.person?.isStopped == true ? "They replied STOP" : nil,
+                         placeholder: Composer.placeholder(for: t.person?.name ?? name, named: t.person?.hasName != false),
+                         send: send)
             } else {
                 Spacer(); ProgressView().tint(Theme.muted); Spacer()
             }
         }
         .background(Theme.bg)
-        .navigationTitle(name)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { infoOpen = true } label: { Image(systemName: "person.text.rectangle") }
-                    .tint(Theme.secondary).disabled(thread?.person == nil).accessibilityLabel("Contact info")
-            }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { calls.place(thread: threadId, name: name, brand: nil) } label: { Image(systemName: "phone.fill") }
-                    .tint(Theme.cyan).disabled(calls.active != nil).accessibilityLabel("Call")
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task { while !Task.isCancelled { await load(); try? await Task.sleep(for: .seconds(6)) } }
         .sheet(isPresented: $infoOpen) {
             if let p = thread?.person { ContactInfoSheet(personId: p.id, threadId: threadId) { Task { await load() } } }

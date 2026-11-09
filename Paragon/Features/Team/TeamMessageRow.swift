@@ -33,7 +33,7 @@ struct TeamMessageRow: View {
             .padding(.horizontal, 16).padding(.vertical, compact ? 2 : 6)
         } else {
             content
-                .padding(.horizontal, 16).padding(.top, compact ? 2 : 8).padding(.bottom, 2)
+                .padding(.horizontal, 14).padding(.top, compact ? 2 : 6).padding(.bottom, 2)
                 .background(mentionsMe ? Theme.amber.opacity(0.07) : Color.clear)
                 .contentShape(Rectangle())
                 .contextMenu { menu }
@@ -50,19 +50,19 @@ struct TeamMessageRow: View {
 
     @ViewBuilder private var face: some View {
         if compact {
-            Color.clear.frame(width: 36, height: 1)
+            Color.clear.frame(width: 28, height: 1)
         } else {
-            MemberFace(id: m.author, name: model.name(m.author), url: model.photo(m.author), size: 36)
+            MemberFace(id: m.author, name: model.name(m.author), url: model.photo(m.author), size: 28)
         }
     }
 
     private var content: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 8) {
             face
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 if !compact {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(model.name(m.author)).font(.system(size: 15, weight: .semibold))
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(model.name(m.author)).font(.system(size: 14, weight: .bold))
                             .foregroundStyle(m.author == "atlas" ? Color(hex: 0xA78BFA) : Theme.text)
                         Text(time(m.createdAt)).font(.system(size: 11)).foregroundStyle(Theme.muted)
                     }
@@ -105,26 +105,25 @@ struct TeamMessageRow: View {
     }
 
     private func reactions(_ rs: [TeamMessage.Reaction]) -> some View {
-        FlowRow(spacing: 5) {
+        FlowRow(spacing: 4) {
             ForEach(rs, id: \.emoji) { r in
                 let me = r.by.contains(meId)
                 Button { react(r.emoji) } label: {
                     HStack(spacing: 4) {
-                        Text(r.emoji).font(.system(size: 14))
+                        Text(r.emoji).font(.system(size: 13))
                         Text("\(r.by.count)").font(.system(size: 12)).monospacedDigit()
                     }
                     .foregroundStyle(me ? Theme.text : Theme.secondary)
-                    .padding(.horizontal, 8).frame(height: 26)
-                    .background(Capsule().fill(me ? Theme.cyan.opacity(0.12) : Theme.card))
-                    .overlay(Capsule().strokeBorder(me ? Theme.cyan.opacity(0.5) : Theme.border))
+                    .padding(.horizontal, 7).frame(height: 24)
+                    .background(Capsule().fill(me ? Theme.teal.opacity(0.18) : Theme.hover))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(r.by.map { $0 == meId ? "You" : model.first($0) }.joined(separator: ", ")) reacted \(r.emoji)")
             }
             Button { picking = true } label: {
-                Image(systemName: "face.smiling").font(.system(size: 13)).foregroundStyle(Theme.muted)
-                    .padding(.horizontal, 8).frame(height: 26)
-                    .background(Capsule().fill(Theme.card)).overlay(Capsule().strokeBorder(Theme.border))
+                Image(systemName: "face.smiling").font(.system(size: 12)).foregroundStyle(Theme.muted)
+                    .padding(.horizontal, 7).frame(height: 24)
+                    .background(Capsule().fill(Theme.hover))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add a reaction")
@@ -199,8 +198,7 @@ struct TeamPhoto: View {
     }
 }
 
-/// Message words with @mentions lit (mine in amber, Atlas in violet, the
-/// rest in cyan) and links that open, as the desktop's RichText.
+/// Message words with @mentions lit (cyan chips, Atlas in violet) and links that open, as the desktop's RichText.
 enum TeamRichText {
     private typealias FG = AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute
     private typealias BG = AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute
@@ -244,9 +242,10 @@ enum TeamRichText {
             }
             if let hit = matched, let ar = Range(at..<hit.0, in: out) {
                 let id = hit.1
-                let isMe = id == meId || id == "*"
-                out[ar][FG.self] = isMe ? Theme.text : id == "atlas" ? Color(hex: 0xA78BFA) : Theme.cyan
-                out[ar][BG.self] = isMe ? Theme.amber.opacity(0.22) : id == "atlas" ? Theme.violet.opacity(0.15) : Theme.cyan.opacity(0.13)
+                // Cyan chips (the mockup's `.mention`), Atlas in violet. A
+                // message that names me is also lit as a whole row.
+                out[ar][FG.self] = id == "atlas" ? Color(hex: 0xA78BFA) : Theme.cyan
+                out[ar][BG.self] = id == "atlas" ? Theme.violet.opacity(0.15) : Theme.cyan.opacity(0.12)
                 out[ar][FontKey.self] = .system(size: 15, weight: .medium)
                 i = hit.0
             } else {
