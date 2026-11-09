@@ -206,6 +206,10 @@ struct PersonDetails: Decodable {
     let foundAddress: String?
     let foundAt: String?
     let nameSuggestions: [Suggestion]?
+    /// Every number they have, the first one first, `label` already
+    /// formatted ("(801) 566-1177"). Optional: an older server sends none.
+    let phones: [Phone]?
+    struct Phone: Decodable, Hashable { let phone: String; let label: String? }
 }
 
 /// What a person is (paragon_set_contact_type). Spam releases every

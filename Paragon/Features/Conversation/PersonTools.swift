@@ -121,8 +121,10 @@ struct ContactInfoSheet: View {
     var onChanged: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(CallManager.self) private var calls
     @State private var view: PersonView?
     @State private var d: PersonDetails?
+    @State private var phoneAsk: PersonDetails.Phone?
     @State private var house: URL?
     @State private var houseBig = false
     @State private var email = ""
@@ -180,6 +182,32 @@ struct ContactInfoSheet: View {
                         .listRowBackground(Theme.card)
                     }
 
+                    if let phones = d?.phones, !phones.isEmpty {
+                        // Their numbers (founder, 2026-11-09). Hold to copy; tap
+                        // for Call (the conversation's own line) or Copy.
+                        Section(label: "Phone") {
+                            ForEach(Array(phones.enumerated()), id: \.element) { i, p in
+                                Button { phoneAsk = p } label: {
+                                    HStack {
+                                        Text(p.label ?? p.phone).foregroundStyle(Theme.text).monospacedDigit()
+                                        Spacer()
+                                        if i == 0 && phones.count > 1 { Text("Main").font(.meta).foregroundStyle(Theme.muted) }
+                                    }
+                                }
+                                .contextMenu {
+                                    Button { copy(p) } label: { Label("Copy number", systemImage: "doc.on.doc") }
+                                    if i == 0, canCall { Button { call() } label: { Label("Call", systemImage: "phone") } }
+                                }
+                                .accessibilityHint("Hold to copy the number")
+                            }
+                        }
+                        .listRowBackground(Theme.card)
+                        .confirmationDialog(phoneAsk?.label ?? phoneAsk?.phone ?? "", isPresented: Binding(get: { phoneAsk != nil }, set: { if !$0 { phoneAsk = nil } }), titleVisibility: .visible, presenting: phoneAsk) { p in
+                            if p == phones.first, canCall { Button("Call") { call() } }
+                            Button("Copy number") { copy(p) }
+                        }
+                    }
+
                     Section(label: "Contact") {
                         field("Email", "name@example.com", $email, keyboard: .emailAddress) { save(email: email) }
                         field("Address", "Street, city, state", $address) { save(address: address) }
@@ -229,6 +257,21 @@ struct ContactInfoSheet: View {
             .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
         }
         .task { await load() }
+    }
+
+    private var callThread: String? { threadId ?? view?.threadId }
+    private var canCall: Bool { callThread != nil && calls.active == nil }
+
+    /// The usual call: from the conversation's own line, as the Call pill does.
+    private func call() {
+        guard let t = callThread, let v = view else { return }
+        calls.place(thread: t, name: v.person.name, brand: v.threads.first { $0.id == t }?.brand)
+        dismiss()
+    }
+
+    private func copy(_ p: PersonDetails.Phone) {
+        UIPasteboard.general.string = p.label ?? p.phone
+        saved = "Copied \(p.label ?? p.phone)."
     }
 
     private func field(_ label: String, _ placeholder: String, _ text: Binding<String>, keyboard: UIKeyboardType = .default, save: @escaping () -> Void) -> some View {
