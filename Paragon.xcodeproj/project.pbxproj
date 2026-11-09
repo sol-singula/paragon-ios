@@ -25,6 +25,7 @@
 		53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6864F9B471EC96A354A53915 /* PushManager.swift */; };
 		644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */; };
 		6495C707FC76307A0175E5A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B901470181B630BFD257C0AB /* SettingsView.swift */; };
+		72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 386E0F473B7D7AE55DC2693A /* PersonTools.swift */; };
 		7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1111AC1D38C9D489F3F967BC /* BranchMark.swift */; };
 		7E1A76B853569E06501D44E8 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = D1DC09E0656E913B2245BE60 /* TwilioVoice */; };
 		88AC897340C19FE201B896E3 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E9690B8AF59BF579D0ED05 /* Components.swift */; };
@@ -65,6 +66,7 @@
 		34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		34909A603EEA24631BDE1E52 /* CallScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallScreen.swift; sourceTree = "<group>"; };
 		37074D96BBC1E48785B3BF52 /* Stamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stamp.swift; sourceTree = "<group>"; };
+		386E0F473B7D7AE55DC2693A /* PersonTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonTools.swift; sourceTree = "<group>"; };
 		3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParagonApp.swift; sourceTree = "<group>"; };
 		490F70D3F940347485A6CE92 /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
 		4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxModel.swift; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 			children = (
 				D8AA41283D6004E9AAA4F251 /* Composer.swift */,
 				FA5B1771D340E15C64FA9A10 /* ConversationView.swift */,
+				386E0F473B7D7AE55DC2693A /* PersonTools.swift */,
 				F79E3ED26B00A6706D54F3CC /* Timeline.swift */,
 			);
 			path = Conversation;
@@ -394,6 +397,7 @@
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
+				72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */,
 				BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */,
 				8E39E3DEF5E4C97BBEAB68A8 /* Presence.swift in Sources */,
 				53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */,
