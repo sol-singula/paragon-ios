@@ -19,6 +19,7 @@
 		3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */; };
 		3752069BA243D43F74CAC588 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D388A19F67D82475CC9831E7 /* Supabase */; };
 		383061299D8F34E2E8C5D27B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C820DE09D57DC0C01BAE888B /* Models.swift */; };
+		38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */; };
 		3F1D6FAA345E9379CBD29600 /* TeamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E985959092523BAB6488B5B0 /* TeamView.swift */; };
 		415270CA5404919C30AA18AC /* CallKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B2DB116E2966F1FC349DC9E /* CallKit.framework */; };
 		50A6F05F8664F68CA8360510 /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490F70D3F940347485A6CE92 /* CallManager.swift */; };
@@ -28,9 +29,11 @@
 		72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 386E0F473B7D7AE55DC2693A /* PersonTools.swift */; };
 		7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1111AC1D38C9D489F3F967BC /* BranchMark.swift */; };
 		7E1A76B853569E06501D44E8 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = D1DC09E0656E913B2245BE60 /* TwilioVoice */; };
+		833F4A12782D1879B1FA4727 /* SearchHitRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */; };
 		88AC897340C19FE201B896E3 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E9690B8AF59BF579D0ED05 /* Components.swift */; };
 		8AF7B4D7EA008D0715A55328 /* Supa.swift in Sources */ = {isa = PBXBuildFile; fileRef = A58B17D88C0E7D4AB45A5DD2 /* Supa.swift */; };
 		8C4A1F00F4E70B965D9E4EDF /* Stamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37074D96BBC1E48785B3BF52 /* Stamp.swift */; };
+		8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDE1DBC55AD2A92387B13971 /* DayGlow.swift */; };
 		8E39E3DEF5E4C97BBEAB68A8 /* Presence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24B083394A6A4A5A74F03710 /* Presence.swift */; };
 		9104E3876BCBCFB2815DD6EF /* TeamComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F49338858521F025132FABB /* TeamComposer.swift */; };
 		97D9C2FFD68A1C033F8D5B06 /* Storage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61F31BAA0F9BD5C20CAD92BF /* Storage.swift */; };
@@ -83,6 +86,8 @@
 		70579991176F33CD0F8935BF /* Paragon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Paragon.entitlements; sourceTree = "<group>"; };
 		7276CD9082C2F3BEE56C13BC /* PushKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PushKit.framework; path = System/Library/Frameworks/PushKit.framework; sourceTree = SDKROOT; };
 		7A1E7E2FEBECA52D7136550E /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
+		9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchHitRow.swift; sourceTree = "<group>"; };
+		95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageSheet.swift; sourceTree = "<group>"; };
 		9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A116009D8FF074AF1E4FCE3E /* TeamMessageRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamMessageRow.swift; sourceTree = "<group>"; };
@@ -92,6 +97,7 @@
 		C820DE09D57DC0C01BAE888B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRing.swift; sourceTree = "<group>"; };
 		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
+		CDE1DBC55AD2A92387B13971 /* DayGlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGlow.swift; sourceTree = "<group>"; };
 		D8AA41283D6004E9AAA4F251 /* Composer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Composer.swift; sourceTree = "<group>"; };
 		E17DE6809FADC88837910EC0 /* TeamBell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamBell.swift; sourceTree = "<group>"; };
 		E985959092523BAB6488B5B0 /* TeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamView.swift; sourceTree = "<group>"; };
@@ -153,6 +159,8 @@
 			children = (
 				4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */,
 				6035F3E49FE86048CAD2C599 /* InboxView.swift */,
+				95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */,
+				9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */,
 			);
 			path = Inbox;
 			sourceTree = "<group>";
@@ -274,6 +282,7 @@
 				CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */,
 				1111AC1D38C9D489F3F967BC /* BranchMark.swift */,
 				05E9690B8AF59BF579D0ED05 /* Components.swift */,
+				CDE1DBC55AD2A92387B13971 /* DayGlow.swift */,
 				4DFAC2046693956AFC3F5427 /* Face.swift */,
 				333DD5D9632078211CA6CBF3 /* RemoteImage.swift */,
 				5365F897E8EDAE5FC80D97F2 /* Theme.swift */,
@@ -392,10 +401,12 @@
 				02E9621B78DACBC1D2CFF6C8 /* Composer.swift in Sources */,
 				2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */,
 				D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */,
+				8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */,
 				D681B194A9EB0B03661C762F /* Face.swift in Sources */,
 				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
+				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
 				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
 				72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */,
 				BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */,
@@ -404,6 +415,7 @@
 				A02E970E093BD8528FDF76F6 /* RemoteImage.swift in Sources */,
 				1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */,
 				163777340452D02C27B7BCE9 /* Router.swift in Sources */,
+				833F4A12782D1879B1FA4727 /* SearchHitRow.swift in Sources */,
 				D76249C70737E72DCA74615C /* Session.swift in Sources */,
 				6495C707FC76307A0175E5A7 /* SettingsView.swift in Sources */,
 				A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */,
