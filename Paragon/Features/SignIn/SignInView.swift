@@ -72,15 +72,17 @@ struct NotMemberView: View {
     }
 }
 
-/// The Paragon dot: the desktop's icon, a cyan-to-green circle with a P.
+/// Paragon's logo (owner, 2026-11-09): the solbuild orb with a white phone.
 struct ParagonMark: View {
     var size: CGFloat = 32
     var body: some View {
-        Text("P")
-            .font(.system(size: size * 0.52, weight: .bold))
+        Image(systemName: "phone.fill")
+            .font(.system(size: size * 0.46, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
-            .background(Circle().fill(LinearGradient(colors: [Color(hex: 0x06B6D4), Color(hex: 0x10B981)],
+            .background(Circle().fill(LinearGradient(stops: [.init(color: Color(hex: 0x06B6D4), location: 0),
+                                                            .init(color: Color(hex: 0x0FB89A), location: 0.55),
+                                                            .init(color: Color(hex: 0x10B981), location: 1)],
                                                      startPoint: .topLeading, endPoint: .bottomTrailing)))
     }
 }
