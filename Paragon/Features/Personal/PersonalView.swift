@@ -27,7 +27,7 @@ struct PersonalView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Theme.bg)
-            .navigationTitle("Personal")
+            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { await load() }
             .task { await poll() }
@@ -38,6 +38,14 @@ struct PersonalView: View {
                 }
             }
         }
+    }
+
+    /// 'Personal · "Mason" line' (owner, 2026-11-09).
+    private var title: String {
+        var seen = Set<String>()
+        let names = items.map(\.line).filter { !$0.isEmpty && seen.insert($0).inserted }
+        guard !names.isEmpty else { return "Personal" }
+        return "Personal · " + names.map { "“\($0)”" }.joined(separator: ", ") + (names.count > 1 ? " lines" : " line")
     }
 
     private func load() async {

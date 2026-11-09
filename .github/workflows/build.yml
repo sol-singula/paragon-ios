@@ -2,10 +2,15 @@ name: Build
 
 # Compiles the app for the simulator on every push, unsigned, so a change
 # that doesn't build is caught before anyone opens Xcode. It never signs,
-# archives or uploads anything.
+# archives or uploads anything. On main, once it builds, it commits the
+# regenerated Paragon.xcodeproj, so the repo is always an Xcode project you
+# open as it is (project.yml is where targets and settings are changed).
 on:
   push:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -13,9 +18,6 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: Placeholder secrets
-        run: |
-          printf 'SUPABASE_URL = https:/$()/example.supabase.co\nSUPABASE_ANON_KEY = placeholder\n' > Config/Secrets.xcconfig
       - name: XcodeGen
         run: brew install xcodegen && xcodegen generate
       - name: Build (iOS Simulator)
@@ -30,3 +32,12 @@ jobs:
         if: failure()
         run: |
           grep -n -B2 -A12 -E "error:|Undefined symbols|ld: " build.log | head -150 || true
+      - name: Commit the Xcode project
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A Paragon.xcodeproj
+          if git diff --cached --quiet; then echo "project unchanged"; exit 0; fi
+          git commit -m "Xcode project regenerated from project.yml [skip ci]"
+          git push origin HEAD:main

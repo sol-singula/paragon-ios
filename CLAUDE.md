@@ -18,8 +18,11 @@ need to be able to ring the phone and send notifications".
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.
-- XcodeGen: `project.yml` is the project. The .xcodeproj is generated and
-  gitignored. Config/Secrets.xcconfig is gitignored.
+- **It is an Xcode project** (owner, 2026-11-09): `Paragon.xcodeproj` is
+  committed and the owner opens it as it is. `project.yml` is its source:
+  change targets and settings there, push, and CI regenerates and commits
+  the project once it builds. Never hand-edit the .pbxproj. The config with
+  the public anon key is committed so it opens with nothing to fill in.
 - CI (`.github/workflows/build.yml`) builds for the simulator, unsigned. Check
   it after a push; nothing else here compiles Swift.
 - Commits: no model names in messages.

@@ -6,18 +6,23 @@ theme, branch circles, Atlas's violet ring), same server: every read and write
 is a `public.paragon_*` function, texts go through `paragon-send`, calls
 through `paragon-voice`. Nothing here has its own rules.
 
-## Build it
+## Open it
 
-```sh
-brew install xcodegen
-cp Config/Secrets.example.xcconfig Config/Secrets.xcconfig   # fill in the anon key
-xcodegen generate
-open Paragon.xcodeproj
-```
+**Open `Paragon.xcodeproj`** in Xcode. That's all: the project, the config
+(`Config/Secrets.xcconfig`, the server and its public key) and the packages
+(Supabase, TwilioVoice) are all in it. Xcode fetches the packages the first
+time it opens.
 
-Pick your team under Signing & Capabilities once (or set `DEVELOPMENT_TEAM`
-in Secrets.xcconfig). Bundle id `net.solbuild.paragon`. GitHub Actions builds
-every push for the simulator, unsigned, to catch a change that doesn't compile.
+1. Pick the **Paragon** target → **Signing & Capabilities** → your team.
+   Bundle id `net.solbuild.paragon`.
+2. Choose your iPhone (plugged in, or on the same Wi-Fi) and press Run, or
+   Product → Archive for TestFlight.
+
+Calls and notifications need a real iPhone; the simulator can't ring.
+
+`project.yml` is where targets and settings are changed. Every push to
+`main` is built on a Mac by GitHub Actions, and once it builds the
+regenerated `Paragon.xcodeproj` is committed back, so pull before opening.
 
 ## Notifications (one-time, owner)
 
