@@ -317,7 +317,10 @@ struct QueueRow: View {
                     Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                 }
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
-                    .font(.system(size: 14)).foregroundStyle(q.status == "closed" ? Theme.muted : Theme.secondary)
+                    // A missed call (or a voicemail, which is one) reads in rose (founder, 2026-11-09).
+                    .font(.system(size: 14)).foregroundStyle(
+                        (q.preview?.hasPrefix("Missed call") == true || q.preview?.hasPrefix("Voicemail") == true) ? Theme.rose
+                        : q.status == "closed" ? Theme.muted : Theme.secondary)
                     .lineLimit(1).truncationMode(.tail)
                 if let i = q.leadItem { itemLine(i) }
             }
