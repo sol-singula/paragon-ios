@@ -13,6 +13,11 @@ need to be able to ring the phone and send notifications".
   is the reference for every function name, argument and shape. Add a screen by
   calling the same `public.paragon_*` function the desktop calls; never add
   rules here. Server changes go in the paragon repo (migrations, functions).
+- **An outage never signs anyone out** (founder, 2026-11-09). Only a
+  definitive auth answer (refresh token invalid, not found or revoked) ends
+  the session; a network error, timeout or 5xx keeps it, `Session` retries
+  with backoff and RootView shows "Reconnecting…". A failed data call never
+  signs out. Same rule as the desktop's `web/src/lib/connection.ts`.
 - **Look.** `Design/Theme.swift` is the desktop's dark theme colour for colour.
   Branch circles follow the desktop's `lib/branches.ts` (SO orange, SH green,
   JG blue, BS white, everything else purple). Atlas is always the violet ring.
