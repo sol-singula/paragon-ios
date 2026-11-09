@@ -47,7 +47,9 @@
 		A2B489F0935C52BE462F7C82 /* AlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518DB2AA45DF8453EC06C55B /* AlertsView.swift */; };
 		A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */; };
 		AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */; };
+		AE1ECAAB55050FEC0CA592F0 /* ringtone-low-classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = 96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */; };
 		BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E7E2FEBECA52D7136550E /* PersonalView.swift */; };
+		C17752ED671FD5864015656E /* ringback-pulse.caf in Resources */ = {isa = PBXBuildFile; fileRef = 316EFFA4EEC076F5332AA9A5 /* ringback-pulse.caf */; };
 		CA4417210661B52D92B1A27F /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20144B329707F8307DAAA282 /* API.swift */; };
 		CDA376FE842D089D31702075 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6035F3E49FE86048CAD2C599 /* InboxView.swift */; };
 		D07C4C9E38A887285506E3E8 /* TeamModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31BEE53F07A627F628236287 /* TeamModel.swift */; };
@@ -69,6 +71,7 @@
 		24B083394A6A4A5A74F03710 /* Presence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presence.swift; sourceTree = "<group>"; };
 		2F7E2269DD6A673CFBC56F24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2FF93659363F43D9F38EA81F /* CostsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CostsView.swift; sourceTree = "<group>"; };
+		316EFFA4EEC076F5332AA9A5 /* ringback-pulse.caf */ = {isa = PBXFileReference; path = "ringback-pulse.caf"; sourceTree = "<group>"; };
 		31BEE53F07A627F628236287 /* TeamModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamModel.swift; sourceTree = "<group>"; };
 		333DD5D9632078211CA6CBF3 /* RemoteImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImage.swift; sourceTree = "<group>"; };
 		34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -93,6 +96,7 @@
 		7A1E7E2FEBECA52D7136550E /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
 		9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchHitRow.swift; sourceTree = "<group>"; };
 		95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageSheet.swift; sourceTree = "<group>"; };
+		96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */ = {isa = PBXFileReference; path = "ringtone-low-classic.caf"; sourceTree = "<group>"; };
 		970D6E9A22AF8FEB274CBFBD /* TabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBar.swift; sourceTree = "<group>"; };
 		9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -129,6 +133,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0ABA6952B143A1A630A268D3 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				316EFFA4EEC076F5332AA9A5 /* ringback-pulse.caf */,
+				96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */,
+			);
+			path = Sounds;
+			sourceTree = "<group>";
+		};
 		23919FA6D296DA61D037D3DE /* Push */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,6 +217,7 @@
 			children = (
 				257E22373EDB9B02C554A768 /* Config */,
 				C4066E965211956C9D8B5EF6 /* Paragon */,
+				0ABA6952B143A1A630A268D3 /* Sounds */,
 				27BFD8BDD23034C4397E5200 /* Frameworks */,
 				5FE500A051BF8D4B5BA637A5 /* Products */,
 			);
@@ -398,6 +412,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */,
+				C17752ED671FD5864015656E /* ringback-pulse.caf in Resources */,
+				AE1ECAAB55050FEC0CA592F0 /* ringtone-low-classic.caf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -468,7 +484,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -550,7 +566,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
