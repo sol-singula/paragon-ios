@@ -123,14 +123,15 @@ struct PersonalThreadView: View {
         catch { self.error = error.localizedDescription }
     }
 
-    private func send() {
+    private func send(_ files: [SharedFile]) async -> Bool {
         let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty else { return }
+        guard !body.isEmpty || !files.isEmpty else { return false }
         sending = true
-        Task {
-            do { try await API.send(thread: threadId, body: body); draft = ""; await load(); scrollKey += 1 }
-            catch { self.error = error.localizedDescription }
-            sending = false
-        }
+        defer { sending = false }
+        do {
+            try await API.send(thread: threadId, body: body, attachments: files)
+            draft = ""; await load(); scrollKey += 1
+            return true
+        } catch { self.error = error.localizedDescription; return false }
     }
 }

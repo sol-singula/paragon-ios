@@ -1,7 +1,8 @@
 # Paragon for iPhone
 
-Paragon by solbuild on the phone: the inbox, Personal, notifications, and
-calls that ring the phone like a phone. Same look as the desktop app (its dark
+Paragon by solbuild on the phone: the inbox, Personal, Team chat,
+notifications, and calls that ring the phone like a phone. Photos in and out
+of customer texts, faces on what we sent, who's online and who's on a call. Same look as the desktop app (its dark
 theme, branch circles, Atlas's violet ring), same server: every read and write
 is a `public.paragon_*` function, texts go through `paragon-send`, calls
 through `paragon-voice`. Nothing here has its own rules.
@@ -72,10 +73,13 @@ other stops ("answered elsewhere").
 ```
 Paragon/
   App/        ParagonApp, AppDelegate (APNs token, tapped notification), RootView + tabs
-  Core/       Supa (auth only), API (PostgREST + edge functions), Models, Stamp (times), Session, Router
-  Design/     Theme (the desktop's colours), BranchMark, AtlasRing, small components
-  Features/   SignIn, Inbox (Waiting/All, Atlas guide), Conversation (timeline, composer),
-              Personal, Alerts (the bell), Settings
+  Core/       Supa (auth only), API (PostgREST + edge functions), Storage (uploads, signed links),
+              Presence (who's online) + TeamStore (photos, on a call), Models, Stamp, Session, Router
+  Design/     Theme (the desktop's colours), BranchMark, AtlasRing, Face (photos, Atlas, presence),
+              RemoteImage (GIFs play, full-screen viewer with pinch zoom), small components
+  Features/   SignIn, Inbox (Waiting/All, Atlas guide), Conversation (timeline, composer
+              with photos/files/GIFs/emoji, house photo), Personal, Team (channels, messages,
+              composer, bell and DND), Alerts (the bell), Settings (Costs for founders)
   Calls/      CallManager (CallKit + PushKit + Twilio Voice), CallScreen, CallBar
   Push/       PushManager (permission, token → paragon_device_register)
 ```
@@ -84,3 +88,10 @@ Server pieces live in the paragon repo: `paragon.devices`,
 `paragon_device_register` / `_unregister`, the notification and personal-text
 triggers (migration `20261109120000_paragon_ios_devices_push.sql`), the
 `paragon-push` function, and the `platform=ios` token in `paragon-voice`.
+
+## Not on the phone
+
+Settings → **Lines** (the founders' wide table of numbers, ring orders,
+clocks and scripts) and **Team chat** channel admin stay on the desktop: they
+are desk work. Founders get a read-only **Costs** on the phone (Settings →
+Founders → Costs); the daily budget is changed on the desktop.

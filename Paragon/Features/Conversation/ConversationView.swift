@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 
 /// One person: their conversation per branch (chips), the timeline, and the
 /// composer that sends through paragon-send from the line the server names.
@@ -12,16 +14,20 @@ struct ConversationView: View {
     @State private var draft = ""
     @State private var sending = false
     @State private var scrollKey = 0
+    @State private var house: URL?
+    @State private var houseBig = false
 
     var body: some View {
         VStack(spacing: 0) {
             if let v = view {
                 if v.threads.count > 1 { chips(v) }
+                if let h = house { houseRow(h, v) }
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
                 TimelineList(events: v.timeline ?? [], scrollKey: scrollKey)
                 Composer(draft: $draft, label: v.sendLabel, sending: sending,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          send: send)
+                    .onChange(of: v.person.name) { _, n in Presence.shared.focus(personId: personId, name: n) }
             } else if let e = error {
                 ErrorBanner(message: e) { Task { await load() } }.padding()
                 Spacer()
@@ -41,6 +47,41 @@ struct ConversationView: View {
             }
         }
         .task(id: threadId) { await poll() }
+        .task(id: personId) { await loadHouse() }
+        .onAppear { Presence.shared.focus(personId: personId, name: view?.person.name) }
+        .onDisappear { Presence.shared.focus(personId: nil, name: nil) }
+        .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
+    }
+
+    /// Their house, from Nexus's saved Street View: tap to see it big
+    /// (founder, 2026-11-09).
+    private func houseRow(_ url: URL, _ v: PersonView) -> some View {
+        Button { houseBig = true } label: {
+            HStack(spacing: 10) {
+                RemoteImage(url: url, fill: true)
+                    .frame(width: 64, height: 44)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(v.lead?.address ?? "Their house").font(.meta).foregroundStyle(Theme.secondary).lineLimit(2)
+                    Text("Tap to view").font(.system(size: 11)).foregroundStyle(Theme.muted)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.left.and.arrow.down.right").font(.system(size: 12)).foregroundStyle(Theme.muted)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .background(Theme.bg)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+        .accessibilityLabel("Their house. Tap to view it full screen.")
+    }
+
+    private func loadHouse() async {
+        house = nil
+        // Ask once the person is known; only a person linked to a Nexus lead has one.
+        for _ in 0..<20 where view == nil { try? await Task.sleep(for: .milliseconds(300)) }
+        guard view?.person.nexusLeadId != nil || view?.lead != nil else { return }
+        if let s = try? await API.housePhoto(personId), let u = URL(string: s) { house = u }
     }
 
     private var currentThread: String? { view?.threadId ?? threadId }
@@ -87,21 +128,21 @@ struct ConversationView: View {
         }
     }
 
-    private func send() {
-        guard let t = currentThread else { return }
+    private func send(_ files: [SharedFile]) async -> Bool {
+        guard let t = currentThread else { return false }
         let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !body.isEmpty else { return }
+        guard !body.isEmpty || !files.isEmpty else { return false }
         sending = true
-        Task {
-            do {
-                try await API.send(thread: t, body: body)
-                draft = ""
-                await load()
-                scrollKey += 1
-            } catch {
-                self.error = error.localizedDescription
-            }
-            sending = false
+        defer { sending = false }
+        do {
+            try await API.send(thread: t, body: body, attachments: files)
+            draft = ""
+            await load()
+            scrollKey += 1
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
         }
     }
 
@@ -112,52 +153,3 @@ struct ConversationView: View {
     }
 }
 
-/// The box at the bottom. The line it sends from is the server's
-/// `send_label` ("Text as Solara Home · (385) 333-7711"), shown above it.
-struct Composer: View {
-    @Binding var draft: String
-    let label: String?
-    let sending: Bool
-    let blocked: String?
-    let send: () -> Void
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let blocked {
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill").font(.system(size: 11))
-                    Text(blocked).font(.meta)
-                }
-                .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 6)
-            } else {
-                if let label { Text(label).font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1) }
-                HStack(alignment: .bottom, spacing: 8) {
-                    TextField("", text: $draft, prompt: Text("Text…").foregroundStyle(Theme.muted), axis: .vertical)
-                        .lineLimit(1...6)
-                        .font(.ui).foregroundStyle(Theme.text)
-                        .focused($focused)
-                        .padding(.horizontal, 12).padding(.vertical, 9)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(Theme.input))
-                        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(focused ? Theme.cyan.opacity(0.6) : Theme.inputBorder))
-                    Button(action: send) {
-                        ZStack {
-                            Circle().fill(canSend ? Theme.cyan : Theme.hover).frame(width: 36, height: 36)
-                            if sending { ProgressView().tint(.black) }
-                            else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.black : Theme.muted) }
-                        }
-                    }
-                    .disabled(!canSend)
-                    .accessibilityLabel("Send")
-                }
-            }
-        }
-        .padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 8)
-        .background(Theme.panel)
-        .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
-    }
-
-    private var canSend: Bool { !sending && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-}

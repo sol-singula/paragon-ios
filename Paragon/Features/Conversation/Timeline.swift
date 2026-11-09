@@ -6,6 +6,7 @@ import SwiftUI
 struct TimelineList: View {
     let events: [TimelineEvent]
     var scrollKey: Int = 0
+    @State private var viewing: ViewedImage?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -13,7 +14,7 @@ struct TimelineList: View {
                 LazyVStack(spacing: 6) {
                     ForEach(Array(events.enumerated()), id: \.element.id) { i, e in
                         if showDay(i) { DayDivider(at: e.at) }
-                        if e.isCall { CallRow(e: e) } else { TextBubble(e: e) }
+                        if e.isCall { CallRow(e: e) } else { TextBubble(e: e, showFace: showFace(i), open: { viewing = ViewedImage(url: $0) }) }
                     }
                     Color.clear.frame(height: 1).id("bottom")
                 }
@@ -24,6 +25,22 @@ struct TimelineList: View {
             .onChange(of: events.count) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
             .onChange(of: scrollKey) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
+        .fullScreenCover(item: $viewing) { v in ImageViewer(url: v.url) }
+    }
+
+    /// Who sent a text of ours: Atlas, or the teammate's name.
+    private func sender(_ i: Int) -> String? {
+        guard events.indices.contains(i) else { return nil }
+        let e = events[i]
+        guard !e.isCall, !e.isIn else { return nil }
+        return e.atlas == true ? "Atlas" : (e.by?.isEmpty == false ? e.by! : "Sent from Quo")
+    }
+
+    /// A face beside the last of a run of texts from the same sender.
+    private func showFace(_ i: Int) -> Bool {
+        guard let s = sender(i) else { return false }
+        guard sender(i + 1) == s, let a = Stamp.date(events[i].at), let b = Stamp.date(events[i + 1].at) else { return true }
+        return !Calendar.current.isDate(a, inSameDayAs: b)
     }
 
     private func showDay(_ i: Int) -> Bool {
@@ -45,27 +62,72 @@ private struct DayDivider: View {
 
 struct TextBubble: View {
     let e: TimelineEvent
+    var showFace = false
+    var open: (URL) -> Void = { _ in }
+
+    @Environment(TeamStore.self) private var team
 
     var body: some View {
         let ours = !e.isIn
         let atlas = e.atlas == true
-        VStack(alignment: ours ? .trailing : .leading, spacing: 3) {
-            Text(e.body?.isEmpty == false ? e.body! : "Picture")
-                .font(.ui)
-                .foregroundStyle(e.body?.isEmpty == false ? Theme.text : Theme.muted)
-                .textSelection(.enabled)
+        let hasText = e.body?.isEmpty == false
+        let media = e.mediaItems
+        HStack(alignment: .bottom, spacing: 8) {
+            VStack(alignment: ours ? .trailing : .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 6) {
+                    if hasText || media.isEmpty {
+                        Text(hasText ? e.body! : "(no text)")
+                            .font(.ui)
+                            .foregroundStyle(hasText ? Theme.text : Theme.muted)
+                            .textSelection(.enabled)
+                    }
+                    ForEach(Array(media.enumerated()), id: \.offset) { _, m in
+                        if let s = m.url, let u = URL(string: s) {
+                            if m.isImage {
+                                // A photo they texted (or we sent): tap for the whole of it.
+                                Button { open(u) } label: {
+                                    RemoteImage(url: u, fill: true)
+                                        .frame(width: 200, height: 200)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Photo. Tap to view.")
+                            } else {
+                                Link(destination: u) {
+                                    Label(m.name ?? "Attachment", systemImage: "paperclip")
+                                        .font(.meta).foregroundStyle(Theme.cyan).lineLimit(1)
+                                }
+                            }
+                        }
+                    }
+                }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(ours ? (atlas ? Theme.atlasBubble : Theme.outBubble) : Theme.card))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(ours ? (atlas ? Theme.violet.opacity(0.35) : Theme.teal.opacity(0.3)) : Theme.border))
-            HStack(spacing: 4) {
-                if atlas { AtlasRing(size: 10) }
-                Text(meta).font(.system(size: 11)).foregroundStyle(failed ? Theme.rose : Theme.muted)
+                HStack(spacing: 4) {
+                    if atlas { AtlasRing(size: 10) }
+                    Text(meta).font(.system(size: 11)).foregroundStyle(failed ? Theme.rose : Theme.muted)
+                }
+            }
+            if ours {
+                // What we sent: the sender's face beside it (Atlas's for Atlas).
+                Group {
+                    if showFace {
+                        if atlas { AtlasFace(size: 26) }
+                        else if let m = team.member(named: e.by) { MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 26) }
+                        else { Face(name: e.by?.isEmpty == false ? e.by! : "Sent from Quo", url: nil, size: 26) }
+                    } else {
+                        Color.clear
+                    }
+                }
+                .frame(width: 26, height: 26)
+                .padding(.bottom, 20)
             }
         }
         .frame(maxWidth: .infinity, alignment: ours ? .trailing : .leading)
-        .padding(ours ? .leading : .trailing, 48)
+        .padding(ours ? .leading : .trailing, ours ? 36 : 48)
     }
 
     private var failed: Bool { ["failed", "undelivered"].contains(e.status ?? "") }

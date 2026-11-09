@@ -13,10 +13,10 @@ struct SettingsView: View {
                 if let me = session.me {
                     Section {
                         HStack(spacing: 12) {
-                            Initials(name: me.name, size: 40)
+                            MemberFace(id: me.id, name: me.name, url: nil, size: 40, ring: Theme.card)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(me.name).font(.uiMedium).foregroundStyle(Theme.text)
-                                Text([me.email, me.role.capitalized].compactMap { $0 }.joined(separator: " · "))
+                                Text([me.email, Role.label(me.role)].compactMap { $0 }.joined(separator: " · "))
                                     .font(.meta).foregroundStyle(Theme.muted)
                             }
                         }
@@ -41,8 +41,17 @@ struct SettingsView: View {
                 }
                 .listRowBackground(Theme.card)
 
+                if session.me?.isFounder == true {
+                    Section("Founders") {
+                        NavigationLink { CostsView() } label: {
+                            Label("Costs", systemImage: "chart.bar.xaxis").foregroundStyle(Theme.text)
+                        }
+                    }
+                    .listRowBackground(Theme.card)
+                }
+
                 Section {
-                    Text("Lines, people, Atlas and calling are set up on the desktop app (Settings).")
+                    Text("Lines, people, Atlas, Team chat channels and calling are set up on the desktop app (Settings).")
                         .font(.meta).foregroundStyle(Theme.muted)
                 }
                 .listRowBackground(Theme.bg)

@@ -30,11 +30,17 @@ struct ParagonApp: App {
                 .environment(Session.shared)
                 .environment(Router.shared)
                 .environment(CallManager.shared)
+                .environment(Presence.shared)
+                .environment(TeamStore.shared)
                 .preferredColorScheme(.dark)
                 .tint(Theme.cyan)
         }
         .onChange(of: phase) { _, now in
-            if now == .active { PushManager.shared.refreshBadge() }
+            if now == .active {
+                PushManager.shared.refreshBadge()
+                Presence.shared.retrack()
+                Task { await TeamModel.shared.load() }
+            }
         }
     }
 }

@@ -7,11 +7,13 @@ import Observation
 final class Router {
     static let shared = Router()
 
-    enum Tab: Hashable { case inbox, personal, alerts, settings }
+    enum Tab: Hashable { case inbox, personal, team, alerts, settings }
 
     var tab: Tab = .inbox
     var inboxPath: [Route] = []
     var personalPath: [Route] = []
+    /// Team channel ids.
+    var teamPath: [String] = []
 
     func open(_ route: Route) {
         switch route {
@@ -27,7 +29,9 @@ final class Router {
     /// From a push's custom keys (paragon-push): kind, thread_id, person_id.
     func open(push keys: [String: String], title: String?) {
         let thread = keys["thread_id"], person = keys["person_id"]
-        if keys["kind"] == "personal.text", let thread {
+        if keys["kind"]?.hasPrefix("team.") == true {
+            tab = .team
+        } else if keys["kind"] == "personal.text", let thread {
             open(.personal(threadId: thread, name: title ?? "Personal"))
         } else if let person {
             open(.person(personId: person, threadId: thread))

@@ -106,9 +106,73 @@ enum API {
         try await rpc("paragon_call_card", ["p_thread": thread], as: CallCard?.self)
     }
 
-    static func send(thread: String, body: String) async throws {
+    /// Only paragon-send sends. Attachments are files already uploaded to
+    /// the public paragon-shared bucket (`Storage.uploadShared`); the body
+    /// may be empty when there are some.
+    static func send(thread: String, body: String, attachments: [SharedFile] = []) async throws {
         struct Sent: Decodable { let ok: Bool? }
-        _ = try await function("paragon-send", body: ["thread_id": thread, "body": body], as: Sent.self)
+        let files: [[String: Any]] = attachments.map { ["path": $0.path, "name": $0.name, "type": $0.type] }
+        _ = try await function("paragon-send", body: ["thread_id": thread, "body": body, "attachments": files], as: Sent.self)
+    }
+
+    /// The Street View image Nexus saved for their lead, or null.
+    static func housePhoto(_ person: String) async throws -> String? {
+        try await rpc("paragon_house_photo", ["p_person": person], as: String?.self)
+    }
+
+    /// Everyone on the team: photo, and whether they're on a call.
+    static func team() async throws -> [TeamMember] {
+        try await rpc("paragon_team", as: [TeamMember]?.self) ?? []
+    }
+
+    static func costs(days: Int, grain: String = "day") async throws -> Costs {
+        try await rpc("paragon_costs", ["p_days": days, "p_grain": grain], as: Costs.self)
+    }
+
+    // MARK: Team chat (each one checks the caller can see the channel)
+
+    static func teamChannels() async throws -> TeamOverview {
+        try await rpc("paragon_team_channels", as: TeamOverview.self)
+    }
+
+    static func teamRead(channel: String, before: String? = nil, limit: Int = 60) async throws -> TeamPage {
+        try await rpc("paragon_team_read", ["p_channel": channel, "p_before": before, "p_limit": limit], as: TeamPage.self)
+    }
+
+    static func teamPost(channel: String, body: String, attachments: [TeamAttachment], replyTo: String?, mentions: [String]) async throws -> TeamMessage {
+        try await rpc("paragon_team_post", ["p_channel": channel, "p_body": body, "p_attachments": attachments.map(\.json),
+                                            "p_reply_to": replyTo, "p_mentions": mentions], as: TeamMessage.self)
+    }
+
+    static func teamEdit(message: String, body: String) async throws -> TeamMessage {
+        try await rpc("paragon_team_edit", ["p_message": message, "p_body": body], as: TeamMessage.self)
+    }
+
+    static func teamDelete(message: String) async throws {
+        try await call("paragon_team_delete", ["p_message": message])
+    }
+
+    static func teamReact(message: String, emoji: String, on: Bool) async throws -> TeamMessage {
+        try await rpc("paragon_team_react", ["p_message": message, "p_emoji": emoji, "p_on": on], as: TeamMessage.self)
+    }
+
+    static func teamMarkRead(channel: String) async throws {
+        try await call("paragon_team_mark_read", ["p_channel": channel])
+    }
+
+    /// `p` holds only the keys that change: notify (all | mentions | none),
+    /// mute (off | 1h | 8h | tomorrow | forever), always, quiet (or NSNull).
+    static func teamPrefsSet(channel: String, _ p: [String: Any]) async throws {
+        try await call("paragon_team_prefs_set", ["p_channel": channel, "p": p])
+    }
+
+    /// `p`: dnd (off | 1h | 8h | tomorrow | on), quiet (or NSNull), time_zone.
+    static func teamMeSet(_ p: [String: Any]) async throws {
+        try await call("paragon_team_me_set", ["p": p])
+    }
+
+    static func teamRecentGifs() async throws -> [TeamAttachment] {
+        try await rpc("paragon_team_recent_gifs", ["p_limit": 24], as: [TeamAttachment]?.self) ?? []
     }
 
     static func voiceToken() async throws -> VoiceToken {

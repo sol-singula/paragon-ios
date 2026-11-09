@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 // The shapes the `public.paragon_*` functions return (the desktop app's
 // web/src/lib/api.ts is the reference). Keys arrive snake_case and are
@@ -13,7 +14,38 @@ struct Me: Decodable, Equatable {
     let role: String
 
     var isOwner: Bool { role == "owner" }
+    var isFounder: Bool { isOwner }
     var first: String { name.split(separator: " ").first.map(String.init) ?? name }
+}
+
+/// The owner role is called Founder everywhere a person reads it (founder,
+/// 2026-11-09); the value in the database stays 'owner'.
+enum Role {
+    static func label(_ role: String?) -> String {
+        switch role {
+        case "owner": return "Founder"
+        case "manager": return "Manager"
+        case "rep": return "Rep"
+        default: return role ?? ""
+        }
+    }
+}
+
+/// A picture or file on a text (`media`: `[{url, type, name?}]`). Anything
+/// else in that column reads as no media rather than stopping the screen.
+struct MediaItem: Decodable, Hashable {
+    let url: String?
+    let type: String?
+    let name: String?
+
+    var isImage: Bool { (type ?? "").hasPrefix("image") }
+}
+
+struct MediaList: Decodable, Hashable {
+    let items: [MediaItem]
+    init(from decoder: Decoder) throws {
+        items = (try? [MediaItem](from: decoder)) ?? []
+    }
 }
 
 struct QueueThread: Decodable, Hashable, Identifiable {
@@ -75,6 +107,7 @@ struct TimelineEvent: Decodable, Hashable, Identifiable {
     let at: String
     let direction: String     // "in" | "out"
     let body: String?
+    let media: MediaList?
     let status: String?
     let automated: Bool?
     let by: String?
@@ -86,6 +119,7 @@ struct TimelineEvent: Decodable, Hashable, Identifiable {
     let summary: String?
 
     var isCall: Bool { kind == "call" }
+    var mediaItems: [MediaItem] { media?.items ?? [] }
     var isIn: Bool { direction == "in" }
 }
 
@@ -98,6 +132,7 @@ struct PersonView: Decodable {
         let contactType: String?
         let isStopped: Bool?
         let source: String?
+        let nexusLeadId: String?
     }
     struct Lead: Decodable { let id: String; let address: String?; let email: String? }
     struct Appointment: Decodable { let date: String; let time: String?; let type: String?; let confirmed: Bool? }
@@ -189,4 +224,190 @@ struct VoiceToken: Decodable {
 enum Route: Hashable {
     case person(personId: String, threadId: String?)
     case personal(threadId: String, name: String)
+}
+
+/// A number the server may send as a JSON number or as a numeric string
+/// (Postgres numerics). Anything unreadable is 0.
+struct Flex: Decodable, Hashable {
+    let value: Double
+    init(_ v: Double) { value = v }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if let d = try? c.decode(Double.self) { value = d }
+        else if let s = try? c.decode(String.self) { value = Double(s) ?? 0 }
+        else { value = 0 }
+    }
+}
+
+// MARK: Team (paragon_team): everyone, their photo, whether they're on a call
+
+struct TeamMember: Decodable, Hashable, Identifiable {
+    let id: String
+    let name: String
+    let role: String?
+    let photoUrl: String?
+    let isMe: Bool?
+    let onCall: Bool?
+    let callWith: String?
+    let callPersonId: String?
+    let callStartedAt: String?
+}
+
+// MARK: Team chat (paragon_team_*)
+
+struct TeamQuiet: Codable, Hashable {
+    var start: String
+    var end: String
+    var days: [Int]?
+
+    var json: [String: Any] { ["start": start, "end": end, "days": days ?? []] }
+}
+
+struct TeamPrefs: Decodable, Hashable {
+    let notify: String?          // all | mentions | none
+    let mutedUntil: String?      // a time, or "infinity"
+    let always: Bool?
+    let quiet: TeamQuiet?
+}
+
+struct TeamChannel: Decodable, Hashable, Identifiable {
+    let id: String
+    let name: String
+    let about: String?
+    let atlasIn: Bool?
+    let members: [String]?
+    let unread: Int?
+    let mentions: Int?
+    let lastAt: String?
+    let lastReadAt: String?
+    let prefs: TeamPrefs?
+
+    var notify: String { prefs?.notify ?? "all" }
+    var muted: Bool { TeamTime.isOn(prefs?.mutedUntil) }
+    var quietOrMuted: Bool { muted || notify == "none" }
+    /// Unread shown bold with a count: not muted, not "only @mentions".
+    var showsUnread: Bool { (unread ?? 0) > 0 && !quietOrMuted && notify != "mentions" }
+}
+
+struct TeamPerson: Decodable, Hashable, Identifiable {
+    let id: String
+    let name: String
+    let role: String?
+    let photoUrl: String?
+    let isActive: Bool?
+}
+
+struct TeamOverview: Decodable {
+    struct MeRow: Decodable, Hashable {
+        let id: String
+        let role: String?
+        let timeZone: String?
+        let dndUntil: String?
+        let quiet: TeamQuiet?
+    }
+    let me: MeRow
+    let people: [TeamPerson]?
+    let channels: [TeamChannel]?
+}
+
+struct TeamAttachment: Codable, Hashable {
+    let path: String
+    let name: String?
+    let type: String?
+    let size: Int?
+    let width: Double?
+    let height: Double?
+
+    var isGif: Bool { (type ?? "") == "image/gif" || path.lowercased().hasSuffix(".gif") }
+    var ratio: CGFloat {
+        if let w = width, let h = height, w > 0, h > 0 { return CGFloat(w / h) }
+        return 4.0 / 3.0
+    }
+    var json: [String: Any] {
+        var d: [String: Any] = ["path": path, "name": name ?? "photo", "type": type ?? "image/jpeg", "size": size ?? 0]
+        d["width"] = width.map { $0 as Any } ?? NSNull()
+        d["height"] = height.map { $0 as Any } ?? NSNull()
+        return d
+    }
+}
+
+struct TeamMessage: Decodable, Hashable, Identifiable {
+    struct ReplyTo: Decodable, Hashable {
+        let id: String
+        let author: String
+        let body: String?
+        let deleted: Bool?
+        let photos: Int?
+    }
+    struct Reaction: Decodable, Hashable {
+        let emoji: String
+        let by: [String]
+    }
+
+    let id: String
+    let channelId: String
+    /// A member id, or "atlas".
+    let author: String
+    let body: String
+    let mentions: [String]?
+    let mentionAll: Bool?
+    let mentionAtlas: Bool?
+    let attachments: [TeamAttachment]?
+    let createdAt: String
+    let editedAt: String?
+    let deleted: Bool?
+    let replyTo: ReplyTo?
+    let reactions: [Reaction]?
+
+    var isDeleted: Bool { deleted == true }
+    var photos: [TeamAttachment] { attachments ?? [] }
+}
+
+struct TeamPage: Decodable {
+    let messages: [TeamMessage]
+    let more: Bool?
+}
+
+/// `muted_until` / `dnd_until`: null (off), a time, or "infinity".
+enum TeamTime {
+    static func isOn(_ until: String?) -> Bool {
+        guard let u = until, !u.isEmpty else { return false }
+        if u == "infinity" { return true }
+        return (Stamp.date(u) ?? .distantPast) > Date()
+    }
+
+    /// "until 3:40 pm", "until tomorrow 8:00 am", "until you turn it off".
+    static func label(_ until: String?) -> String {
+        guard let u = until, !u.isEmpty else { return "" }
+        if u == "infinity" { return "until you turn it off" }
+        guard let d = Stamp.date(u) else { return "" }
+        let t = DateFormatter(); t.dateFormat = "h:mm a"; t.amSymbol = "am"; t.pmSymbol = "pm"
+        let cal = Calendar.current
+        if cal.isDateInToday(d) { return "until \(t.string(from: d))" }
+        if cal.isDateInTomorrow(d) { return "until tomorrow \(t.string(from: d))" }
+        let day = DateFormatter(); day.dateFormat = "EEE, MMM d"
+        return "until \(day.string(from: d)) \(t.string(from: d))"
+    }
+}
+
+// MARK: Costs (founders: paragon_costs)
+
+struct Costs: Decodable {
+    struct Totals: Decodable { let thinking: Flex?; let twilioCalls: Flex?; let twilioTexts: Flex?; let twilioOther: Flex? }
+    struct ByModel: Decodable, Hashable { let model: String; let usd: Flex; let n: Int? }
+    struct ByClient: Decodable, Hashable { let personId: String?; let name: String; let usd: Flex; let n: Int? }
+    struct ByDay: Decodable, Hashable { let day: String; let thinking: Flex; let twilio: Flex }
+    struct ByLine: Decodable, Hashable { let line: String; let calls: Int?; let texts: Int?; let usd: Flex }
+
+    let days: Int?
+    let budgetUsd: Flex?
+    let todayThinkingUsd: Flex?
+    let twilioSyncedAt: String?
+    let twilioError: String?
+    let totals: Totals?
+    let byModel: [ByModel]?
+    let byClient: [ByClient]?
+    let noClientUsd: Flex?
+    let byDay: [ByDay]?
+    let twilioByLine: [ByLine]?
 }

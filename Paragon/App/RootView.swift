@@ -29,7 +29,9 @@ struct RootView: View {
 struct MainTabs: View {
     @Environment(Router.self) private var router
     @Environment(CallManager.self) private var calls
+    @Environment(Session.self) private var session
     @MainActor private var alerts: AlertsModel { AlertsModel.shared }
+    @MainActor private var team: TeamModel { TeamModel.shared }
 
     var body: some View {
         @Bindable var router = router
@@ -42,6 +44,10 @@ struct MainTabs: View {
                 PersonalView()
                     .tabItem { Label("Personal", systemImage: "person") }
                     .tag(Router.Tab.personal)
+                TeamView()
+                    .tabItem { Label("Team", systemImage: "bubble.left.and.bubble.right") }
+                    .badge(team.badge)
+                    .tag(Router.Tab.team)
                 AlertsView()
                     .tabItem { Label("Alerts", systemImage: "bell") }
                     .badge(alerts.unread)
@@ -52,5 +58,9 @@ struct MainTabs: View {
             }
         }
         .task { await alerts.poll() }
+        .task { await team.poll() }
+        .task { await TeamStore.shared.poll() }
+        .onAppear { if let me = session.me { Presence.shared.start(me) } }
+        .onDisappear { Presence.shared.stop() }
     }
 }
