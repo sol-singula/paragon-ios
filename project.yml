@@ -17,7 +17,9 @@ packages:
     from: 2.0.0
   TwilioVoice:
     url: https://github.com/twilio/twilio-voice-ios
-    from: 6.12.0
+    # Pinned: 6.13.8's static binary fails to download in SwiftPM
+    # ("already exists in file system"), which stops every build.
+    exactVersion: 6.13.7
 
 targets:
   Paragon:

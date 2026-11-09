@@ -66,7 +66,7 @@ final class Presence {
 
     /// The conversation on screen (nil when none), as the desktop shares it.
     func focus(personId: String?, name: String?) {
-        guard focus.id != personId else { return }
+        guard focus.id != personId || focus.name != name else { return }
         focus = (personId, name)
         Task { await track() }
     }
