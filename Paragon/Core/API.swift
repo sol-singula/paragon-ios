@@ -90,6 +90,17 @@ enum API {
 
     static func me() async throws -> Me? { try await rpc("paragon_me", as: Me?.self) }
 
+    /// The person's own app choices (paragon_ui_prefs), the same on every copy of the app.
+    static func uiPrefs() async throws -> UiPrefs? {
+        try await rpc("paragon_ui_prefs", as: UiPrefs?.self)
+    }
+
+    /// Merges one level deep (`["inbox": ["tab": "all"]]`); NSNull removes a key.
+    @discardableResult
+    static func uiPrefsSet(_ p: [String: Any]) async throws -> UiPrefs? {
+        try await rpc("paragon_ui_prefs_set", ["p": p], as: UiPrefs?.self)
+    }
+
     static func queue(homeownersOnly: Bool, brand: String?, search: String?) async throws -> [QueueItem] {
         try await rpc("paragon_queue", ["p_homeowners_only": homeownersOnly, "p_brand": brand, "p_search": search], as: [QueueItem]?.self) ?? []
     }

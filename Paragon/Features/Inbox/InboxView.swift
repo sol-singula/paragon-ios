@@ -251,7 +251,7 @@ struct InboxView: View {
             Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"),
                                 (.owed, c.owed > 0 ? "Owed \(c.owed)" : "Owed"),
                                 (.all, "All")],
-                      selection: $model.show)
+                      selection: Binding(get: { model.show }, set: { model.choose(show: $0) }))
         }
     }
 
@@ -267,15 +267,15 @@ struct InboxView: View {
     private var filterMenu: some View {
         Menu {
             Menu("Branch") {
-                Button { model.brand = nil; Task { await model.load() } } label: {
+                Button { model.choose(brand: nil) } label: {
                     if model.brand == nil { Label("All branches", systemImage: "checkmark") } else { Text("All branches") }
                 }
                 // Solara One and solbuild together (founder, 2026-11-09).
-                Button { model.brand = InboxModel.logistics; Task { await model.load() } } label: {
+                Button { model.choose(brand: InboxModel.logistics) } label: {
                     if model.brand == InboxModel.logistics { Label("Logistics only", systemImage: "checkmark") } else { Text("Logistics only") }
                 }
                 ForEach(model.brands, id: \.self) { b in
-                    Button { model.brand = b; Task { await model.load() } } label: {
+                    Button { model.choose(brand: b) } label: {
                         if model.brand == b { Label(Branch.of(b).name, systemImage: "checkmark") } else { Text(Branch.of(b).name) }
                     }
                 }

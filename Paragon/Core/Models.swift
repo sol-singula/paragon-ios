@@ -171,6 +171,16 @@ struct ThreadPromise: Decodable, Hashable, Identifiable {
 
 /// One person in the WHO picker (`paragon_promise_people`): me first, then
 /// who can take it; `whyNot` says why someone can't.
+/// paragon_ui_prefs: the inbox's tab, branch and homeowners-only, kept on the member.
+struct UiPrefs: Codable, Hashable {
+    struct Inbox: Codable, Hashable {
+        var homeownersOnly: Bool?
+        var brand: String?
+        var tab: String?
+    }
+    var inbox: Inbox?
+}
+
 /// Where Atlas puts a vague WHEN: "Tue 1:00 pm" and why. Also what
 /// `paragon_promise_add_vague` answers (its id, due_at and why).
 struct PromiseSlot: Decodable, Hashable {

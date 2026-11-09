@@ -46,6 +46,11 @@ need to be able to ring the phone and send notifications".
   due …"; Done / Not needed / Hand / Change / Add / Release are instant
   (`GoneIDs`, `InboxModel.localTick`, back on a refusal); the timeline
   re-settles at the bottom; the composer is one line, placeholder "Message".
+- **Build 8, 2026-11-09**: the inbox tab (Waiting / All; Owed is not
+  saved), branch filter and homeowners-only are the person's
+  (`paragon_ui_prefs` / `_set`, as on the desktop): a UserDefaults copy
+  applies at launch, the server's answer wins before the first queue read
+  (`InboxModel.loadPrefs`, `choose(show:)`, `choose(brand:)`). No Who picker.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

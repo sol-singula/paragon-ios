@@ -10,9 +10,9 @@ final class InboxModel {
     enum Show: Hashable { case waiting, owed, all }
 
     var show: Show = .waiting
-    /// Always homeowners only (founder, 2026-11-09: remove "contractors and
-    /// internal too").
-    let homeownersOnly = true
+    /// No Who picker (founder, 2026-11-09: remove "contractors and internal
+    /// too"), but a choice saved on the person is honoured.
+    private(set) var homeownersOnly = true
     /// paragon_queue's brand for Solara One and solbuild together.
     static let logistics = "logistics"
     var brand: String?
@@ -221,7 +221,64 @@ final class InboxModel {
 
     /// Every 20 seconds while the inbox is on screen; the task is cancelled
     /// when it isn't.
+    // MARK: The person's choices (founder, 2026-11-09: "log whether staff
+    // have selected more than just homeowners so that if they update their
+    // app, they'll always have the same settings")
+    //
+    // Tab, branch and homeowners-only live on the member (paragon_ui_prefs).
+    // A local copy applies at launch so nothing waits; the server's answer
+    // wins when it comes, before the first queue read when it is quick.
+
+    private static let prefsKey = "paragon.ui_prefs.inbox"
+    private var prefsRead = false
+
+    private func apply(_ i: UiPrefs.Inbox) {
+        homeownersOnly = i.homeownersOnly ?? true
+        brand = i.brand
+        show = i.tab == "all" ? .all : .waiting
+    }
+
+    private func cache(_ i: UiPrefs.Inbox) {
+        if let d = try? JSONEncoder().encode(i) { UserDefaults.standard.set(d, forKey: Self.prefsKey) }
+    }
+
+    private var current: UiPrefs.Inbox {
+        UiPrefs.Inbox(homeownersOnly: homeownersOnly, brand: brand, tab: show == .all ? "all" : "waiting")
+    }
+
+    /// At launch or sign-in: the local copy now, then the server's.
+    func loadPrefs() async {
+        if !prefsRead, let d = UserDefaults.standard.data(forKey: Self.prefsKey),
+           let i = try? JSONDecoder().decode(UiPrefs.Inbox.self, from: d) { apply(i) }
+        prefsRead = true
+        if let p = try? await API.uiPrefs(), let i = p.inbox { apply(i); cache(i) }
+    }
+
+    /// Waiting / Owed / All, picked by the person. Owed is not a saved tab.
+    func choose(show s: Show) {
+        show = s
+        guard s != .owed else { return }
+        cache(current)
+        save(["tab": s == .all ? "all" : "waiting"])
+    }
+
+    /// The branch filter, picked by the person.
+    func choose(brand b: String?) {
+        brand = b
+        cache(current)
+        save(["brand": b.map { $0 as Any } ?? NSNull()])
+        Task { await load() }
+    }
+
+    private func save(_ inbox: [String: Any]) {
+        Task {
+            do { try await API.uiPrefsSet(["inbox": inbox]) }
+            catch { Toast.shared.show("Could not save that choice: \(error.localizedDescription)", error: true) }
+        }
+    }
+
     func poll() async {
+        await loadPrefs()
         while !Task.isCancelled {
             await load()
             try? await Task.sleep(for: .seconds(20))
