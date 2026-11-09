@@ -3,7 +3,7 @@ import SwiftUI
 struct InboxView: View {
     @Environment(Router.self) private var router
     @State private var model = InboxModel.shared
-    @State private var deckOpen = false
+    @State private var promising: PromiseTarget?
     @State private var releasing: PersonTarget?
     @Environment(CallManager.self) private var calls
     @Environment(Session.self) private var session
@@ -48,6 +48,14 @@ struct InboxView: View {
                 }
             }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await model.load() } } }
+            .sheet(item: $promising) { t in
+                PromiseSheet(target: t) { owner in
+                    // Given to someone else: off my inbox at once.
+                    if case .add = t.mode, let p = t.personId, owner?.isMe == false { model.clear(personId: p) }
+                    if case .hand(_, true) = t.mode, let p = t.personId, owner?.isMe == false { model.clear(personId: p) }
+                    Task { await model.load() }
+                }
+            }
             .sheet(item: $composing) { p in
                 NewMessageSheet(prefill: p) { person, thread, name, brand in
                     composing = nil
@@ -79,30 +87,16 @@ struct InboxView: View {
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
             }
 
-            if let deck = model.deck, !deck.cards.isEmpty, model.search.isEmpty {
-                AtlasGuide(deck: deck, open: $deckOpen) { card in
-                    if let p = card.personId { router.open(.person(personId: p, threadId: card.threadId)) }
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-            }
         }
 
         Section {
             ForEach(model.shown) { q in
-                NavigationLink(value: Route.person(personId: q.personId, threadId: q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id)) {
+                NavigationLink(value: Route.person(personId: q.personId, threadId: q.openThread)) {
                     QueueRow(q: q)
                 }
-                .contextMenu {
-                    if let t = q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id {
-                        Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
-                            Label("Release…", systemImage: "tray.and.arrow.up")
-                        }
-                    }
-                }
+                .contextMenu { rowMenu(q) }
                 .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
-                .listRowBackground(Color.clear)
+                .listRowBackground(QueueRowBackground(atlas: q.isAtlas))
                 .listRowSeparatorTint(Theme.border)
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
@@ -114,6 +108,36 @@ struct InboxView: View {
             }
         }
     }
+
+    /// Hold a row: Add promise…, the card or promise's own actions, Release….
+    @ViewBuilder private func rowMenu(_ q: QueueItem) -> some View {
+        if let t = q.openThread {
+            Button { promising = PromiseTarget(threadId: t, personId: q.personId, name: q.name) } label: {
+                Label("Add promise…", systemImage: "hand.raised")
+            }
+            let items = q.rowItems
+            if items.count == 1, let i = items.first {
+                Section(i.what) {
+                    ItemMenu(item: i, thread: t, personId: q.personId, name: q.name, open: { promising = $0 }, changed: reload)
+                }
+            } else if items.count > 1 {
+                Section {
+                    ForEach(items) { i in
+                        Menu(i.what) {
+                            ItemMenu(item: i, thread: t, personId: q.personId, name: q.name, open: { promising = $0 }, changed: reload)
+                        }
+                    }
+                }
+            }
+            Section {
+                Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
+                    Label("Release…", systemImage: "tray.and.arrow.up")
+                }
+            }
+        }
+    }
+
+    private func reload() { Task { await model.load() } }
 
     // MARK: Search results, grouped as on the desktop
 
@@ -277,24 +301,66 @@ struct QueueRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(q.name)
                         .font(.name)
-                        .foregroundStyle(q.status == "closed" ? Theme.secondary : Theme.text)
+                        .foregroundStyle(q.status == "closed" && !q.isAtlas ? Theme.secondary : Theme.text)
                         .lineLimit(1)
                     if (q.threads?.count ?? 0) > 1 {
                         Text("\(q.threads!.count)").font(.tag).foregroundStyle(Theme.muted)
                             .padding(.horizontal, 4).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.border))
                     }
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
+                    if q.isPrivate {
+                        Image(systemName: "eye.slash").font(.system(size: 10)).foregroundStyle(Theme.violet)
+                            .accessibilityLabel("Only you see this conversation")
+                    }
                     Spacer(minLength: 4)
                     Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                 }
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     .font(.system(size: 14)).foregroundStyle(q.status == "closed" ? Theme.muted : Theme.secondary)
                     .lineLimit(1).truncationMode(.tail)
+                if let i = q.leadItem { itemLine(i) }
             }
         }
     }
 
+    /// Who, when, what of the row's leading card or promise, in one line.
+    private func itemLine(_ i: RowItem) -> some View {
+        HStack(spacing: 4) {
+            if i.byHand { Image(systemName: "hand.raised.fill").font(.system(size: 9)) }
+            else { AtlasRing(size: 10) }
+            Text(who(i)).fontWeight(.semibold)
+            if i.dueAt != nil {
+                Text("·")
+                Text(DueTime.relative(i.dueAt)).foregroundStyle(i.isOverdue ? Theme.rose : Theme.violet.opacity(0.9))
+            }
+            Text("·")
+            Text(i.what).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+            if q.rowItems.count > 1 {
+                Text("+\(q.rowItems.count - 1)").foregroundStyle(Theme.muted).layoutPriority(1)
+            }
+        }
+        .font(.system(size: 12.5))
+        .foregroundStyle(Theme.violet)
+        .lineLimit(1)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// No owner's name: "You", "Team", Atlas, or who made it by hand.
+    private func who(_ i: RowItem) -> String {
+        if i.mine == true { return "You" }
+        if i.team == true { return "Team" }
+        if !i.byHand { return "Atlas" }
+        if let n = i.createdByName?.split(separator: " ").first { return "From \(n)" }
+        return "Promise"
+    }
+
+    /// Relative to the row's due time when it has one (overdue in rose);
+    /// a waiting customer still on time shows how long they have waited.
     private var clock: String {
+        if q.dueAt != nil {
+            if q.isOverdue { return DueTime.relative(q.dueAt) }
+            if q.dueSource != "clock" { return DueTime.relative(q.dueAt) }
+        }
         switch q.status {
         case "waiting": return Stamp.span(q.waitingSince)
         case "owed": return "Owed"
@@ -303,6 +369,8 @@ struct QueueRow: View {
     }
 
     private var clockColor: Color {
+        if q.dueAt != nil, q.isOverdue { return Theme.rose }
+        if q.dueAt != nil, q.dueSource != "clock" { return DueTime.color(q.dueAt) }
         switch q.tone {
         case .late: return Theme.rose
         case .soon: return Theme.amber
@@ -311,79 +379,16 @@ struct QueueRow: View {
     }
 }
 
-/// The one Atlas guide (owner, 2026-11-08), compact as the mockup's
-/// `.atlas`: the ring, "Atlas: N to do", the next thing to do under it (a
-/// tap opens it), and the rest of Atlas's cards behind the chevron.
-struct AtlasGuide: View {
-    let deck: AtlasDeck
-    @Binding var open: Bool
-    let onOpen: (AtlasCard) -> Void
-
+/// An Atlas row is a conversation row with a slight violet tint and a thin
+/// violet leading edge; every other row stays clear.
+struct QueueRowBackground: View {
+    let atlas: Bool
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let first = deck.cards.first {
-                HStack(spacing: 9) {
-                    Button { onOpen(first) } label: {
-                        HStack(spacing: 9) {
-                            AtlasRing(size: 22)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("Atlas: \(deck.cards.count) to do").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
-                                HStack(spacing: 4) {
-                                    Text(first.title).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
-                                    if let due = first.dueAt, !dueText(due).isEmpty {
-                                        Text("· \(dueText(due))").foregroundStyle(dueColor(due)).lineLimit(1).layoutPriority(1)
-                                    }
-                                }
-                                .font(.system(size: 13))
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(first.why ?? "")
-                    if deck.cards.count > 1 {
-                        Button { withAnimation(.snappy) { open.toggle() } } label: {
-                            Image(systemName: open ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.muted)
-                                .frame(width: 28, height: 28)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(open ? "Hide Atlas's other cards" : "Show all \(deck.cards.count) cards from Atlas")
-                    }
-                }
-                .padding(.horizontal, 11).padding(.vertical, 9)
-            }
-            if open && deck.cards.count > 1 {
-                Rectangle().fill(Theme.violet.opacity(0.25)).frame(height: 1)
-                ForEach(deck.cards.dropFirst()) { c in
-                    Button { onOpen(c) } label: {
-                        HStack(spacing: 10) {
-                            BranchMark(brand: c.brand, size: 22)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(c.title).font(.meta).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
-                                if let n = c.name { Text(n).font(.meta).foregroundStyle(Theme.muted).lineLimit(1) }
-                            }
-                            Spacer()
-                            if let due = c.dueAt { Text(dueText(due)).font(.meta).foregroundStyle(dueColor(due)) }
-                        }
-                        .padding(.horizontal, 11).padding(.vertical, 7)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
+        if atlas {
+            Theme.violet.opacity(0.07)
+                .overlay(alignment: .leading) { Rectangle().fill(Theme.violet.opacity(0.85)).frame(width: 2) }
+        } else {
+            Color.clear
         }
-        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.violet.opacity(0.10)))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.violet.opacity(0.35)))
-    }
-
-    private func dueText(_ s: String) -> String {
-        guard let d = Stamp.date(s) else { return "" }
-        return d < Date() ? "Late · \(Stamp.span(s))" : "Due \(Stamp.when(s))"
-    }
-    private func dueColor(_ s: String) -> Color {
-        (Stamp.date(s) ?? .distantFuture) < Date() ? Theme.rose : Theme.muted
     }
 }

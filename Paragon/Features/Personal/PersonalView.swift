@@ -17,6 +17,7 @@ struct PersonalView: View {
     @State private var show: Show = .recent
     @State private var releasing: PersonTarget?
     @State private var info: PersonTarget?
+    @State private var promising: PromiseTarget?
 
     private var member: LineOf? { router.personalOf }
     private var canOpenOthers: Bool { ["owner", "manager"].contains(session.me?.role ?? "") }
@@ -58,6 +59,9 @@ struct PersonalView: View {
                             .listRowSeparatorTint(Theme.border)
                             .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
                             .contextMenu {
+                                Button { promising = PromiseTarget(threadId: p.threadId, personId: p.personId, name: p.name) } label: {
+                                    Label("Add promise…", systemImage: "hand.raised")
+                                }
                                 Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
                                     Label("Release…", systemImage: "tray.and.arrow.up")
                                 }
@@ -81,6 +85,7 @@ struct PersonalView: View {
             .task(id: member) { items = []; loaded = false; await poll() }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await load() } } }
             .sheet(item: $info) { t in ContactInfoSheet(personId: t.personId, threadId: t.threadId) { Task { await load() } } }
+            .sheet(item: $promising) { t in PromiseSheet(target: t) { _ in Task { await load(); await InboxModel.shared.load() } } }
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
@@ -201,6 +206,7 @@ struct PersonalThreadView: View {
     @State private var outbox = Outbox.shared
     @State private var scrollKey = 0
     @State private var infoOpen = false
+    @State private var promising: PromiseTarget?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -209,7 +215,8 @@ struct PersonalThreadView: View {
                                back: { dismiss() },
                                callDisabled: calls.active != nil, infoDisabled: thread?.person == nil,
                                call: { calls.place(thread: threadId, name: name, brand: nil) },
-                               info: { infoOpen = true })
+                               info: { infoOpen = true },
+                               addPromise: { promising = PromiseTarget(threadId: threadId, personId: thread?.person?.id, name: thread?.person?.name ?? name) })
             if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
             if let t = thread {
                 if t.mine == false, let o = t.lineOwner {
@@ -237,6 +244,7 @@ struct PersonalThreadView: View {
         .sheet(isPresented: $infoOpen) {
             if let p = thread?.person { ContactInfoSheet(personId: p.id, threadId: threadId) { Task { await load() } } }
         }
+        .sheet(item: $promising) { t in PromiseSheet(target: t) { _ in Task { await InboxModel.shared.load() } } }
     }
 
     private func load() async {

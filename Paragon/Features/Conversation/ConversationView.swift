@@ -18,11 +18,20 @@ struct ConversationView: View {
     @State private var house: URL?
     @State private var houseBig = false
     @State private var infoOpen = false
+    @State private var promises: [ThreadPromise] = []
+    @State private var promising: PromiseTarget?
+    @Environment(Session.self) private var session
 
     var body: some View {
         VStack(spacing: 0) {
             header
             if let v = view {
+                if !promises.isEmpty {
+                    OpenPromises(promises: promises, meId: session.me?.id,
+                                 open: { p in promising = target(p, change: true) },
+                                 hand: { p in promising = target(p, change: false) },
+                                 changed: { Task { await load() } })
+                }
                 if v.threads.count > 1 { chips(v) }
                 if let h = house { houseBanner(h, v) }
                 if v.person.askType == true {
@@ -54,6 +63,26 @@ struct ConversationView: View {
         .sheet(isPresented: $infoOpen) {
             ContactInfoSheet(personId: personId, threadId: currentThread) { Task { await load() } }
         }
+        .sheet(item: $promising) { t in
+            PromiseSheet(target: t) { owner in
+                if case .add = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
+                if case .hand = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
+                Task { await load(); await InboxModel.shared.load() }
+            }
+        }
+    }
+
+    private func addPromise() {
+        guard let t = currentThread else { return }
+        promising = PromiseTarget(threadId: t, personId: personId, name: view?.person.name ?? "")
+    }
+
+    private func target(_ p: ThreadPromise, change: Bool) -> PromiseTarget {
+        let thread = p.threadId ?? currentThread ?? ""
+        let name = view?.person.name ?? ""
+        return change
+            ? PromiseTarget(threadId: thread, personId: personId, name: name, mode: .change(itemId: p.id, promise: true, due: p.dueAt, text: p.title ?? ""))
+            : PromiseTarget(threadId: thread, personId: personId, name: name, mode: .hand(itemId: p.id, promise: true))
     }
 
     /// Their house, from Nexus's saved Street View, as a short banner
@@ -104,7 +133,8 @@ struct ConversationView: View {
             callDisabled: currentThread == nil || calls.active != nil,
             infoDisabled: view == nil,
             call: call,
-            info: { infoOpen = true })
+            info: { infoOpen = true },
+            addPromise: view == nil || currentThread == nil ? nil : addPromise)
     }
 
     private func chips(_ v: PersonView) -> some View {
@@ -126,7 +156,13 @@ struct ConversationView: View {
     private func load() async {
         do {
             view = try await API.person(personId, thread: threadId)
-            if let v = view, let t = v.threadId { outbox.reconcile(thread: t, events: v.timeline ?? []) }
+            if let v = view, let t = v.threadId {
+                outbox.reconcile(thread: t, events: v.timeline ?? [])
+                // The open promises, soonest first; an older server has none.
+                if let ps = try? await API.threadPromises(t) {
+                    promises = ps.filter(\.isOpen).sorted { (Stamp.date($0.dueAt) ?? .distantFuture) < (Stamp.date($1.dueAt) ?? .distantFuture) }
+                }
+            }
             if view == nil { error = "This conversation isn't yours to see." } else { error = nil }
         } catch {
             self.error = error.localizedDescription
@@ -169,6 +205,8 @@ struct ConversationHeader: View {
     var infoDisabled = false
     let call: () -> Void
     let info: () -> Void
+    /// The header's menu: Add promise… (founder, 2026-11-09: WHO WHEN WHAT).
+    var addPromise: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -196,6 +234,21 @@ struct ConversationHeader: View {
             PillButton(label: "", symbol: "info.circle", action: info)
                 .disabled(infoDisabled).opacity(infoDisabled ? 0.45 : 1)
                 .accessibilityLabel("Contact info")
+            if let addPromise {
+                Menu {
+                    Button(action: addPromise) { Label("Add promise…", systemImage: "hand.raised") }
+                    Button(action: info) { Label("Contact info", systemImage: "person.text.rectangle") }
+                        .disabled(infoDisabled)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.text)
+                        .frame(width: 32, height: 30)
+                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.hover))
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("More")
+            }
         }
         .padding(.leading, 6).padding(.trailing, 12).padding(.top, 4).padding(.bottom, 8)
         .background(Theme.bg)

@@ -146,10 +146,55 @@ enum API {
 
     static func notificationsRead() async throws { try await call("paragon_notifications_read") }
 
-    static func atlasCards() async throws -> AtlasDeck? { try await rpc("paragon_atlas_cards", as: AtlasDeck?.self) }
-
     static func atlasCardAct(_ id: String, action: String, due: String? = nil, note: String? = nil) async throws {
         try await call("paragon_atlas_card_act", ["p_id": id, "p_action": action, "p_due": due, "p_note": note, "p_member": nil])
+    }
+
+    // MARK: Promises (WHO, WHEN, WHAT). The server checks who may take and
+    // act on each one; nothing here decides that.
+
+    static let iso: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    /// The WHO picker for a conversation: me first, then who can take it.
+    static func promisePeople(thread: String) async throws -> [PromisePerson] {
+        (try await rpc("paragon_promise_people", ["p_thread": thread], as: LossyList<PromisePerson>?.self))?.items ?? []
+    }
+
+    /// `owner` nil is me. Returns the new promise's id.
+    @discardableResult
+    static func promiseAdd(thread: String, owner: String?, due: Date, text: String) async throws -> String? {
+        struct R: Decodable { let id: String?; let threadStatus: String? }
+        return try await rpc("paragon_promise_add", ["p_thread": thread, "p_owner": owner, "p_due": iso.string(from: due), "p_text": text],
+                             as: R?.self)?.id
+    }
+
+    /// `kept` or `dismissed`.
+    static func promiseDone(_ id: String, outcome: String, note: String? = nil) async throws {
+        try await call("paragon_promise_done", ["p_id": id, "p_outcome": outcome, "p_note": note])
+    }
+
+    static func promiseReassign(_ id: String, owner: String, note: String? = nil) async throws {
+        try await call("paragon_promise_reassign", ["p_id": id, "p_owner": owner, "p_note": note])
+    }
+
+    /// WHEN and/or WHAT; nil leaves it as it is.
+    static func promiseUpdate(_ id: String, due: Date?, text: String?) async throws {
+        try await call("paragon_promise_update", ["p_id": id, "p_due": due.map { iso.string(from: $0) }, "p_text": text])
+    }
+
+    /// Every promise on a conversation (open, and those cleared in the last
+    /// two weeks).
+    static func threadPromises(_ thread: String) async throws -> [ThreadPromise] {
+        (try await rpc("paragon_thread_promises", ["p_thread": thread], as: LossyList<ThreadPromise>?.self))?.items ?? []
+    }
+
+    /// Hand an Atlas card (not a promise) to someone.
+    static func atlasCardHand(_ id: String, to member: String) async throws {
+        try await call("paragon_atlas_card_act", ["p_id": id, "p_action": "hand", "p_due": nil, "p_note": nil, "p_member": member])
     }
 
     static func callCard(_ thread: String) async throws -> CallCard? {

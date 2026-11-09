@@ -54,6 +54,8 @@ struct MainTabs: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: showsBar)
+        // "Promised to Ryan · due 9:00 am" and the like.
+        .overlay { ToastView() }
         .task { await alerts.poll() }
         .task { await team.poll() }
         .task { await TeamStore.shared.poll() }
@@ -73,7 +75,8 @@ struct MainTabs: View {
     }
 
     private var items: [ParagonTabBar.Item] {
-        let waiting = inbox.counts.waiting
+        // Waiting rows plus the overdue promises that are mine.
+        let waiting = inbox.badge
         return [
             .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: waiting > 0 ? count(waiting) : nil),
             .init(tab: .personal, title: "Personal", symbol: "person", badge: nil),

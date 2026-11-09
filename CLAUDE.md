@@ -90,3 +90,22 @@ need to be able to ring the phone and send notifications".
   the server's reason, and Delete in its menu. The stores outlive the
   screen. Every rule is still the server's (line, locks, STOP). The build
   number goes up with every upload.
+
+- **Promises and the one inbox, build 3, 2026-11-09** (the paragon repo's
+  CLAUDE.md, "Promises and the one inbox", is the contract): hold an inbox
+  or Personal row, or open the conversation's ⋯, for **Add promise…**
+  (`Features/Promises/Promises.swift`, `PromiseSheet`): WHO from
+  `paragon_promise_people` (me first, greyed with `why_not`), WHEN (In 1
+  hour, 4 PM today, Tomorrow 9 AM, or the picker), WHAT (200 characters).
+  A promise given to someone else takes the row off my inbox at once
+  (`InboxModel.clear`) and `Toast` says "Promised to Ryan · due 9:00 am".
+  The Atlas guide is gone: a row with `atlas` (or items) is a conversation
+  row tinted violet with a thin violet edge and one who · when · what line
+  (`QueueRow.itemLine`); its menu has Done, Not needed, Hand to…, Change…
+  (promises through `paragon_promise_*`, other cards through
+  `paragon_atlas_card_act`). Most urgent is the server's order
+  (`sort_key`, plain code-unit compare); overdue is rose and relative to
+  `due_at`. A conversation lists its open promises at the top
+  (`OpenPromises`, `paragon_thread_promises`, never the owner's name). The
+  tab's count is waiting rows plus my overdue promises. Every new queue
+  field is optional, and items decode leniently (`LossyList`, `Lenient`).
