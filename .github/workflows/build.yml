@@ -20,15 +20,28 @@ jobs:
       - uses: actions/checkout@v4
       - name: XcodeGen
         run: brew install xcodegen && xcodegen generate
+      - name: Packages
+        # GitHub's release downloads (TwilioVoice's binaries) sometimes fail
+        # part way; SwiftPM then reports "already exists in file system".
+        # Resolve on its own with a fresh cache, a few tries.
+        run: |
+          for i in 1 2 3 4; do
+            rm -rf ~/Library/Caches/org.swift.swiftpm "$RUNNER_TEMP/spm" "$RUNNER_TEMP/spm-src"
+            if xcodebuild -resolvePackageDependencies -project Paragon.xcodeproj -scheme Paragon \
+                 -packageCachePath "$RUNNER_TEMP/spm" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-src" \
+                 -skipPackagePluginValidation -skipMacroValidation; then exit 0; fi
+            curl -sSL -o /dev/null -w "twilio zip: %{http_code} %{size_download} bytes\n" \
+              https://github.com/twilio/twilio-voice-ios/releases/download/6.13.8/TwilioVoice-static.xcframework.zip || true
+            sleep 30
+          done
+          exit 1
       - name: Build (iOS Simulator)
         run: |
           set -o pipefail
-          # A fresh SwiftPM cache: the runner's own one has refused the
-          # TwilioVoice binary ("already exists in file system").
-          rm -rf ~/Library/Caches/org.swift.swiftpm "$RUNNER_TEMP/spm"
           xcodebuild -project Paragon.xcodeproj -scheme Paragon -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             -packageCachePath "$RUNNER_TEMP/spm" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-src" \
+            -disableAutomaticPackageResolution \
             -skipPackagePluginValidation -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|ld: |Undefined symbol|not found|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
