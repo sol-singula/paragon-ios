@@ -30,11 +30,27 @@ enum API {
         req.timeoutInterval = 30
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue(AppConfig.supabaseAnonKey, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer \(try await Supa.accessToken())", forHTTPHeaderField: "Authorization")
+        // A failed refresh or request is never a sign out: it shows
+        // "Reconnecting…" (Session) and the caller's own retry tries again.
+        let token: String
+        do { token = try await Supa.accessToken() } catch {
+            if !Session.isDefinitiveAuthFailure(error) { await Session.shared.noteConnectionTrouble() }
+            throw error
+        }
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let clean = body.mapValues { $0 ?? NSNull() }
         req.httpBody = try JSONSerialization.data(withJSONObject: clean)
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let data: Data, response: URLResponse
+        do { (data, response) = try await URLSession.shared.data(for: req) } catch {
+            if error is URLError { await Session.shared.noteConnectionTrouble() }
+            throw error
+        }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        if status == 502 || status == 503 || status == 504 || status >= 520 {
+            await Session.shared.noteConnectionTrouble()
+        } else {
+            await Session.shared.noteConnected()
+        }
         guard (200..<300).contains(status) else {
             let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
             let msg = (obj?["error"] as? String) ?? (obj?["message"] as? String)

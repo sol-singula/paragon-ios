@@ -19,6 +19,22 @@ struct RootView: View {
                 MainTabs()
             }
         }
+        .overlay(alignment: .top) {
+            if session.reconnecting {
+                HStack(spacing: 6) {
+                    Circle().fill(Theme.amber).frame(width: 6, height: 6)
+                    Text("Reconnecting…").font(.meta).foregroundStyle(Theme.secondary)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(Capsule().fill(Theme.card))
+                .overlay(Capsule().stroke(Theme.border, lineWidth: 1))
+                .padding(.top, 6)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .accessibilityLabel("Reconnecting")
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: session.reconnecting)
         .task { await session.restore() }
         .fullScreenCover(isPresented: Binding(get: { calls.active != nil && calls.showScreen }, set: { calls.showScreen = $0 })) {
             CallScreen()
