@@ -78,6 +78,29 @@ enum API {
         try await rpc("paragon_queue", ["p_homeowners_only": homeownersOnly, "p_brand": brand, "p_search": search], as: [QueueItem]?.self) ?? []
     }
 
+    /// Solbuild's search: clients, team, contractors, businesses.
+    static func globalSearch(_ query: String, limit: Int = 30) async throws -> [GlobalSearchRow] {
+        try await rpc("global_search", ["p_query": query, "p_limit": limit], as: [GlobalSearchRow]?.self) ?? []
+    }
+
+    /// The person a Nexus lead already is in Paragon, or nil.
+    static func leadConversation(_ lead: String) async throws -> String? {
+        try await rpc("paragon_lead_conversation", ["p_lead": lead], as: String?.self)
+    }
+
+    static func leadContact(_ lead: String) async throws -> LeadContact? {
+        try await rpc("paragon_lead_contact", ["p_lead": lead], as: LeadContact?.self)
+    }
+
+    static func lines() async throws -> [LineInfo] {
+        try await rpc("paragon_lines", as: [LineInfo]?.self) ?? []
+    }
+
+    /// Brand and state, never a line: an existing brand thread keeps its own.
+    static func startThread(phone: String, name: String, brand: String, state: String, guessed: Bool) async throws -> StartedThread {
+        try await rpc("paragon_start_thread", ["p_phone": phone, "p_name": name, "p_brand": brand, "p_state": state, "p_state_guessed": guessed], as: StartedThread.self)
+    }
+
     static func person(_ person: String, thread: String?) async throws -> PersonView? {
         try await rpc("paragon_person", ["p_person": person, "p_thread": thread], as: PersonView?.self)
     }

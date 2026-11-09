@@ -55,3 +55,12 @@ need to be able to ring the phone and send notifications".
   `ask_type`, and a "New" tag on Personal rows. No owner's name anywhere:
   `threads[].owner` and `history[].owner` are not decoded.
 
+- **Search and the hour's light, 2026-11-09**: the Inbox, Personal and Team
+  lists sit on `DayGlow` (`Design/DayGlow.swift`, the desktop's `lib/phase.ts`
+  phases and hues), a still gradient re-read every two minutes that
+  crossfades once on a change; never a repeating animation or a blur (that
+  is what made the Setter app slow). Inbox search is the desktop's: as you
+  type (2+ characters, 300 ms) `global_search` plus `paragon_queue` with
+  `p_search`, grouped, and every client or conversation has Text and Call
+  (`SearchHitRow`). A lead with no conversation opens `NewMessageSheet`
+  filled from `paragon_lead_contact`; Call starts the thread, then calls.

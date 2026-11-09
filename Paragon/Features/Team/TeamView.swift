@@ -21,17 +21,17 @@ struct TeamView: View {
                 if !team.members.isEmpty {
                     strip
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .listRowBackground(Theme.bg)
+                        .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 }
                 if let e = model.error {
                     ErrorBanner(message: e) { Task { await model.load() } }
-                        .listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
                 Section {
                     ForEach(model.channels) { c in
                         NavigationLink(value: c.id) { ChannelRow(c: c) }
-                            .listRowBackground(Theme.bg)
+                            .listRowBackground(Color.clear)
                             .listRowSeparatorTint(Theme.border)
                     }
                 } header: {
@@ -39,12 +39,12 @@ struct TeamView: View {
                 }
                 if model.loaded && model.channels.isEmpty {
                     EmptyNote(title: "You're not in a channel yet", detail: "A founder adds people on the desktop, in Settings → Team chat.", symbol: "number")
-                        .listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.bg)
+            .dayGlow()
             .navigationTitle("Team")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

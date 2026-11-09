@@ -5,64 +5,37 @@ struct InboxView: View {
     @State private var model = InboxModel()
     @State private var deckOpen = false
     @State private var releasing: PersonTarget?
+    @Environment(CallManager.self) private var calls
+    @Environment(Session.self) private var session
+    @State private var composing: NewMessagePrefill?
+    @State private var notice: String?
+    @State private var busyHit: String?
 
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.inboxPath) {
             List {
-                Section {
-                    header
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
-                        .listRowBackground(Theme.bg)
-                        .listRowSeparator(.hidden)
-
-                    if let e = model.error {
-                        ErrorBanner(message: e) { Task { await model.load() } }
-                            .listRowBackground(Theme.bg).listRowSeparator(.hidden)
-                    }
-
-                    if let deck = model.deck, !deck.cards.isEmpty, model.search.isEmpty {
-                        AtlasGuide(deck: deck, open: $deckOpen) { card in
-                            if let p = card.personId { router.open(.person(personId: p, threadId: card.threadId)) }
-                        }
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
-                        .listRowBackground(Theme.bg)
-                        .listRowSeparator(.hidden)
-                    }
-                }
-
-                Section {
-                    ForEach(model.shown) { q in
-                        NavigationLink(value: Route.person(personId: q.personId, threadId: q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id)) {
-                            QueueRow(q: q)
-                        }
-                        .contextMenu {
-                            if let t = q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id {
-                                Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
-                                    Label("Release…", systemImage: "tray.and.arrow.up")
-                                }
-                            }
-                        }
-                        .listRowBackground(Theme.bg)
-                        .listRowSeparatorTint(Theme.border)
-                    }
-                    if model.loaded && model.shown.isEmpty {
-                        EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : "Nothing here",
-                                  detail: model.show == .waiting ? "You're caught up." : nil,
-                                  symbol: "checkmark.circle")
-                            .listRowBackground(Theme.bg).listRowSeparator(.hidden)
-                    }
+                if model.isSearching {
+                    searchResults
+                } else {
+                    inboxSections
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.bg)
+            .dayGlow()
             .navigationTitle("Inbox")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search people, numbers, words")
-            .onSubmit(of: .search) { Task { await model.load() } }
-            .onChange(of: model.search) { _, v in if v.isEmpty { Task { await model.load() } } }
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
+            .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search clients, people, numbers")
+            .autocorrectionDisabled()
+            .onChange(of: model.search) { _, _ in model.searchChanged() }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { composing = NewMessagePrefill() } label: { Image(systemName: "square.and.pencil") }
+                        .tint(Theme.secondary).accessibilityLabel("New message")
+                }
+                ToolbarItem(placement: .topBarTrailing) { filterMenu }
+            }
             .refreshable { await model.load() }
             .task { await model.poll() }
             .navigationDestination(for: Route.self) { route in
@@ -73,17 +46,179 @@ struct InboxView: View {
             }
             .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await model.load() } } }
+            .sheet(item: $composing) { p in
+                NewMessageSheet(prefill: p) { person, thread, name, brand in
+                    composing = nil
+                    router.inboxPath.append(.person(personId: person, threadId: thread))
+                    // After the sheet is gone, so the call screen can come up.
+                    if p.then == .call {
+                        Task { try? await Task.sleep(for: .milliseconds(700)); calls.place(thread: thread, name: name, brand: brand) }
+                    }
+                    Task { await model.load() }
+                }
+            }
+            .alert("Can't do that", isPresented: Binding(get: { notice != nil }, set: { if !$0 { notice = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(notice ?? "") }
         }
+    }
+
+    // MARK: The inbox
+
+    @ViewBuilder private var inboxSections: some View {
+        Section {
+            header
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+            if let e = model.error {
+                ErrorBanner(message: e) { Task { await model.load() } }
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
+
+            if let deck = model.deck, !deck.cards.isEmpty, model.search.isEmpty {
+                AtlasGuide(deck: deck, open: $deckOpen) { card in
+                    if let p = card.personId { router.open(.person(personId: p, threadId: card.threadId)) }
+                }
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+        }
+
+        Section {
+            ForEach(model.shown) { q in
+                NavigationLink(value: Route.person(personId: q.personId, threadId: q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id)) {
+                    QueueRow(q: q)
+                }
+                .contextMenu {
+                    if let t = q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id {
+                        Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
+                            Label("Release…", systemImage: "tray.and.arrow.up")
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparatorTint(Theme.border)
+            }
+            if model.loaded && model.shown.isEmpty {
+                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : "Nothing here",
+                          detail: model.show == .waiting ? "You're caught up." : nil,
+                          symbol: "checkmark.circle")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
+        }
+    }
+
+    // MARK: Search results, grouped as on the desktop
+
+    @ViewBuilder private var searchResults: some View {
+        if model.searching && model.hits.isEmpty {
+            HStack(spacing: 8) { Spacer(); ProgressView().tint(Theme.muted); Text("Searching…").font(.meta).foregroundStyle(Theme.muted); Spacer() }
+                .padding(.vertical, 24)
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+        } else if model.hits.isEmpty && !model.searching && !model.searchedFor.isEmpty {
+            EmptyNote(title: "No results for \u{201C}\(model.searchedFor)\u{201D}", detail: "Try a different spelling, a phone number or an email.", symbol: "magnifyingglass")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+        } else {
+            let known = Set(SearchHit.groups.map(\.type))
+            ForEach(SearchHit.groups, id: \.type) { g in
+                let items = model.hits.filter { $0.type == g.type }
+                if !items.isEmpty { resultSection(g.label, g.symbol, items) }
+            }
+            let other = model.hits.filter { !known.contains($0.type) }
+            if !other.isEmpty { resultSection("Other", "circle.dashed", other) }
+        }
+    }
+
+    private func resultSection(_ label: String, _ symbol: String, _ items: [SearchHit]) -> some View {
+        Section {
+            ForEach(items, id: \.key) { h in
+                SearchHitRow(hit: h, symbol: symbol, busy: busyHit == h.key, callDisabled: calls.active != nil,
+                             onOpen: { Task { await openHit(h) } },
+                             onText: { Task { await openHit(h) } },
+                             onCall: { Task { await callHit(h) } })
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Theme.border)
+            }
+        } header: {
+            HStack {
+                Text(label).font(.metaMedium).foregroundStyle(Theme.muted)
+                Spacer()
+                Text("\(items.count)").font(.meta).monospacedDigit().foregroundStyle(Theme.muted)
+            }
+            .textCase(nil)
+        }
+    }
+
+    /// The person a result is in Paragon: a conversation is one already; a
+    /// lead is whoever has their number (paragon_lead_conversation).
+    private func personFor(_ h: SearchHit) async throws -> String? {
+        h.type == "conversation" ? h.id : try await API.leadConversation(h.id)
+    }
+
+    /// Opening (and Text): their conversation; a lead nobody has texted yet
+    /// opens New message with their name and phone filled in.
+    private func openHit(_ h: SearchHit, then: NewMessagePrefill.Then = .text) async {
+        guard h.isPerson else {
+            notice = "\(h.name) has no conversation in Paragon. Only clients and people who have texted or called open here."
+            return
+        }
+        busyHit = h.key
+        defer { busyHit = nil }
+        do {
+            if let person = try await personFor(h) {
+                router.inboxPath.append(.person(personId: person, threadId: nil))
+            } else {
+                composing = await prefill(h, then: then)
+            }
+        } catch { notice = error.localizedDescription }
+    }
+
+    /// Call: their primary conversation through CallManager, as the call
+    /// button in the conversation does. A thread the wall locks is refused.
+    private func callHit(_ h: SearchHit) async {
+        guard calls.active == nil else { notice = "You are already on a call."; return }
+        busyHit = h.key
+        defer { busyHit = nil }
+        do {
+            guard let person = try await personFor(h) else { composing = await prefill(h, then: .call); return }
+            guard let v = try await API.person(person, thread: nil) else { notice = "This conversation isn't yours to see."; return }
+            let t = v.threads.first { $0.id == v.threadId && $0.locked != true } ?? v.threads.first { $0.locked != true }
+            router.inboxPath.append(.person(personId: person, threadId: t?.id ?? v.threadId))
+            guard let t else {
+                notice = v.lockedReason ?? "Locked for you: you have spoken with them for another brand."
+                return
+            }
+            calls.place(thread: t.id, name: v.person.name, brand: t.brand)
+        } catch { notice = error.localizedDescription }
+    }
+
+    private func prefill(_ h: SearchHit, then: NewMessagePrefill.Then) async -> NewMessagePrefill {
+        var c: LeadContact?
+        if h.type == "lead" { c = try? await API.leadContact(h.id) }
+        return NewMessagePrefill(fromSearch: true, name: c?.name ?? h.name, phone: c?.phone ?? "", place: c?.address ?? "",
+                                 brand: c?.brand, state: c?.state, then: then)
     }
 
     private var header: some View {
         let c = model.counts
-        return HStack {
-            Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"), (.all, "All")],
-                      selection: $model.show) { s in
-                s == .waiting && c.late > 0 ? AnyView(CountPill(text: "\(c.late) late")) : nil
+        let first = session.me?.first
+        return VStack(alignment: .leading, spacing: 8) {
+            // The hour's greeting, the desktop's, over the hour's light.
+            TimelineView(.periodic(from: .now, by: 120)) { ctx in
+                let g = DayPhase.of(ctx.date).greeting
+                Text(first.map { "\(g), \($0)" } ?? g)
+                    .font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.text)
             }
-            Spacer()
+            HStack {
+                Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"), (.all, "All")],
+                          selection: $model.show) { s in
+                    s == .waiting && c.late > 0 ? AnyView(CountPill(text: "\(c.late) late")) : nil
+                }
+                Spacer()
+            }
         }
     }
 
