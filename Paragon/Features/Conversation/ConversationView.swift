@@ -16,12 +16,16 @@ struct ConversationView: View {
     @State private var scrollKey = 0
     @State private var house: URL?
     @State private var houseBig = false
+    @State private var infoOpen = false
 
     var body: some View {
         VStack(spacing: 0) {
             if let v = view {
                 if v.threads.count > 1 { chips(v) }
                 if let h = house { houseRow(h, v) }
+                if v.person.askType == true {
+                    WhoIsThisBar(personId: v.person.id, name: v.person.name) { _ in Task { await load() } }
+                }
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
                 TimelineList(events: v.timeline ?? [], scrollKey: scrollKey)
                 Composer(draft: $draft, label: v.sendLabel, sending: sending,
@@ -40,6 +44,12 @@ struct ConversationView: View {
         .toolbar {
             ToolbarItem(placement: .principal) { title }
             ToolbarItem(placement: .topBarTrailing) {
+                Button { infoOpen = true } label: { Image(systemName: "person.text.rectangle") }
+                    .tint(Theme.secondary)
+                    .disabled(view == nil)
+                    .accessibilityLabel("Contact info")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { call() } label: { Image(systemName: "phone.fill") }
                     .tint(Theme.cyan)
                     .disabled(currentThread == nil || calls.active != nil)
@@ -51,6 +61,9 @@ struct ConversationView: View {
         .onAppear { Presence.shared.focus(personId: personId, name: view?.person.name) }
         .onDisappear { Presence.shared.focus(personId: nil, name: nil) }
         .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
+        .sheet(isPresented: $infoOpen) {
+            ContactInfoSheet(personId: personId, threadId: currentThread) { Task { await load() } }
+        }
     }
 
     /// Their house, from Nexus's saved Street View: tap to see it big

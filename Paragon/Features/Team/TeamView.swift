@@ -12,6 +12,8 @@ struct TeamView: View {
     @State private var model = TeamModel.shared
     @State private var dndOpen = false
 
+    private var canOpenPersonal: Bool { ["owner", "manager"].contains(session.me?.role ?? "") }
+
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.teamPath) {
@@ -89,6 +91,14 @@ struct TeamView: View {
                     }
                     .frame(width: 52)
                     .opacity(away ? 0.5 : 1)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Founders and managers: a teammate's face opens their
+                        // personal line (founder, 2026-11-09).
+                        guard canOpenPersonal else { return }
+                        router.openPersonal(of: m.id == me ? nil : LineOf(id: m.id, name: m.name))
+                    }
+                    .accessibilityHint(canOpenPersonal && m.id != me ? "Opens \(m.name)\u{2019}s personal line" : "")
                 }
             }
             .padding(.horizontal, 16)

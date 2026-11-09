@@ -91,3 +91,12 @@ struct ErrorBanner: View {
         .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.amber.opacity(0.3)))
     }
 }
+
+/// A list preview on one line: line breaks become spaces, so a long one
+/// ends in "…" where the row ends (founder, 2026-11-09: "a little too
+/// abruptly cut off").
+enum Preview {
+    static func line(_ s: String) -> String {
+        s.split(whereSeparator: \.isNewline).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+    }
+}

@@ -45,3 +45,13 @@ need to be able to ring the phone and send notifications".
   not the SDK, like every other request here. `muted_until` / `dnd_until` can
   be `"infinity"` (`TeamTime`). Team reads poll (4 s in a channel, 15 s for
   the overview) where the desktop uses Realtime.
+- **Round 2, 2026-11-09** (desktop 0.10.14): previews are one line ending
+  in "…" (`Preview.line`); hold an inbox or Personal row to Release
+  (`paragon_thread_release`, `ReleaseSheet`); founders and managers tap a
+  teammate's face in Team (or the Personal menu) to open their personal line
+  (`paragon_personal(p_member)`, `Router.personalOf`); Contact info
+  (`ContactInfoSheet`, `paragon_person` + `paragon_person_details`) from a
+  conversation or a Personal thread; "Who is this?" (`WhoIsThisBar`) while
+  `ask_type`, and a "New" tag on Personal rows. No owner's name anywhere:
+  `threads[].owner` and `history[].owner` are not decoded.
+

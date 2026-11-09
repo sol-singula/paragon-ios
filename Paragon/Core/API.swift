@@ -82,8 +82,35 @@ enum API {
         try await rpc("paragon_person", ["p_person": person, "p_thread": thread], as: PersonView?.self)
     }
 
-    static func personal() async throws -> [PersonalItem] {
-        try await rpc("paragon_personal", as: [PersonalItem]?.self) ?? []
+    /// My personal line, or (founders and managers) a teammate's.
+    static func personal(member: String? = nil) async throws -> [PersonalItem] {
+        try await rpc("paragon_personal", member.map { ["p_member": $0] } ?? [:], as: [PersonalItem]?.self) ?? []
+    }
+
+    /// Off the waiting list with a reason (logged). It comes back when they
+    /// text or call again.
+    static func releaseThread(_ thread: String, reason: String) async throws {
+        try await call("paragon_thread_release", ["p_thread": thread, "p_reason": reason])
+    }
+
+    /// Homeowner, contractor, vendor or spam. Returns how many conversations
+    /// spam released.
+    @discardableResult
+    static func setContactType(_ person: String, type: String) async throws -> Int {
+        struct R: Decodable { let ok: Bool?; let released: Flex? }
+        return Int(try await rpc("paragon_set_contact_type", ["p_person": person, "p_type": type], as: R.self).released?.value ?? 0)
+    }
+
+    static func personDetails(_ person: String) async throws -> PersonDetails? {
+        try await rpc("paragon_person_details", ["p_person": person], as: PersonDetails?.self)
+    }
+
+    static func personUpdate(_ person: String, email: String? = nil, address: String? = nil, notes: String? = nil) async throws {
+        try await call("paragon_person_update", ["p_person": person, "p_email": email, "p_address": address, "p_notes": notes])
+    }
+
+    static func personRename(_ person: String, name: String) async throws {
+        try await call("paragon_person_rename", ["p_person": person, "p_name": name])
     }
 
     static func personalThread(_ thread: String) async throws -> PersonalThread? {

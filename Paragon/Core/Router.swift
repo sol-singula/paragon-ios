@@ -1,6 +1,9 @@
 import Foundation
 import Observation
 
+/// A teammate whose personal line is open.
+struct LineOf: Equatable, Hashable { let id: String; let name: String }
+
 /// Which tab is up, and where a tapped notification wants to go.
 @Observable
 @MainActor
@@ -12,8 +15,17 @@ final class Router {
     var tab: Tab = .inbox
     var inboxPath: [Route] = []
     var personalPath: [Route] = []
+    /// Whose personal line Personal shows: nil is mine; founders and
+    /// managers open a teammate's from their face (Team).
+    var personalOf: LineOf?
     /// Team channel ids.
     var teamPath: [String] = []
+
+    func openPersonal(of member: LineOf?) {
+        personalOf = member
+        personalPath = []
+        tab = .personal
+    }
 
     func open(_ route: Route) {
         switch route {
@@ -22,6 +34,7 @@ final class Router {
             inboxPath = [route]
         case .personal:
             tab = .personal
+            personalOf = nil
             personalPath = [route]
         }
     }

@@ -91,7 +91,7 @@ struct AlertRow: View {
                     Spacer(minLength: 4)
                     Text(Stamp.when(n.createdAt)).font(.meta).foregroundStyle(Theme.muted)
                 }
-                if let b = n.body, !b.isEmpty { Text(b).font(.meta).foregroundStyle(Theme.secondary).lineLimit(3) }
+                if let b = n.body, !b.isEmpty { Text(b).font(.meta).foregroundStyle(Theme.secondary).lineLimit(3).truncationMode(.tail) }
             }
         }
         .padding(.vertical, 4)

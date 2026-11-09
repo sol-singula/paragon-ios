@@ -103,7 +103,7 @@ final class CallManager: NSObject {
             let t = try await API.voiceToken()
             guard t.pushReady != false else {
                 ringReady = false
-                ringStatus = "Not set up yet. An owner saves the iPhone push credential (see the README)."
+                ringStatus = "Not set up yet. A founder saves the iPhone push credential (see the README)."
                 return
             }
             let ok: Bool = await withCheckedContinuation { cont in

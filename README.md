@@ -2,7 +2,8 @@
 
 Paragon by solbuild on the phone: the inbox, Personal, Team chat,
 notifications, and calls that ring the phone like a phone. Photos in and out
-of customer texts, faces on what we sent, who's online and who's on a call. Same look as the desktop app (its dark
+of customer texts, faces on what we sent, who's online and who's on a call.
+Founders and managers open a teammate's personal line from their face. Same look as the desktop app (its dark
 theme, branch circles, Atlas's violet ring), same server: every read and write
 is a `public.paragon_*` function, texts go through `paragon-send`, calls
 through `paragon-voice`. Nothing here has its own rules.

@@ -96,7 +96,8 @@ struct PersonThread: Decodable, Hashable, Identifiable {
     let dueAt: String?
     let clockStartedAt: String?
     let locked: Bool?
-    let owner: String?
+    // No owner's name on a conversation (founder, 2026-11-09): the server
+    // sends threads[].owner as null and nothing here reads it.
     let label: String?
     let lastActivityAt: String?
 }
@@ -133,8 +134,14 @@ struct PersonView: Decodable {
         let isStopped: Bool?
         let source: String?
         let nexusLeadId: String?
+        /** Someone picked their type, or they are a Nexus client. */
+        let typeKnown: Bool?
+        /** A first contact nobody has classified: ask "Who is this?". */
+        let askType: Bool?
     }
-    struct Lead: Decodable { let id: String; let address: String?; let email: String? }
+    struct Lead: Decodable { let id: String; let address: String?; let email: String?; let description: String? }
+    /// Where else they have talked to us. Never who holds them.
+    struct History: Decodable { let brand: String? }
     struct Appointment: Decodable { let date: String; let time: String?; let type: String?; let confirmed: Bool? }
 
     let person: Person
@@ -146,6 +153,7 @@ struct PersonView: Decodable {
     let timeline: [TimelineEvent]?
     let lead: Lead?
     let appointment: Appointment?
+    let history: [History]?
 }
 
 struct PersonalItem: Decodable, Hashable, Identifiable {
@@ -158,14 +166,53 @@ struct PersonalItem: Decodable, Hashable, Identifiable {
     let lastActivityAt: String?
     let preview: String?
     let previewKind: String?
+    let contactType: String?
+    let askType: Bool?
+    /** Released with nothing since (a release sticks). */
+    let released: Bool?
 
     var id: String { threadId }
+    var isSpam: Bool { contactType == "spam" }
 }
 
 struct PersonalThread: Decodable {
+    struct LineOwner: Decodable, Hashable { let id: String; let name: String }
+    struct Person: Decodable, Hashable {
+        let id: String
+        let name: String
+        let hasName: Bool?
+        let contactType: String?
+        let typeKnown: Bool?
+        let askType: Bool?
+        let isStopped: Bool?
+        let nexusLeadId: String?
+    }
     let threadId: String
     let sendLabel: String?
     let timeline: [TimelineEvent]?
+    /** Whose personal line this is, and whether it is mine. */
+    let lineOwner: LineOwner?
+    let mine: Bool?
+    let person: Person?
+    let released: Bool?
+}
+
+/// A person's contact info (paragon_person_details), the inbox's panel.
+struct PersonDetails: Decodable {
+    struct Suggestion: Decodable, Hashable { let name: String; let source: String? }
+    let email: String?
+    let address: String?
+    let notes: String?
+    let foundAddress: String?
+    let foundAt: String?
+    let nameSuggestions: [Suggestion]?
+}
+
+/// What a person is (paragon_set_contact_type). Spam releases every
+/// conversation with them and keeps them out of Waiting.
+enum ContactType {
+    static let all: [(value: String, label: String)] = [("homeowner", "Homeowner"), ("contractor", "Contractor"), ("vendor", "Vendor"), ("spam", "Spam")]
+    static func label(_ v: String?) -> String { all.first { $0.value == v }?.label ?? "Automated" }
 }
 
 struct Notice: Decodable, Hashable, Identifiable {

@@ -148,10 +148,13 @@ struct TextBubble: View {
 struct CallRow: View {
     let e: TimelineEvent
     @State private var transcriptOpen = false
+    @Environment(TeamStore.self) private var team
 
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
+                // Who took or made it, by their face.
+                if let m = team.member(named: e.by) { MemberFace(id: m.id, name: m.name, url: m.photoUrl, size: 18, showPresence: false) }
                 Image(systemName: icon).font(.system(size: 12, weight: .semibold)).foregroundStyle(color)
                 Text(title).font(.metaMedium).foregroundStyle(color == Theme.rose ? Theme.rose : Theme.secondary)
                 Text(Stamp.exact(e.at)).font(.meta).foregroundStyle(Theme.muted)

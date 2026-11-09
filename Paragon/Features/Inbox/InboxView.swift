@@ -4,6 +4,7 @@ struct InboxView: View {
     @Environment(Router.self) private var router
     @State private var model = InboxModel()
     @State private var deckOpen = false
+    @State private var releasing: PersonTarget?
 
     var body: some View {
         @Bindable var router = router
@@ -35,6 +36,13 @@ struct InboxView: View {
                         NavigationLink(value: Route.person(personId: q.personId, threadId: q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id)) {
                             QueueRow(q: q)
                         }
+                        .contextMenu {
+                            if let t = q.threads?.first(where: { $0.status == "waiting" })?.id ?? q.firstThread?.id {
+                                Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
+                                    Label("Release…", systemImage: "tray.and.arrow.up")
+                                }
+                            }
+                        }
                         .listRowBackground(Theme.bg)
                         .listRowSeparatorTint(Theme.border)
                     }
@@ -64,6 +72,7 @@ struct InboxView: View {
                 }
             }
             .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
+            .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await model.load() } } }
         }
     }
 
@@ -126,9 +135,9 @@ struct QueueRow: View {
                     Spacer(minLength: 4)
                     Text(clock).font(.meta).monospacedDigit().foregroundStyle(clockColor)
                 }
-                Text(q.preview?.isEmpty == false ? q.preview! : " ")
+                Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     .font(.meta).foregroundStyle(q.status == "closed" ? Theme.muted : Theme.secondary)
-                    .lineLimit(1)
+                    .lineLimit(1).truncationMode(.tail)
             }
         }
         .padding(.vertical, 6)
@@ -170,7 +179,7 @@ struct AtlasGuide: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(first.title).font(.uiMedium).foregroundStyle(Theme.text).multilineTextAlignment(.leading)
                             if let why = first.why, !why.isEmpty {
-                                Text(why).font(.meta).foregroundStyle(Theme.secondary).lineLimit(2).multilineTextAlignment(.leading)
+                                Text(why).font(.meta).foregroundStyle(Theme.secondary).lineLimit(2).truncationMode(.tail).multilineTextAlignment(.leading)
                             }
                             if let due = first.dueAt { Text(dueText(due)).font(.meta).foregroundStyle(dueColor(due)) }
                         }
@@ -198,7 +207,7 @@ struct AtlasGuide: View {
                             HStack(spacing: 10) {
                                 BranchMark(brand: c.brand, size: 22)
                                 VStack(alignment: .leading, spacing: 1) {
-                                    Text(c.title).font(.meta).foregroundStyle(Theme.text).lineLimit(1)
+                                    Text(c.title).font(.meta).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
                                     if let n = c.name { Text(n).font(.meta).foregroundStyle(Theme.muted).lineLimit(1) }
                                 }
                                 Spacer()
