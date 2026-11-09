@@ -155,7 +155,8 @@ struct InboxView: View {
     /// The person a result is in Paragon: a conversation is one already; a
     /// lead is whoever has their number (paragon_lead_conversation).
     private func personFor(_ h: SearchHit) async throws -> String? {
-        h.type == "conversation" ? h.id : try await API.leadConversation(h.id)
+        if h.type == "conversation" { return h.id }
+        return try await API.leadConversation(h.id)
     }
 
     /// Opening (and Text): their conversation; a lead nobody has texted yet
@@ -185,7 +186,7 @@ struct InboxView: View {
         do {
             guard let person = try await personFor(h) else { composing = await prefill(h, then: .call); return }
             guard let v = try await API.person(person, thread: nil) else { notice = "This conversation isn't yours to see."; return }
-            let t = v.threads.first { $0.id == v.threadId && $0.locked != true } ?? v.threads.first { $0.locked != true }
+            let t = v.threads.first(where: { $0.id == v.threadId && $0.locked != true }) ?? v.threads.first(where: { $0.locked != true })
             router.inboxPath.append(.person(personId: person, threadId: t?.id ?? v.threadId))
             guard let t else {
                 notice = v.lockedReason ?? "Locked for you: you have spoken with them for another brand."
