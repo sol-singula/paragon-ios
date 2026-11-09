@@ -106,25 +106,16 @@ struct CallScreen: View {
     /// The client card under the name: the job, their last text, and who
     /// else is on the call.
     @ViewBuilder private func factsCard(_ a: CallManager.Active) -> some View {
-        let on = calls.people.filter(\.on)
-        if facts?.job != nil || facts?.last != nil || !on.isEmpty {
+        let on: [CallPerson] = calls.people.filter { $0.on }
+        let job: String? = facts?.job
+        let last: String? = on.isEmpty ? facts?.last : nil
+        if job != nil || last != nil || !on.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
-                if let j = facts?.job { (Text("Job ").bold().foregroundColor(Theme.text) + Text(j)).font(.system(size: 13)).foregroundStyle(Theme.secondary).lineLimit(2) }
-                if let l = facts?.last, on.isEmpty { (Text("Last ").bold().foregroundColor(Theme.text) + Text(l)).font(.system(size: 13)).foregroundStyle(Theme.secondary).lineLimit(2) }
+                if let job { FactLine(label: "Job", value: job) }
+                if let last { FactLine(label: "Last", value: last) }
                 if !on.isEmpty {
-                    (Text("With ").bold().foregroundColor(Theme.text) + Text((["You"] + on.map { $0.status == "joining" ? "\($0.name.split(separator: " ").first.map(String.init) ?? $0.name) (joining…)" : ($0.name.split(separator: " ").first.map(String.init) ?? $0.name) }).joined(separator: ", ")))
-                        .font(.system(size: 13)).foregroundStyle(Theme.secondary)
-                    ForEach(on) { p in
-                        HStack(spacing: 8) {
-                            Text(p.name).font(.system(size: 13)).foregroundStyle(Theme.text).lineLimit(1)
-                            Spacer()
-                            Text(p.status == "joining" ? "Joining…" : "Talking").font(.system(size: 12)).foregroundStyle(p.status == "joining" ? Theme.amber : Theme.secondary)
-                            if !p.key.hasPrefix("tmp-") {
-                                Button { calls.remove(p) } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.muted) }
-                                    .buttonStyle(.plain).accessibilityLabel("Take \(p.name) off the call")
-                            }
-                        }
-                    }
+                    FactLine(label: "With", value: Self.withText(on))
+                    ForEach(on) { p in PersonLine(person: p) { calls.remove(p) } }
                     Text("If you leave, the others stay on.").font(.system(size: 11)).foregroundStyle(Theme.muted)
                 }
             }
@@ -134,6 +125,14 @@ struct CallScreen: View {
         }
     }
 
+    private static func firstName(_ n: String) -> String { n.split(separator: " ").first.map(String.init) ?? n }
+
+    private static func withText(_ on: [CallPerson]) -> String {
+        var names: [String] = ["You"]
+        for p in on { names.append(p.status == "joining" ? firstName(p.name) + " (joining…)" : firstName(p.name)) }
+        return names.joined(separator: ", ")
+    }
+
     private func loadFacts() async {
         facts = nil
         guard let t = calls.active?.thread, !t.isEmpty,
@@ -141,14 +140,50 @@ struct CallScreen: View {
               let v = try? await API.person(card.personId, thread: t) else { return }
         var job: [String] = []
         if let d = v.lead?.description?.trimmingCharacters(in: .whitespacesAndNewlines), !d.isEmpty { job.append(String(d.prefix(80))) }
-        if let ap = v.appointment { job.append([ap.type ?? "Appointment", ap.date, ap.time].compactMap { $0 }.joined(separator: " ")) }
-        let last = v.timeline?.last(where: { $0.kind == "text" && !($0.body ?? "").isEmpty })
-        facts = CallFacts(job: job.isEmpty ? nil : job.joined(separator: " · "),
-                          last: last.map { "\($0.direction == "out" ? "Us: " : "")“\(String(($0.body ?? "").prefix(80)))”" })
+        if let ap = v.appointment {
+            var parts: [String] = [ap.type ?? "Appointment", ap.date]
+            if let t = ap.time { parts.append(t) }
+            job.append(parts.joined(separator: " "))
+        }
+        var lastText: String? = nil
+        if let e = v.timeline?.last(where: { $0.kind == "text" && !($0.body ?? "").isEmpty }) {
+            let who: String = e.direction == "out" ? "Us: " : ""
+            let body: String = String((e.body ?? "").prefix(80))
+            lastText = who + "“" + body + "”"
+        }
+        facts = CallFacts(job: job.isEmpty ? nil : job.joined(separator: " · "), last: lastText)
     }
 }
 
 struct CallFacts: Equatable { let job: String?; let last: String? }
+
+private struct FactLine: View {
+    let label: String
+    let value: String
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(label).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text)
+            Text(value).font(.system(size: 13)).foregroundStyle(Theme.secondary).lineLimit(2)
+        }
+    }
+}
+
+private struct PersonLine: View {
+    let person: CallPerson
+    let remove: () -> Void
+    var body: some View {
+        let joining = person.status == "joining"
+        HStack(spacing: 8) {
+            Text(person.name).font(.system(size: 13)).foregroundStyle(Theme.text).lineLimit(1)
+            Spacer()
+            Text(joining ? "Joining…" : "Talking").font(.system(size: 12)).foregroundStyle(joining ? Theme.amber : Theme.secondary)
+            if !person.key.hasPrefix("tmp-") {
+                Button(action: remove) { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.muted) }
+                    .buttonStyle(.plain).accessibilityLabel("Take \(person.name) off the call")
+            }
+        }
+    }
+}
 
 /// "Orbit": a bright streak running round a ring, amber and quick (1.6 s a
 /// lap) while ringing, green and slower (3.2 s) once connected. Still for
