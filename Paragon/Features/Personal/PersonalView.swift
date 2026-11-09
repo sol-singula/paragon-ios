@@ -35,14 +35,14 @@ struct PersonalView: View {
                         Segmented(options: [(Show.recent, "Recent"), (.waiting, waiting > 0 ? "Waiting \(waiting)" : "Waiting"), (.all, "All")], selection: $show)
                     }
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
-                    .listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
                 if let e = error {
-                    ErrorBanner(message: e) { Task { await load() } }.listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                    ErrorBanner(message: e) { Task { await load() } }.listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
                 ForEach(shown) { p in
                     NavigationLink(value: Route.personal(threadId: p.threadId, name: p.name)) { PersonalRow(p: p) }
-                        .listRowBackground(Theme.bg)
+                        .listRowBackground(Color.clear)
                         .listRowSeparatorTint(Theme.border)
                         .contextMenu {
                             Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
@@ -55,12 +55,12 @@ struct PersonalView: View {
                 }
                 if loaded && shown.isEmpty {
                     EmptyNote(title: emptyTitle, detail: items.isEmpty ? emptyDetail : nil, symbol: "person.crop.circle")
-                        .listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.bg)
+            .dayGlow()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -458,3 +458,45 @@ struct Costs: Decodable {
     let byDay: [ByDay]?
     let twilioByLine: [ByLine]?
 }
+
+// MARK: Search (Solbuild's own global_search, the website's search bar)
+
+/// One row of `global_search`. `resultType` is lead, user, contractor,
+/// business…; the inbox adds its own "conversation" hits from paragon_queue.
+struct GlobalSearchRow: Decodable, Hashable {
+    let id: String
+    let resultType: String
+    let primaryName: String?
+    let secondaryInfo: String?
+    let extraInfo: String?
+    let relevanceScore: Double?
+    let statusName: String?
+    let statusColor: String?
+}
+
+/// A lead's name and phone (and a guess at brand and state), to start a
+/// conversation with someone Paragon has never texted (`paragon_lead_contact`).
+struct LeadContact: Decodable {
+    let name: String?
+    let phone: String?
+    let address: String?
+    let brand: String?
+    let state: String?
+}
+
+/// A line as `paragon_lines` lists it; New message needs only the customer
+/// lines' brand and state, never the number.
+struct LineInfo: Decodable, Hashable, Identifiable {
+    let id: String
+    let provider: String?
+    let brand: String?
+    let state: String?
+    let kind: String?
+    let inQuo: Bool?
+}
+
+struct StartedThread: Decodable {
+    let threadId: String
+    let personId: String
+    let sendLabel: String?
+}
