@@ -1,0 +1,593 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */; };
+		163777340452D02C27B7BCE9 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33203CA6ABF49F46B6E591 /* Router.swift */; };
+		189B4ABECE1E5649A8E149A7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5365F897E8EDAE5FC80D97F2 /* Theme.swift */; };
+		1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */; };
+		1D3927101967BD6693B5BAAE /* Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79E3ED26B00A6706D54F3CC /* Timeline.swift */; };
+		2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5B1771D340E15C64FA9A10 /* ConversationView.swift */; };
+		3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */; };
+		3752069BA243D43F74CAC588 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D388A19F67D82475CC9831E7 /* Supabase */; };
+		383061299D8F34E2E8C5D27B /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = C820DE09D57DC0C01BAE888B /* Models.swift */; };
+		415270CA5404919C30AA18AC /* CallKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6B2DB116E2966F1FC349DC9E /* CallKit.framework */; };
+		50A6F05F8664F68CA8360510 /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490F70D3F940347485A6CE92 /* CallManager.swift */; };
+		53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6864F9B471EC96A354A53915 /* PushManager.swift */; };
+		644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */; };
+		6495C707FC76307A0175E5A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B901470181B630BFD257C0AB /* SettingsView.swift */; };
+		7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1111AC1D38C9D489F3F967BC /* BranchMark.swift */; };
+		7E1A76B853569E06501D44E8 /* TwilioVoice in Frameworks */ = {isa = PBXBuildFile; productRef = D1DC09E0656E913B2245BE60 /* TwilioVoice */; };
+		88AC897340C19FE201B896E3 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05E9690B8AF59BF579D0ED05 /* Components.swift */; };
+		8AF7B4D7EA008D0715A55328 /* Supa.swift in Sources */ = {isa = PBXBuildFile; fileRef = A58B17D88C0E7D4AB45A5DD2 /* Supa.swift */; };
+		8C4A1F00F4E70B965D9E4EDF /* Stamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37074D96BBC1E48785B3BF52 /* Stamp.swift */; };
+		9A0F82C7EFCCDFF6D8298832 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */; };
+		9EDDB15FB858C7822E8AA2F9 /* CallScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34909A603EEA24631BDE1E52 /* CallScreen.swift */; };
+		A2B489F0935C52BE462F7C82 /* AlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518DB2AA45DF8453EC06C55B /* AlertsView.swift */; };
+		A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */; };
+		AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */; };
+		BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E7E2FEBECA52D7136550E /* PersonalView.swift */; };
+		CA4417210661B52D92B1A27F /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20144B329707F8307DAAA282 /* API.swift */; };
+		CDA376FE842D089D31702075 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6035F3E49FE86048CAD2C599 /* InboxView.swift */; };
+		D76249C70737E72DCA74615C /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB96A42A1AC076D41BC5631B /* Session.swift */; };
+		EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1739E30D8C200ECEC6A334BF /* Assets.xcassets */; };
+		F386EC7886941174AB685752 /* PushKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7276CD9082C2F3BEE56C13BC /* PushKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		05E9690B8AF59BF579D0ED05 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		1111AC1D38C9D489F3F967BC /* BranchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMark.swift; sourceTree = "<group>"; };
+		1739E30D8C200ECEC6A334BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1948F57C2B6673ACAA4E203E /* Paragon.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Paragon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		20144B329707F8307DAAA282 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		2F7E2269DD6A673CFBC56F24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		34909A603EEA24631BDE1E52 /* CallScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallScreen.swift; sourceTree = "<group>"; };
+		37074D96BBC1E48785B3BF52 /* Stamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stamp.swift; sourceTree = "<group>"; };
+		3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParagonApp.swift; sourceTree = "<group>"; };
+		490F70D3F940347485A6CE92 /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
+		4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxModel.swift; sourceTree = "<group>"; };
+		518DB2AA45DF8453EC06C55B /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
+		5365F897E8EDAE5FC80D97F2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		6035F3E49FE86048CAD2C599 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		6864F9B471EC96A354A53915 /* PushManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushManager.swift; sourceTree = "<group>"; };
+		6B2DB116E2966F1FC349DC9E /* CallKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CallKit.framework; path = System/Library/Frameworks/CallKit.framework; sourceTree = SDKROOT; };
+		70579991176F33CD0F8935BF /* Paragon.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Paragon.entitlements; sourceTree = "<group>"; };
+		7276CD9082C2F3BEE56C13BC /* PushKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PushKit.framework; path = System/Library/Frameworks/PushKit.framework; sourceTree = SDKROOT; };
+		7A1E7E2FEBECA52D7136550E /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
+		9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
+		9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A58B17D88C0E7D4AB45A5DD2 /* Supa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supa.swift; sourceTree = "<group>"; };
+		B901470181B630BFD257C0AB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		C820DE09D57DC0C01BAE888B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRing.swift; sourceTree = "<group>"; };
+		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
+		F79E3ED26B00A6706D54F3CC /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timeline.swift; sourceTree = "<group>"; };
+		FA5B1771D340E15C64FA9A10 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		FB96A42A1AC076D41BC5631B /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D3D5FC36D9B7CE315BA35EC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3752069BA243D43F74CAC588 /* Supabase in Frameworks */,
+				7E1A76B853569E06501D44E8 /* TwilioVoice in Frameworks */,
+				415270CA5404919C30AA18AC /* CallKit.framework in Frameworks */,
+				F386EC7886941174AB685752 /* PushKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		23919FA6D296DA61D037D3DE /* Push */ = {
+			isa = PBXGroup;
+			children = (
+				6864F9B471EC96A354A53915 /* PushManager.swift */,
+			);
+			path = Push;
+			sourceTree = "<group>";
+		};
+		257E22373EDB9B02C554A768 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		27BFD8BDD23034C4397E5200 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6B2DB116E2966F1FC349DC9E /* CallKit.framework */,
+				7276CD9082C2F3BEE56C13BC /* PushKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		29052B206A2544787D1D60E0 /* Alerts */ = {
+			isa = PBXGroup;
+			children = (
+				518DB2AA45DF8453EC06C55B /* AlertsView.swift */,
+			);
+			path = Alerts;
+			sourceTree = "<group>";
+		};
+		42FD86229EA27573977AC523 /* Inbox */ = {
+			isa = PBXGroup;
+			children = (
+				4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */,
+				6035F3E49FE86048CAD2C599 /* InboxView.swift */,
+			);
+			path = Inbox;
+			sourceTree = "<group>";
+		};
+		4CA336E644ADF1B12D61502D /* Conversation */ = {
+			isa = PBXGroup;
+			children = (
+				FA5B1771D340E15C64FA9A10 /* ConversationView.swift */,
+				F79E3ED26B00A6706D54F3CC /* Timeline.swift */,
+			);
+			path = Conversation;
+			sourceTree = "<group>";
+		};
+		590A042895D4047B329D8880 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				29052B206A2544787D1D60E0 /* Alerts */,
+				4CA336E644ADF1B12D61502D /* Conversation */,
+				42FD86229EA27573977AC523 /* Inbox */,
+				FF4B81C0F1647D81B7041361 /* Personal */,
+				CA406383CF131FA1033AC796 /* Settings */,
+				6C6EB2A0C1883321BC7771EA /* SignIn */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		59832F9D12253109BCFB8B6E = {
+			isa = PBXGroup;
+			children = (
+				257E22373EDB9B02C554A768 /* Config */,
+				C4066E965211956C9D8B5EF6 /* Paragon */,
+				27BFD8BDD23034C4397E5200 /* Frameworks */,
+				5FE500A051BF8D4B5BA637A5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5FE500A051BF8D4B5BA637A5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1948F57C2B6673ACAA4E203E /* Paragon.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6C6EB2A0C1883321BC7771EA /* SignIn */ = {
+			isa = PBXGroup;
+			children = (
+				5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */,
+			);
+			path = SignIn;
+			sourceTree = "<group>";
+		};
+		8D1013ADD2A404EE5F640B69 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				20144B329707F8307DAAA282 /* API.swift */,
+				9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */,
+				C820DE09D57DC0C01BAE888B /* Models.swift */,
+				CC33203CA6ABF49F46B6E591 /* Router.swift */,
+				FB96A42A1AC076D41BC5631B /* Session.swift */,
+				37074D96BBC1E48785B3BF52 /* Stamp.swift */,
+				A58B17D88C0E7D4AB45A5DD2 /* Supa.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		8DB314755592FE2F71F5F763 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				34226B3711E1E9D8C413D6D8 /* AppDelegate.swift */,
+				3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */,
+				9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		8E6AC86B256AFD5FFFB71A68 /* Calls */ = {
+			isa = PBXGroup;
+			children = (
+				490F70D3F940347485A6CE92 /* CallManager.swift */,
+				34909A603EEA24631BDE1E52 /* CallScreen.swift */,
+			);
+			path = Calls;
+			sourceTree = "<group>";
+		};
+		C4066E965211956C9D8B5EF6 /* Paragon */ = {
+			isa = PBXGroup;
+			children = (
+				8DB314755592FE2F71F5F763 /* App */,
+				8E6AC86B256AFD5FFFB71A68 /* Calls */,
+				8D1013ADD2A404EE5F640B69 /* Core */,
+				CE3747474AEA36CA2BCA1F66 /* Design */,
+				590A042895D4047B329D8880 /* Features */,
+				23919FA6D296DA61D037D3DE /* Push */,
+				1739E30D8C200ECEC6A334BF /* Assets.xcassets */,
+				2F7E2269DD6A673CFBC56F24 /* Info.plist */,
+				70579991176F33CD0F8935BF /* Paragon.entitlements */,
+			);
+			path = Paragon;
+			sourceTree = "<group>";
+		};
+		CA406383CF131FA1033AC796 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				B901470181B630BFD257C0AB /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		CE3747474AEA36CA2BCA1F66 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */,
+				1111AC1D38C9D489F3F967BC /* BranchMark.swift */,
+				05E9690B8AF59BF579D0ED05 /* Components.swift */,
+				5365F897E8EDAE5FC80D97F2 /* Theme.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		FF4B81C0F1647D81B7041361 /* Personal */ = {
+			isa = PBXGroup;
+			children = (
+				7A1E7E2FEBECA52D7136550E /* PersonalView.swift */,
+			);
+			path = Personal;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		76AF015D317DBBD896B2C5D2 /* Paragon */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9966875960BD6333B341EBD9 /* Build configuration list for PBXNativeTarget "Paragon" */;
+			buildPhases = (
+				48E9EDFCC1358F7249747B05 /* Sources */,
+				13489FD4621A8BEEFCC2CD78 /* Resources */,
+				D3D5FC36D9B7CE315BA35EC1 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Paragon;
+			packageProductDependencies = (
+				D388A19F67D82475CC9831E7 /* Supabase */,
+				D1DC09E0656E913B2245BE60 /* TwilioVoice */,
+			);
+			productName = Paragon;
+			productReference = 1948F57C2B6673ACAA4E203E /* Paragon.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E443F4D613DDF4FD685C9FC3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					76AF015D317DBBD896B2C5D2 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 7473B3793B11DDF07233FDB0 /* Build configuration list for PBXProject "Paragon" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 59832F9D12253109BCFB8B6E;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				23ECAB5CBE225FCC7882AD1C /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				50DD9812F3A4AF22F844AB78 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5FE500A051BF8D4B5BA637A5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				76AF015D317DBBD896B2C5D2 /* Paragon */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		13489FD4621A8BEEFCC2CD78 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		48E9EDFCC1358F7249747B05 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CA4417210661B52D92B1A27F /* API.swift in Sources */,
+				A2B489F0935C52BE462F7C82 /* AlertsView.swift in Sources */,
+				9A0F82C7EFCCDFF6D8298832 /* AppConfig.swift in Sources */,
+				644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */,
+				3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */,
+				7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */,
+				50A6F05F8664F68CA8360510 /* CallManager.swift in Sources */,
+				9EDDB15FB858C7822E8AA2F9 /* CallScreen.swift in Sources */,
+				88AC897340C19FE201B896E3 /* Components.swift in Sources */,
+				2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */,
+				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
+				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
+				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
+				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
+				BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */,
+				53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */,
+				1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */,
+				163777340452D02C27B7BCE9 /* Router.swift in Sources */,
+				D76249C70737E72DCA74615C /* Session.swift in Sources */,
+				6495C707FC76307A0175E5A7 /* SettingsView.swift in Sources */,
+				A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */,
+				8C4A1F00F4E70B965D9E4EDF /* Stamp.swift in Sources */,
+				8AF7B4D7EA008D0715A55328 /* Supa.swift in Sources */,
+				189B4ABECE1E5649A8E149A7 /* Theme.swift in Sources */,
+				1D3927101967BD6693B5BAAE /* Timeline.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1D3D48FE03FC11BDE9D1EF7D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
+				INFOPLIST_FILE = Paragon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		611E91B4BB29FF62FD9C7B29 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		ECEC8A9F59E64CE150A5087B /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
+				INFOPLIST_FILE = Paragon/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.10;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F26C624F83D97C88CB105336 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7473B3793B11DDF07233FDB0 /* Build configuration list for PBXProject "Paragon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F26C624F83D97C88CB105336 /* Debug */,
+				611E91B4BB29FF62FD9C7B29 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		9966875960BD6333B341EBD9 /* Build configuration list for PBXNativeTarget "Paragon" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1D3D48FE03FC11BDE9D1EF7D /* Debug */,
+				ECEC8A9F59E64CE150A5087B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		23ECAB5CBE225FCC7882AD1C /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		50DD9812F3A4AF22F844AB78 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/twilio/twilio-voice-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 6.12.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D1DC09E0656E913B2245BE60 /* TwilioVoice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 50DD9812F3A4AF22F844AB78 /* XCRemoteSwiftPackageReference "twilio-voice-ios" */;
+			productName = TwilioVoice;
+		};
+		D388A19F67D82475CC9831E7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 23ECAB5CBE225FCC7882AD1C /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E443F4D613DDF4FD685C9FC3 /* Project object */;
+}
