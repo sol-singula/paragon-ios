@@ -23,8 +23,12 @@ jobs:
       - name: Build (iOS Simulator)
         run: |
           set -o pipefail
+          # A fresh SwiftPM cache: the runner's own one has refused the
+          # TwilioVoice binary ("already exists in file system").
+          rm -rf ~/Library/Caches/org.swift.swiftpm "$RUNNER_TEMP/spm"
           xcodebuild -project Paragon.xcodeproj -scheme Paragon -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
+            -packageCachePath "$RUNNER_TEMP/spm" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-src" \
             -skipPackagePluginValidation -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|ld: |Undefined symbol|not found|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
