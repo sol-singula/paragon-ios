@@ -40,10 +40,11 @@ struct InboxView: View {
             .toolbar(.hidden, for: .navigationBar)
             .hidesSystemTabBar()
             .onChange(of: model.search) { _, _ in model.searchChanged() }
-            .task { await model.poll() }
+            // The inbox polls from MainTabs, so it keeps up while a
+            // conversation is open (the next one opens by itself).
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .person(let p, let t): ConversationView(personId: p, threadId: t).hidesSystemTabBar()
+                case .person(let p, let t): ConversationView(personId: p, threadId: t).id(p).hidesSystemTabBar()
                 case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
                 }
             }
@@ -269,13 +270,13 @@ struct InboxView: View {
                 Text("Most urgent first").tag(InboxModel.Sort.urgency)
                 Text("Most recent first").tag(InboxModel.Sort.recent)
             }
-            Picker("Who", selection: Binding(get: { model.homeownersOnly }, set: { model.homeownersOnly = $0; Task { await model.load() } })) {
-                Text("Homeowners only").tag(true)
-                Text("Contractors and internal too").tag(false)
-            }
             Menu("Branch") {
                 Button { model.brand = nil; Task { await model.load() } } label: {
                     if model.brand == nil { Label("All branches", systemImage: "checkmark") } else { Text("All branches") }
+                }
+                // Solara One and solbuild together (founder, 2026-11-09).
+                Button { model.brand = InboxModel.logistics; Task { await model.load() } } label: {
+                    if model.brand == InboxModel.logistics { Label("Logistics only", systemImage: "checkmark") } else { Text("Logistics only") }
                 }
                 ForEach(model.brands, id: \.self) { b in
                     Button { model.brand = b; Task { await model.load() } } label: {
@@ -284,7 +285,7 @@ struct InboxView: View {
                 }
             }
         } label: {
-            Image(systemName: model.brand != nil || !model.homeownersOnly || model.sort == .recent
+            Image(systemName: model.brand != nil || model.sort == .recent
                   ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .foregroundStyle(Theme.secondary)
         }
@@ -345,13 +346,14 @@ struct QueueRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// No owner's name: "You", "Team", Atlas, or who made it by hand.
+    /// Never another person's name on a row (founder: showing a lead's
+    /// "owner" keeps everyone else from touching it): "You", "Team", Atlas,
+    /// else "A teammate". The conversation's promise list names them.
     private func who(_ i: RowItem) -> String {
         if i.mine == true { return "You" }
         if i.team == true { return "Team" }
         if !i.byHand { return "Atlas" }
-        if let n = i.createdByName?.split(separator: " ").first { return "From \(n)" }
-        return "Promise"
+        return "A teammate"
     }
 
     /// Relative to the row's due time when it has one (overdue in rose);

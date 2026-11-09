@@ -73,6 +73,7 @@ struct MainTabs: View {
         // "Promised to Ryan · due 9:00 am" and the like.
         .overlay { ToastView() }
         .task { await alerts.poll() }
+        .task { await inbox.poll() }
         .task { await team.poll() }
         .task { await TeamStore.shared.poll() }
         .onAppear { if let me = session.me { Presence.shared.start(me) } }

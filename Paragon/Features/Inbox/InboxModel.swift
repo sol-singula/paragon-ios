@@ -12,7 +12,11 @@ final class InboxModel {
 
     var show: Show = .waiting
     var sort: Sort = .urgency
-    var homeownersOnly = true
+    /// Always homeowners only (founder, 2026-11-09: remove "contractors and
+    /// internal too").
+    let homeownersOnly = true
+    /// paragon_queue's brand for Solara One and solbuild together.
+    static let logistics = "logistics"
     var brand: String?
     var search = ""
 
@@ -77,6 +81,25 @@ final class InboxModel {
         Array(Set(items.compactMap { $0.firstThread?.brand })).sorted()
     }
 
+    /// The next conversation opens by itself (founder, 2026-11-09: "as soon
+    /// as a conversation closes, we should open the next one in top on the
+    /// inbox (however they have filtered)"). When the conversation open from
+    /// the inbox leaves the list as filtered (released, closed, handed on,
+    /// answered so no longer waiting), it is replaced by the row now on top;
+    /// an empty list goes back to the inbox's empty state. One opened from a
+    /// notification or search that was never on the list stays.
+    private func followOpen(was before: [String]) {
+        let router = Router.shared
+        guard case .person(let p, _)? = router.inboxPath.last, before.contains(p) else { return }
+        let now = shown
+        if now.contains(where: { $0.personId == p }) { return }
+        if let next = now.first {
+            router.inboxPath[router.inboxPath.count - 1] = .person(personId: next.personId, threadId: next.openThread)
+        } else {
+            router.inboxPath.removeLast()
+        }
+    }
+
     private func recent(_ xs: [QueueItem]) -> [QueueItem] {
         xs.sorted { (Stamp.date($0.lastActivityAt) ?? .distantPast) > (Stamp.date($1.lastActivityAt) ?? .distantPast) }
     }
@@ -84,14 +107,21 @@ final class InboxModel {
     /// A promise just went to someone else: the conversation leaves my
     /// inbox now (the server hides it from me from here on).
     func clear(personId: String) {
+        let before = shown.map(\.personId)
         cleared[personId] = Date()
+        followOpen(was: before)
     }
 
     func load() async {
         let started = Date()
+        let filter = (brand, show)
         do {
-            items = try await API.queue(homeownersOnly: homeownersOnly, brand: brand, search: nil)
+            let rows = try await API.queue(homeownersOnly: homeownersOnly, brand: brand, search: nil)
+            let before = shown.map(\.personId)
+            items = rows
             cleared = cleared.filter { $0.value >= started }
+            // Only when the filter is the one this read asked for.
+            if filter.0 == brand && filter.1 == show && loaded { followOpen(was: before) }
             error = nil
         } catch {
             self.error = error.localizedDescription
