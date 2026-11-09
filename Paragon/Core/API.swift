@@ -324,6 +324,30 @@ enum API {
         _ = try await function("paragon-voice", query: ["op": "control"], body: ["action": action, "parent": parent], as: Ok.self)
     }
 
+    /// Hand an incoming call to a teammate (the desktop's Transfer).
+    static func voiceTransfer(parent: String, to: String) async throws {
+        struct Ok: Decodable { let ok: Bool? }
+        _ = try await function("paragon-voice", query: ["op": "control"], body: ["action": "transfer", "parent": parent, "to": to], as: Ok.self)
+    }
+
+    /// More than two on a call: who is on it, add someone (a teammate's id or
+    /// a number), take someone off. The server makes it a conference.
+    static func callPeople(parent: String) async throws -> CallPeople {
+        try await function("paragon-voice", query: ["op": "control"], body: ["action": "people", "parent": parent], as: CallPeople.self)
+    }
+    static func callAdd(parent: String, member: String? = nil, number: String? = nil) async throws -> CallPeople {
+        var b: [String: Any?] = ["action": "add", "parent": parent]
+        if let member { b["member"] = member }
+        if let number { b["number"] = number }
+        return try await function("paragon-voice", query: ["op": "control"], body: b, as: CallPeople.self)
+    }
+    static func callRemove(parent: String, key: String) async throws -> CallPeople {
+        try await function("paragon-voice", query: ["op": "control"], body: ["action": "remove", "parent": parent, "key": key], as: CallPeople.self)
+    }
+    static func callTargets(thread: String) async throws -> [CallTarget] {
+        try await rpc("paragon_call_targets", ["p_thread": thread], as: [CallTarget]?.self) ?? []
+    }
+
     static func registerDevice(token: String, kind: String) async throws {
         try await call("paragon_device_register", ["p_token": token, "p_kind": kind, "p_env": AppConfig.apnsEnv, "p_bundle": AppConfig.bundleID])
     }

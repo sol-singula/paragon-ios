@@ -51,6 +51,16 @@ need to be able to ring the phone and send notifications".
   (`paragon_ui_prefs` / `_set`, as on the desktop): a UserDefaults copy
   applies at launch, the server's answer wins before the first queue read
   (`InboxModel.loadPrefs`, `choose(show:)`, `choose(brand:)`). No Who picker.
+- **Build 9, 2026-11-09**: the call screen has the desktop's "Orbit"
+  (`OrbitRing` round the avatar: amber 1.6 s a lap ringing, green 3.2 s
+  connected; still for Reduce Motion), the client facts under the name (Job,
+  Last, who else is on), Mute / Keypad / Speaker, then Add and Transfer once
+  connected (`AddToCallSheet`: teammates from `paragon_call_targets` with
+  `Presence` dots, or a number). Add is the desktop's conference
+  (paragon-voice `control` add / remove / people, `CallManager.people`, read
+  every 3 s); `Active.parent` is the server's call sid. The green "Return to
+  call" bar runs a light streak. No Hold here: a hold ends our leg and the
+  resume rings back, which this app does not answer by itself yet.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

@@ -52,6 +52,64 @@ final class CallManager: NSObject {
         var connectedAt: Date?
         var muted = false
         var speaker = false
+        /// The parent call's sid (the server's name for this call): the
+        /// customer's leg on a call in, ours on a call out.
+        var parent: String = ""
+    }
+
+    /// Everyone added to the call (a conference), read every few seconds
+    /// while connected so a teammate who was added sees the same list.
+    private(set) var people: [CallPerson] = []
+    private(set) var conference = false
+    @ObservationIgnored private var peopleTask: Task<Void, Never>?
+
+    private func watchPeople() {
+        peopleTask?.cancel()
+        peopleTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self, let a = self.active, a.phase == .connected, !a.parent.isEmpty else { break }
+                if let r = try? await API.callPeople(parent: a.parent) {
+                    self.people = r.people ?? []
+                    self.conference = r.conference ?? false
+                }
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
+    }
+
+    /// Add a teammate or a number. Shows as "Joining…" at once.
+    func add(member: String? = nil, number: String? = nil, name: String) {
+        guard let a = active, !a.parent.isEmpty else { Toast.shared.show("The call is not connected yet", error: true); return }
+        let tmp = CallPerson(key: "tmp-\(UUID().uuidString.prefix(6))", kind: member != nil ? "member" : "number", id: member ?? number ?? "", name: name, status: "joining", by: nil)
+        people.append(tmp)
+        conference = true
+        Task {
+            do {
+                let r = try await API.callAdd(parent: a.parent, member: member, number: number)
+                people = r.people ?? []
+                conference = r.conference ?? true
+            } catch {
+                people.removeAll { $0.key == tmp.key }
+                Toast.shared.show("Could not add \(name): \(error.localizedDescription)", error: true)
+            }
+        }
+    }
+
+    func remove(_ p: CallPerson) {
+        guard let a = active, !p.key.hasPrefix("tmp-") else { return }
+        Task {
+            do { people = (try await API.callRemove(parent: a.parent, key: p.key)).people ?? people }
+            catch { Toast.shared.show("Could not take them off: \(error.localizedDescription)", error: true) }
+        }
+    }
+
+    /// Hand a call that came in to a teammate; our leg ends.
+    func transfer(to t: CallTarget) {
+        guard let a = active, a.direction == .incoming, !a.parent.isEmpty else { return }
+        Task {
+            do { try await API.voiceTransfer(parent: a.parent, to: t.id); Toast.shared.show("Handed to \(t.name.split(separator: " ").first.map(String.init) ?? t.name)") }
+            catch { Toast.shared.show("Could not hand it over: \(error.localizedDescription)", error: true) }
+        }
     }
 
     private(set) var active: Active?
@@ -276,6 +334,9 @@ final class CallManager: NSObject {
         if active?.uuid == uuid {
             active = nil
             showScreen = false
+            peopleTask?.cancel()
+            people = []
+            conference = false
         }
         if calls.isEmpty {
             audioDevice.block = { DefaultAudioDevice.DefaultAVAudioSessionConfigurationBlock() }
@@ -368,7 +429,9 @@ extension CallManager: NotificationDelegate {
             update.supportsUngrouping = false
             if self.active == nil {
                 self.ended = nil
-                self.active = Active(uuid: uuid, direction: .incoming, name: from, brand: nil, thread: thread, phase: .ringing)
+                var a = Active(uuid: uuid, direction: .incoming, name: from, brand: nil, thread: thread, phase: .ringing)
+                a.parent = callInvite.customParameters?["parent"] ?? ""
+                self.active = a
             }
             self.provider?.reportNewIncomingCall(with: uuid, update: update) { error in
                 Task { @MainActor in
@@ -410,10 +473,15 @@ extension CallManager: CallDelegate {
 
     nonisolated func callDidConnect(call: Call) {
         let uuid = call.uuid
+        let sid = call.sid
         MainActor.assumeIsolated {
             self.stopRingback()
             if let uuid, self.active?.direction == .outgoing { self.provider?.reportOutgoingCall(with: uuid, connectedAt: Date()) }
-            self.set(uuid) { $0.phase = .connected; $0.connectedAt = Date() }
+            self.set(uuid) { a in
+                a.phase = .connected; a.connectedAt = Date()
+                if a.direction == .outgoing, a.parent.isEmpty { a.parent = sid }
+            }
+            self.watchPeople()
         }
     }
 

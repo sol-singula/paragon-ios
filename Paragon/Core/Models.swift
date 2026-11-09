@@ -392,6 +392,20 @@ struct CallCard: Decodable {
     let greeting: String?
 }
 
+/// Someone added to a call (a conference, paragon-voice op=control).
+struct CallPerson: Decodable, Hashable, Identifiable {
+    let key: String
+    let kind: String      // member | number
+    let id: String
+    let name: String
+    let status: String    // joining | talking | left | no answer
+    let by: String?
+    var on: Bool { status != "left" && status != "no answer" }
+}
+struct CallPeople: Decodable { let conference: Bool?; let people: [CallPerson]? }
+/// Who a call may go to (paragon_call_targets): the transfer and Add lists.
+struct CallTarget: Decodable, Hashable, Identifiable { let id: String; let name: String; let role: String?; let busy: Bool? }
+
 struct VoiceToken: Decodable {
     let token: String
     let identity: String
