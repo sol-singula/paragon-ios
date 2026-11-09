@@ -64,3 +64,16 @@ need to be able to ring the phone and send notifications".
   `p_search`, grouped, and every client or conversation has Text and Call
   (`SearchHitRow`). A lead with no conversation opens `NewMessageSheet`
   filled from `paragon_lead_contact`; Call starts the thread, then calls.
+
+- **The mockup's look, 2026-11-09** (founder-approved `paragon-ios-screens`):
+  the tab bar is ours (`Design/TabBar.swift`, `ParagonTabBar`): flat, full
+  width, panel at 94% with a hairline, teal for the chosen tab, rose counts.
+  The system bar is hidden on every screen (`hidesSystemTabBar()` on each
+  tab root and each pushed screen), so iOS 26's glass pill never shows; the
+  bar steps aside for the keyboard and inside a customer conversation. Tab
+  roots and conversations draw their own top bar (`TopBar`,
+  `ConversationHeader`) with the system navigation bar hidden; the edge
+  swipe back is kept by the UINavigationController extension there. Section
+  headers are `SectionLabel` / `Section(label:)`: small, uppercase,
+  letter-spaced. Branch marks are solid circles with white letters (dark on
+  Blackswan's white).

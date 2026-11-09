@@ -44,32 +44,33 @@ struct AlertsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if let e = model.error {
-                    ErrorBanner(message: e) { Task { await model.load() } }.listRowBackground(Theme.bg).listRowSeparator(.hidden)
-                }
-                ForEach(model.items) { n in
-                    Button { open(n) } label: { AlertRow(n: n) }
-                        .listRowBackground(n.read == true ? Theme.bg : Theme.card.opacity(0.6))
-                        .listRowSeparatorTint(Theme.border)
-                }
-                if model.items.isEmpty {
-                    EmptyNote(title: "No notifications", symbol: "bell.slash").listRowBackground(Theme.bg).listRowSeparator(.hidden)
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(Theme.bg)
-            .navigationTitle("Alerts")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if model.unread > 0 {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button("Mark all read") { Task { await model.markRead() } }.font(.metaMedium).tint(Theme.cyan)
+            VStack(spacing: 0) {
+                TopBar(title: "Alerts") {
+                    if model.unread > 0 {
+                        Button("Mark all read") { Task { await model.markRead() } }.font(.metaMedium).foregroundStyle(Theme.teal)
                     }
                 }
+                List {
+                    if let e = model.error {
+                        ErrorBanner(message: e) { Task { await model.load() } }.listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                    }
+                    ForEach(model.items) { n in
+                        Button { open(n) } label: { AlertRow(n: n) }
+                            .listRowBackground(n.read == true ? Theme.bg : Theme.card.opacity(0.6))
+                            .listRowSeparatorTint(Theme.border)
+                            .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                    }
+                    if model.items.isEmpty {
+                        EmptyNote(title: "No notifications", symbol: "bell.slash").listRowBackground(Theme.bg).listRowSeparator(.hidden)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .refreshable { await model.load() }
             }
-            .refreshable { await model.load() }
+            .background(Theme.bg)
+            .toolbar(.hidden, for: .navigationBar)
+            .hidesSystemTabBar()
             .task { await model.load() }
         }
     }
@@ -87,7 +88,7 @@ struct AlertRow: View {
             icon.frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
-                    Text(n.title).font(n.read == true ? .ui : .uiMedium).foregroundStyle(Theme.text).lineLimit(2)
+                    Text(n.title).font(n.read == true ? .ui : .name).foregroundStyle(Theme.text).lineLimit(2)
                     Spacer(minLength: 4)
                     Text(Stamp.when(n.createdAt)).font(.meta).foregroundStyle(Theme.muted)
                 }

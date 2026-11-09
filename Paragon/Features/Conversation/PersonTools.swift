@@ -13,21 +13,20 @@ struct WhoIsThisBar: View {
     @State private var error: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Text("Who is this?").font(.uiMedium).foregroundStyle(Theme.text)
-                Text("First time they have reached us.").font(.meta).foregroundStyle(Theme.muted).lineLimit(1)
+                Text("Who is this?").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text)
+                Text("First time they have reached us.").font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
             }
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 ForEach(ContactType.all, id: \.value) { c in
                     Button { pick(c.value) } label: {
                         Text(busy == c.value ? "…" : c.label)
-                            .font(.metaMedium)
+                            .font(.system(size: 12.5))
                             .foregroundStyle(c.value == "spam" ? Theme.rose : Theme.text)
                             .lineLimit(1)
-                            .padding(.horizontal, 10).padding(.vertical, 6)
-                            .frame(maxWidth: .infinity)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(c.value == "spam" ? Theme.rose.opacity(0.1) : Theme.hover))
+                            .padding(.horizontal, 9).padding(.vertical, 5)
+                            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Theme.hover))
                     }
                     .buttonStyle(.plain)
                     .disabled(busy != nil)
@@ -35,9 +34,11 @@ struct WhoIsThisBar: View {
             }
             if let error { Text(error).font(.system(size: 11)).foregroundStyle(Theme.rose) }
         }
-        .padding(12)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.input))
-        .padding(.horizontal, 12).padding(.top, 6)
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.border))
+        .padding(.horizontal, 12).padding(.top, 8)
     }
 
     private func pick(_ type: String) {
@@ -161,7 +162,7 @@ struct ContactInfoSheet: View {
                     .listRowBackground(Theme.card)
 
                     if v.person.hasName == false {
-                        Section("Name them") {
+                        Section(label: "Name them") {
                             ForEach(d?.nameSuggestions ?? [], id: \.name) { s in
                                 Button { rename(s.name.replacingOccurrences(of: #"\s*\(.*\)$"#, with: "", options: .regularExpression)) } label: {
                                     HStack {
@@ -179,7 +180,7 @@ struct ContactInfoSheet: View {
                         .listRowBackground(Theme.card)
                     }
 
-                    Section("Contact") {
+                    Section(label: "Contact") {
                         field("Email", "name@example.com", $email, keyboard: .emailAddress) { save(email: email) }
                         field("Address", "Street, city, state", $address) { save(address: address) }
                         if (d?.address ?? "").isEmpty, let found = d?.foundAddress, !found.isEmpty {
@@ -195,7 +196,7 @@ struct ContactInfoSheet: View {
                     }
                     .listRowBackground(Theme.card)
 
-                    Section("Note") {
+                    Section(label: "Note") {
                         TextField("Anything the team should know", text: $notes, axis: .vertical).lineLimit(2...6).foregroundStyle(Theme.text)
                         if notes != (d?.notes ?? "") { Button("Save note") { save(notes: notes) } }
                     }

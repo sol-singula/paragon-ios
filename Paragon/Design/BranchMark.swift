@@ -6,6 +6,8 @@ struct Branch: Equatable {
     let code: String
     let color: Color
     let name: String
+    /// The letters on the solid mark: white, dark on Blackswan's white.
+    var ink: Color = .white
 
     private static let purple = Color(hex: 0xA78BFA)
 
@@ -14,12 +16,12 @@ struct Branch: Equatable {
             return Branch(code: "·", color: purple, name: "No brand")
         }
         switch brand.lowercased() {
-        case "solara one": return Branch(code: "SO", color: Color(hex: 0xF97316), name: "Solara One")
-        case "just glass": return Branch(code: "JG", color: Color(hex: 0x3B82F6), name: "Just Glass")
-        case "blackswan": return Branch(code: "BS", color: Color(hex: 0xF4F4F5), name: "Blackswan")
+        case "solara one": return Branch(code: "SO", color: Color(hex: 0xEA580C), name: "Solara One")
+        case "just glass": return Branch(code: "JG", color: Color(hex: 0x2563EB), name: "Just Glass")
+        case "blackswan": return Branch(code: "BS", color: Color(hex: 0xE4E4E7), name: "Blackswan", ink: Color(hex: 0x111111))
         case "nixthepitch": return Branch(code: "NTP", color: purple, name: "NixThePitch")
         case "solbuild": return Branch(code: "SB", color: purple, name: "solbuild")
-        case let k where k.hasPrefix("solara"): return Branch(code: "SH", color: Color(hex: 0x22C55E), name: "Solara Home")
+        case let k where k.hasPrefix("solara"): return Branch(code: "SH", color: Color(hex: 0x16A34A), name: "Solara Home")
         default:
             let words = brand.split(separator: " ")
             let code = words.count > 1 ? words.compactMap { $0.first }.map(String.init).joined() : String(brand.prefix(2))
@@ -28,18 +30,19 @@ struct Branch: Equatable {
     }
 }
 
+/// The branch as a solid round mark with its letters on it (the mockup's
+/// `.mark`): SO orange, JG blue, SH green, BS white with dark letters.
 struct BranchMark: View {
     let brand: String?
-    var size: CGFloat = 32
+    var size: CGFloat = 34
 
     var body: some View {
         let b = Branch.of(brand)
         Text(b.code)
-            .font(.system(size: size * (b.code.count > 2 ? 0.3 : 0.36), weight: .bold, design: .rounded))
-            .foregroundStyle(b.color)
+            .font(.system(size: size * (b.code.count > 2 ? 0.3 : 0.35), weight: .bold))
+            .foregroundStyle(b.ink)
             .frame(width: size, height: size)
-            .background(Circle().fill(b.color.opacity(0.14)))
-            .overlay(Circle().strokeBorder(b.color.opacity(0.55), lineWidth: 1.2))
+            .background(Circle().fill(b.color))
             .accessibilityLabel(b.name)
     }
 }

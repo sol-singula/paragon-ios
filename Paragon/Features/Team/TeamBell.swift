@@ -12,7 +12,7 @@ struct ChannelBellSheet: View {
         NavigationStack {
             Form {
                 if let c = model.channel(channelId) {
-                    Section("Notify me about") {
+                    Section(label: "Notify me about") {
                         choice("All messages", on: c.notify == "all") { set(["notify": "all"]) }
                         choice("Only @mentions", sub: "@your name, @everyone", on: c.notify == "mentions") { set(["notify": "mentions"]) }
                         choice("Nothing", on: c.notify == "none") { set(["notify": "none"]) }
@@ -28,7 +28,7 @@ struct ChannelBellSheet: View {
                             Button("Until I unmute it") { set(["mute": "forever"]) }
                         }
                     } header: {
-                        Text(c.muted ? "Muted \(TeamTime.label(c.prefs?.mutedUntil))" : "Mute")
+                        SectionLabel(c.muted ? "Muted \(TeamTime.label(c.prefs?.mutedUntil))" : "Mute")
                     } footer: {
                         Text("A muted channel still tells you when someone @mentions you by name.")
                     }
@@ -88,7 +88,7 @@ struct DndSheet: View {
                             Button("Until I turn it off") { set(["dnd": "on"]) }
                         }
                     } header: {
-                        Text(model.dndOn ? "Do Not Disturb \(TeamTime.label(me.dndUntil))" : "Do Not Disturb")
+                        SectionLabel(model.dndOn ? "Do Not Disturb \(TeamTime.label(me.dndUntil))" : "Do Not Disturb")
                     } footer: {
                         Text("Team only. Channels set to always notify still get through.")
                     }

@@ -30,30 +30,189 @@ struct CountPill: View {
     }
 }
 
-/// A two-way switch styled like the desktop's tab pair (Waiting / All).
+/// The full-width switch under the greeting (the mockup's `.seg`): equal
+/// segments on the panel colour, the chosen one raised and semibold.
 struct Segmented<T: Hashable>: View {
     let options: [(T, String)]
     @Binding var selection: T
     var badge: (T) -> AnyView? = { _ in nil }
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 4) {
             ForEach(Array(options.enumerated()), id: \.offset) { _, opt in
+                let on = selection == opt.0
                 Button { selection = opt.0 } label: {
-                    HStack(spacing: 6) {
-                        Text(opt.1).font(.uiMedium)
+                    HStack(spacing: 5) {
+                        Text(opt.1).font(.system(size: 13, weight: on ? .semibold : .regular)).lineLimit(1)
                         if let b = badge(opt.0) { b }
                     }
-                    .foregroundStyle(selection == opt.0 ? Theme.text : Theme.muted)
-                    .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(RoundedRectangle(cornerRadius: 8).fill(selection == opt.0 ? Theme.hover : .clear))
+                    .foregroundStyle(on ? Theme.text : Theme.muted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(on ? Theme.hover : .clear))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
         .padding(3)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Theme.input))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.border))
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.panel))
+    }
+}
+
+/// A section header everywhere in the app (the mockup's `.sec`): small,
+/// uppercase, semibold, muted, letter-spaced.
+struct SectionLabel: View {
+    let text: String
+    var trailing: String?
+
+    init(_ text: String, trailing: String? = nil) {
+        self.text = text
+        self.trailing = trailing
+    }
+
+    var body: some View {
+        HStack {
+            Text(text.uppercased())
+            Spacer(minLength: 8)
+            if let trailing { Text(trailing).monospacedDigit() }
+        }
+        .font(.system(size: 10.5, weight: .semibold))
+        .tracking(0.63)
+        .foregroundStyle(Theme.muted)
+        .textCase(nil)
+    }
+}
+
+/// A main tab's bar (the mockup's `.nav`): a quiet icon either side, the
+/// title centred, no glass and no fill, so the hour's light shows through.
+struct TopBar<Leading: View, Trailing: View>: View {
+    let title: String
+    @ViewBuilder var leading: Leading
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        ZStack {
+            Text(title)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 64)
+            HStack(spacing: 14) {
+                leading
+                Spacer(minLength: 0)
+                trailing
+            }
+        }
+        .font(.system(size: 18))
+        .tint(Theme.secondary)
+        .foregroundStyle(Theme.secondary)
+        .frame(height: 44)
+        .padding(.horizontal, 16)
+    }
+}
+
+extension TopBar where Leading == EmptyView {
+    init(title: String, @ViewBuilder trailing: () -> Trailing) {
+        self.title = title
+        self.leading = EmptyView()
+        self.trailing = trailing()
+    }
+}
+
+extension TopBar where Leading == EmptyView, Trailing == EmptyView {
+    init(title: String) {
+        self.title = title
+        self.leading = EmptyView()
+        self.trailing = EmptyView()
+    }
+}
+
+/// The search field under a main tab's title (the mockup's `.search`): the
+/// system's grey fill, a magnifier, and Cancel while it is in use.
+struct SearchField: View {
+    @Binding var text: String
+    var prompt: String
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.muted)
+                TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Theme.muted))
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.text)
+                    .focused($focused)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .submitLabel(.search)
+                if !text.isEmpty {
+                    Button { text = "" } label: {
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 15)).foregroundStyle(Theme.muted)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear")
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 36)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color(red: 118 / 255, green: 118 / 255, blue: 128 / 255).opacity(0.24)))
+            .contentShape(Rectangle())
+            .onTapGesture { focused = true }
+
+            if focused || !text.isEmpty {
+                Button("Cancel") { text = ""; focused = false }
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.teal)
+                    .buttonStyle(.plain)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: focused || !text.isEmpty)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+}
+
+/// A small pill button beside a row or in a header (the mockup's `.act`
+/// and `.callb`): grey for Text and ⓘ, green-tinted for Call.
+struct PillButton: View {
+    enum Tone { case plain, call }
+    let label: String
+    var symbol: String?
+    var tone: Tone = .plain
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if let symbol { Image(systemName: symbol).font(.system(size: 11, weight: .semibold)) }
+                if !label.isEmpty { Text(label).font(.system(size: 13, weight: .semibold)).lineLimit(1) }
+            }
+            .foregroundStyle(tone == .call ? Theme.green : Theme.text)
+            .padding(.horizontal, 10).frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(tone == .call ? Theme.green.opacity(0.16) : Theme.hover))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+    }
+}
+
+/// A count on a tab, a channel or a segment: rose for what needs you
+/// (an @, a wait), grey for plain unread.
+struct CountBadge: View {
+    let text: String
+    var quiet = false
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 11, weight: .bold))
+            .monospacedDigit()
+            .foregroundStyle(quiet ? Theme.secondary : .white)
+            .padding(.horizontal, 6).frame(minWidth: 20, minHeight: 18)
+            .background(Capsule().fill(quiet ? Theme.hover : Theme.rose))
     }
 }
 
@@ -98,5 +257,18 @@ struct ErrorBanner: View {
 enum Preview {
     static func line(_ s: String) -> String {
         s.split(whereSeparator: \.isNewline).joined(separator: " ").trimmingCharacters(in: .whitespaces)
+    }
+}
+
+extension Section where Parent == SectionLabel, Content: View, Footer == EmptyView {
+    /// A section under the app's small uppercase header.
+    init(label: String, @ViewBuilder content: () -> Content) {
+        self.init(content: content, header: { SectionLabel(label) })
+    }
+}
+
+extension Section where Parent == SectionLabel, Content: View, Footer: View {
+    init(label: String, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) {
+        self.init(content: content, header: { SectionLabel(label) }, footer: footer)
     }
 }

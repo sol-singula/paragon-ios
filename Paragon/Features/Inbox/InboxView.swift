@@ -2,7 +2,7 @@ import SwiftUI
 
 struct InboxView: View {
     @Environment(Router.self) private var router
-    @State private var model = InboxModel()
+    @State private var model = InboxModel.shared
     @State private var deckOpen = false
     @State private var releasing: PersonTarget?
     @Environment(CallManager.self) private var calls
@@ -14,37 +14,39 @@ struct InboxView: View {
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.inboxPath) {
-            List {
-                if model.isSearching {
-                    searchResults
-                } else {
-                    inboxSections
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .dayGlow()
-            .navigationTitle("Inbox")
-            .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $model.search, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search clients, people, numbers")
-            .autocorrectionDisabled()
-            .onChange(of: model.search) { _, _ in model.searchChanged() }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+            VStack(spacing: 0) {
+                TopBar(title: "Inbox") {
                     Button { composing = NewMessagePrefill() } label: { Image(systemName: "square.and.pencil") }
-                        .tint(Theme.secondary).accessibilityLabel("New message")
+                        .accessibilityLabel("New message")
+                } trailing: {
+                    filterMenu
                 }
-                ToolbarItem(placement: .topBarTrailing) { filterMenu }
+                SearchField(text: $model.search, prompt: "Search clients, people, numbers")
+                List {
+                    if model.isSearching {
+                        searchResults
+                    } else {
+                        inboxSections
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.immediately)
+                .environment(\.defaultMinListHeaderHeight, 0)
+                .refreshable { await model.load() }
+                .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
             }
-            .refreshable { await model.load() }
+            .dayGlow()
+            .toolbar(.hidden, for: .navigationBar)
+            .hidesSystemTabBar()
+            .onChange(of: model.search) { _, _ in model.searchChanged() }
             .task { await model.poll() }
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .person(let p, let t): ConversationView(personId: p, threadId: t)
-                case .personal(let t, let n): PersonalThreadView(threadId: t, name: n)
+                case .person(let p, let t): ConversationView(personId: p, threadId: t).hidesSystemTabBar()
+                case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
                 }
             }
-            .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await model.load() } } }
             .sheet(item: $composing) { p in
                 NewMessageSheet(prefill: p) { person, thread, name, brand in
@@ -68,7 +70,7 @@ struct InboxView: View {
     @ViewBuilder private var inboxSections: some View {
         Section {
             header
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
@@ -81,7 +83,7 @@ struct InboxView: View {
                 AtlasGuide(deck: deck, open: $deckOpen) { card in
                     if let p = card.personId { router.open(.person(personId: p, threadId: card.threadId)) }
                 }
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
@@ -99,12 +101,14 @@ struct InboxView: View {
                         }
                     }
                 }
+                .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparatorTint(Theme.border)
+                .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
             if model.loaded && model.shown.isEmpty {
-                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : "Nothing here",
-                          detail: model.show == .waiting ? "You're caught up." : nil,
+                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : model.show == .owed ? "No replies owed" : "Nothing here",
+                          detail: model.show == .all ? nil : "You're caught up.",
                           symbol: "checkmark.circle")
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
             }
@@ -136,19 +140,19 @@ struct InboxView: View {
         Section {
             ForEach(items, id: \.key) { h in
                 SearchHitRow(hit: h, symbol: symbol, busy: busyHit == h.key, callDisabled: calls.active != nil,
+                             neverTexted: h.type == "lead" && model.knownConversation(h.id) == "",
                              onOpen: { Task { await openHit(h) } },
                              onText: { Task { await openHit(h) } },
                              onCall: { Task { await callHit(h) } })
+                    .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparatorTint(Theme.border)
+                    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
         } header: {
-            HStack {
-                Text(label).font(.metaMedium).foregroundStyle(Theme.muted)
-                Spacer()
-                Text("\(items.count)").font(.meta).monospacedDigit().foregroundStyle(Theme.muted)
-            }
-            .textCase(nil)
+            SectionLabel(label, trailing: "\(items.count)")
+                .padding(.top, 10).padding(.bottom, 4)
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
         }
     }
 
@@ -156,6 +160,8 @@ struct InboxView: View {
     /// lead is whoever has their number (paragon_lead_conversation).
     private func personFor(_ h: SearchHit) async throws -> String? {
         if h.type == "conversation" { return h.id }
+        // A "none yet" is asked again: they may have been texted since.
+        if let known = model.knownConversation(h.id), !known.isEmpty { return known }
         return try await API.leadConversation(h.id)
     }
 
@@ -206,21 +212,31 @@ struct InboxView: View {
     private var header: some View {
         let c = model.counts
         let first = session.me?.first
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 10) {
             // The hour's greeting, the desktop's, over the hour's light.
-            TimelineView(.periodic(from: .now, by: 120)) { ctx in
-                let g = DayPhase.of(ctx.date).greeting
-                Text(first.map { "\(g), \($0)" } ?? g)
-                    .font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.text)
-            }
-            HStack {
-                Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"), (.all, "All")],
-                          selection: $model.show) { s in
-                    s == .waiting && c.late > 0 ? AnyView(CountPill(text: "\(c.late) late")) : nil
+            VStack(alignment: .leading, spacing: 2) {
+                TimelineView(.periodic(from: .now, by: 120)) { ctx in
+                    let g = DayPhase.of(ctx.date).greeting
+                    Text(first.map { "\(g), \($0)" } ?? g)
+                        .font(.greeting).tracking(-0.2).foregroundStyle(Theme.text)
+                        .lineLimit(1).minimumScaleFactor(0.8)
                 }
-                Spacer()
+                Text(summary(c)).font(.system(size: 13)).foregroundStyle(Theme.secondary)
             }
+            Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"),
+                                (.owed, c.owed > 0 ? "Owed \(c.owed)" : "Owed"),
+                                (.all, "All")],
+                      selection: $model.show)
         }
+    }
+
+    /// "4 waiting · 1 late · 2 owed"; only what there is.
+    private func summary(_ c: (waiting: Int, late: Int, owed: Int)) -> String {
+        guard model.loaded else { return " " }
+        var parts = ["\(c.waiting) waiting"]
+        if c.late > 0 { parts.append("\(c.late) late") }
+        if c.owed > 0 { parts.append("\(c.owed) owed") }
+        return c.waiting == 0 && c.owed == 0 ? "Nobody is waiting" : parts.joined(separator: " · ")
     }
 
     private var filterMenu: some View {
@@ -255,13 +271,13 @@ struct QueueRow: View {
     let q: QueueItem
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             BranchMark(brand: q.firstThread?.brand, size: 34)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(q.name)
-                        .font(q.status == "closed" ? .ui : .uiMedium)
-                        .foregroundStyle(q.status == "closed" ? Theme.muted : Theme.text)
+                        .font(.name)
+                        .foregroundStyle(q.status == "closed" ? Theme.secondary : Theme.text)
                         .lineLimit(1)
                     if (q.threads?.count ?? 0) > 1 {
                         Text("\(q.threads!.count)").font(.tag).foregroundStyle(Theme.muted)
@@ -269,16 +285,12 @@ struct QueueRow: View {
                     }
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
                     Spacer(minLength: 4)
-                    Text(clock).font(.meta).monospacedDigit().foregroundStyle(clockColor)
+                    Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                 }
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
-                    .font(.meta).foregroundStyle(q.status == "closed" ? Theme.muted : Theme.secondary)
+                    .font(.system(size: 14)).foregroundStyle(q.status == "closed" ? Theme.muted : Theme.secondary)
                     .lineLimit(1).truncationMode(.tail)
             }
-        }
-        .padding(.vertical, 6)
-        .overlay(alignment: .leading) {
-            if q.tone == .late { Rectangle().fill(Theme.rose).frame(width: 3).offset(x: -16).padding(.vertical, -6) }
         }
     }
 
@@ -299,8 +311,9 @@ struct QueueRow: View {
     }
 }
 
-/// The one Atlas guide (owner, 2026-11-08): the next thing to do, and the
-/// rest of Atlas's cards behind "N cards from Atlas".
+/// The one Atlas guide (owner, 2026-11-08), compact as the mockup's
+/// `.atlas`: the ring, "Atlas: N to do", the next thing to do under it (a
+/// tap opens it), and the rest of Atlas's cards behind the chevron.
 struct AtlasGuide: View {
     let deck: AtlasDeck
     @Binding var open: Bool
@@ -309,55 +322,61 @@ struct AtlasGuide: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let first = deck.cards.first {
-                Button { onOpen(first) } label: {
-                    HStack(alignment: .top, spacing: 10) {
-                        AtlasRing(size: 18).padding(.top, 2)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(first.title).font(.uiMedium).foregroundStyle(Theme.text).multilineTextAlignment(.leading)
-                            if let why = first.why, !why.isEmpty {
-                                Text(why).font(.meta).foregroundStyle(Theme.secondary).lineLimit(2).truncationMode(.tail).multilineTextAlignment(.leading)
-                            }
-                            if let due = first.dueAt { Text(dueText(due)).font(.meta).foregroundStyle(dueColor(due)) }
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.muted).padding(.top, 4)
-                    }
-                    .padding(12)
-                }
-                .buttonStyle(.plain)
-            }
-            if deck.cards.count > 1 {
-                Divider().overlay(Theme.border)
-                Button { withAnimation(.snappy) { open.toggle() } } label: {
-                    HStack {
-                        Text("\(deck.cards.count) cards from Atlas").font(.metaMedium).foregroundStyle(Theme.violet.opacity(0.95))
-                        Spacer()
-                        Image(systemName: open ? "chevron.up" : "chevron.down").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.muted)
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 9)
-                }
-                .buttonStyle(.plain)
-                if open {
-                    ForEach(deck.cards.dropFirst()) { c in
-                        Button { onOpen(c) } label: {
-                            HStack(spacing: 10) {
-                                BranchMark(brand: c.brand, size: 22)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(c.title).font(.meta).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
-                                    if let n = c.name { Text(n).font(.meta).foregroundStyle(Theme.muted).lineLimit(1) }
+                HStack(spacing: 9) {
+                    Button { onOpen(first) } label: {
+                        HStack(spacing: 9) {
+                            AtlasRing(size: 22)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("Atlas: \(deck.cards.count) to do").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
+                                HStack(spacing: 4) {
+                                    Text(first.title).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+                                    if let due = first.dueAt, !dueText(due).isEmpty {
+                                        Text("· \(dueText(due))").foregroundStyle(dueColor(due)).lineLimit(1).layoutPriority(1)
+                                    }
                                 }
-                                Spacer()
-                                if let due = c.dueAt { Text(dueText(due)).font(.meta).foregroundStyle(dueColor(due)) }
+                                .font(.system(size: 13))
                             }
-                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            Spacer(minLength: 0)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(first.why ?? "")
+                    if deck.cards.count > 1 {
+                        Button { withAnimation(.snappy) { open.toggle() } } label: {
+                            Image(systemName: open ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.muted)
+                                .frame(width: 28, height: 28)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(open ? "Hide Atlas's other cards" : "Show all \(deck.cards.count) cards from Atlas")
                     }
+                }
+                .padding(.horizontal, 11).padding(.vertical, 9)
+            }
+            if open && deck.cards.count > 1 {
+                Rectangle().fill(Theme.violet.opacity(0.25)).frame(height: 1)
+                ForEach(deck.cards.dropFirst()) { c in
+                    Button { onOpen(c) } label: {
+                        HStack(spacing: 10) {
+                            BranchMark(brand: c.brand, size: 22)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(c.title).font(.meta).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
+                                if let n = c.name { Text(n).font(.meta).foregroundStyle(Theme.muted).lineLimit(1) }
+                            }
+                            Spacer()
+                            if let due = c.dueAt { Text(dueText(due)).font(.meta).foregroundStyle(dueColor(due)) }
+                        }
+                        .padding(.horizontal, 11).padding(.vertical, 7)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.violet.opacity(0.08)))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.violet.opacity(0.35)))
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.violet.opacity(0.10)))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.violet.opacity(0.35)))
     }
 
     private func dueText(_ s: String) -> String {

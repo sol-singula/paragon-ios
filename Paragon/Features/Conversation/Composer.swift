@@ -21,6 +21,8 @@ struct Composer: View {
     let label: String?
     let sending: Bool
     let blocked: String?
+    /// "Text Rachel".
+    var placeholder = "Text…"
     /// Sends the words and the uploaded files; true when it went.
     let send: ([SharedFile]) async -> Bool
 
@@ -37,53 +39,68 @@ struct Composer: View {
     private static let maxBytes = 15 * 1024 * 1024
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let blocked {
-                HStack(spacing: 6) {
-                    Image(systemName: "lock.fill").font(.system(size: 11))
-                    Text(blocked).font(.meta)
-                }
-                .foregroundStyle(Theme.muted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 6)
-            } else {
-                if let label { Text(label).font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1) }
-                if let error { Text(error).font(.system(size: 11)).foregroundStyle(Theme.rose).lineLimit(2) }
-                if !files.isEmpty { tray }
-                HStack(alignment: .bottom, spacing: 6) {
-                    attachMenu
-                    Button { emoji.toggle() } label: {
-                        Image(systemName: "face.smiling").font(.system(size: 19)).foregroundStyle(emoji ? Theme.cyan : Theme.secondary)
-                            .frame(width: 32, height: 36)
+        VStack(spacing: 0) {
+            if blocked == nil, let label {
+                // "Sends as Solara · Utah", centred over the composer.
+                Text(Self.sendsAs(label)).font(.system(size: 11)).foregroundStyle(Theme.muted).lineLimit(1)
+                    .frame(maxWidth: .infinity).padding(.horizontal, 12).padding(.top, 6).padding(.bottom, 5)
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                if let blocked {
+                    HStack(spacing: 6) {
+                        Image(systemName: "lock.fill").font(.system(size: 11))
+                        Text(blocked).font(.meta)
                     }
-                    .accessibilityLabel("Emoji")
-                    .popover(isPresented: $emoji) {
-                        EmojiGrid(emoji: EmojiGrid.texting) { draft += $0 }
-                            .padding(10)
-                            .presentationCompactAdaptation(.popover)
-                    }
-                    TextField("", text: $draft, prompt: Text("Text…").foregroundStyle(Theme.muted), axis: .vertical)
-                        .lineLimit(1...6)
-                        .font(.ui).foregroundStyle(Theme.text)
-                        .focused($focused)
-                        .padding(.horizontal, 12).padding(.vertical, 9)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(Theme.input))
-                        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(focused ? Theme.cyan.opacity(0.6) : Theme.inputBorder))
-                    Button { go() } label: {
-                        ZStack {
-                            Circle().fill(canSend ? Theme.cyan : Theme.hover).frame(width: 36, height: 36)
-                            if sending { ProgressView().tint(.black) }
-                            else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.black : Theme.muted) }
+                    .foregroundStyle(Theme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 6)
+                } else {
+                    if let error { Text(error).font(.system(size: 11)).foregroundStyle(Theme.rose).lineLimit(2) }
+                    if !files.isEmpty { tray }
+                    HStack(alignment: .bottom, spacing: 6) {
+                        HStack(spacing: 2) {
+                            attachMenu
+                            Button { importTypes = [.gif]; importing = true } label: {
+                                Text("GIF").font(.system(size: 11, weight: .heavy)).foregroundStyle(Theme.muted)
+                                    .frame(width: 30, height: 36)
+                            }
+                            .disabled(files.count >= Self.maxFiles)
+                            .accessibilityLabel("Add a GIF")
+                            Button { emoji.toggle() } label: {
+                                Image(systemName: "face.smiling").font(.system(size: 18)).foregroundStyle(emoji ? Theme.teal : Theme.muted)
+                                    .frame(width: 30, height: 36)
+                            }
+                            .accessibilityLabel("Emoji")
+                            .popover(isPresented: $emoji) {
+                                EmojiGrid(emoji: EmojiGrid.texting) { draft += $0 }
+                                    .padding(10)
+                                    .presentationCompactAdaptation(.popover)
+                            }
                         }
+                        TextField("", text: $draft, prompt: Text(placeholder).foregroundStyle(Theme.muted), axis: .vertical)
+                            .lineLimit(1...6)
+                            .font(.ui).foregroundStyle(Theme.text)
+                            .focused($focused)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Theme.input))
+                            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(focused ? Theme.teal.opacity(0.6) : Theme.inputBorder))
+                        Button { go() } label: {
+                            ZStack {
+                                Circle().fill(canSend ? Theme.teal : Theme.hover).frame(width: 34, height: 34)
+                                if sending { ProgressView().tint(.white) }
+                                else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)).foregroundStyle(canSend ? Color.white : Theme.muted) }
+                            }
+                            .padding(.bottom, 1)
+                        }
+                        .disabled(!canSend)
+                        .accessibilityLabel("Send")
                     }
-                    .disabled(!canSend)
-                    .accessibilityLabel("Send")
                 }
             }
+            .padding(.horizontal, 10).padding(.top, 7).padding(.bottom, 8)
+            .background(Theme.panel.ignoresSafeArea(edges: .bottom))
+            .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
         }
-        .padding(.horizontal, 12).padding(.top, 8).padding(.bottom, 8)
-        .background(Theme.panel)
-        .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
         .photosPicker(isPresented: $picking, selection: $picks, maxSelectionCount: max(1, Self.maxFiles - files.count), matching: .any(of: [.images, .videos]))
         .onChange(of: picks) { _, items in
             guard !items.isEmpty else { return }
@@ -101,8 +118,8 @@ struct Composer: View {
             Button { importTypes = [.item]; importing = true } label: { Label("Files", systemImage: "doc") }
             Button { importTypes = [.gif]; importing = true } label: { Label("GIF", systemImage: "sparkles.rectangle.stack") }
         } label: {
-            Image(systemName: "plus.circle").font(.system(size: 21)).foregroundStyle(Theme.secondary)
-                .frame(width: 32, height: 36)
+            Image(systemName: "paperclip").font(.system(size: 17)).foregroundStyle(Theme.muted)
+                .frame(width: 30, height: 36)
         }
         .disabled(files.count >= Self.maxFiles)
         .accessibilityLabel("Add a photo, file or GIF")
@@ -139,6 +156,20 @@ struct Composer: View {
                 }
             }
         }
+    }
+
+    /// "Text Rachel", or "Text them" for a number with no name.
+    static func placeholder(for name: String?, named: Bool = true) -> String {
+        guard named, let n = name?.trimmingCharacters(in: .whitespaces), !n.isEmpty, n.first?.isLetter == true else { return "Text them" }
+        return "Text " + (n.split(separator: " ").first.map(String.init) ?? n)
+    }
+
+    /// The server's "Text as Solara · Utah" read as "Sends as Solara · Utah".
+    static func sendsAs(_ label: String) -> String {
+        for p in ["Text as ", "Texts as ", "Sending as "] where label.hasPrefix(p) {
+            return "Sends as " + label.dropFirst(p.count)
+        }
+        return label
     }
 
     private var uploading: Bool { files.contains { $0.file == nil && !$0.failed } }
