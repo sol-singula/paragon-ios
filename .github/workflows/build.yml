@@ -5,9 +5,18 @@ name: Build
 # archives or uploads anything. On every branch, once it builds, it commits the
 # regenerated Paragon.xcodeproj, so the repo is always an Xcode project you
 # open as it is (project.yml is where targets and settings are changed).
+# Only main, and only when code changes (founder, 2026-11-09: "lets reduce
+# down our need for github actions"); macOS minutes cost 10x. A newer push
+# cancels the build still running.
 on:
   push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**"]
   workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
