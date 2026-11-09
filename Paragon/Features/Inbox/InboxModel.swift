@@ -17,22 +17,40 @@ final class InboxModel {
     var search = ""
 
     private(set) var items: [QueueItem] = []
-    private(set) var deck: AtlasDeck?
     private(set) var loaded = false
     private(set) var error: String?
 
-    /// Waiting first by the clock, then owed; or everything newest first.
+    /// Rows taken off at once (a promise given to someone else), each with
+    /// when: kept off until a read that started after it, so a poll already
+    /// in flight can't bring the row back.
+    private var cleared: [String: Date] = [:]
+
+    /// What the server sent, less what was just cleared here.
+    private var visible: [QueueItem] { cleared.isEmpty ? items : items.filter { cleared[$0.personId] == nil } }
+
+    /// The server's order is the urgency order (one rule, every client):
+    /// overdue first, then the soonest due, promises and cards in among the
+    /// waiting conversations. `sort_key` keeps it after any merge; an older
+    /// server without it gets its old order, waiting before owed.
     var shown: [QueueItem] {
+        let rows = visible
         let base: [QueueItem]
-        if show == .waiting {
-            let w = items.filter { $0.status == "waiting" || $0.status == "owed" }
-            base = sort == .recent ? recent(w) : w.filter { $0.status == "waiting" } + w.filter { $0.status == "owed" }
-        } else if show == .owed {
-            let o = items.filter { $0.status == "owed" }
-            base = sort == .recent ? recent(o) : o
-        } else {
-            base = sort == .recent ? recent(items) : items
+        switch show {
+        case .waiting: base = rows.filter { $0.status == "waiting" || $0.status == "owed" || $0.isAtlas }
+        case .owed: base = rows.filter { $0.status == "owed" }
+        case .all: base = rows
         }
+        if sort == .recent { return recent(base) }
+        if base.contains(where: { $0.sortKey != nil }) {
+            // Stable: equal or missing keys keep the server's order.
+            return base.enumerated().sorted { a, b in
+                let ka = a.element.sortKey, kb = b.element.sortKey
+                if let ka, let kb, ka != kb { return ka.utf16.lexicographicallyPrecedes(kb.utf16) }
+                if (ka == nil) != (kb == nil) { return ka != nil }
+                return a.offset < b.offset
+            }.map(\.element)
+        }
+        if show == .waiting { return base.filter { $0.status == "waiting" } + base.filter { $0.status != "waiting" } }
         return base
     }
 
@@ -40,16 +58,20 @@ final class InboxModel {
     /// replies we owe ("4 waiting · 1 late · 2 owed").
     var counts: (waiting: Int, late: Int, owed: Int) {
         var waiting = 0, late = 0, owed = 0
-        for q in items {
+        for q in visible {
             if q.status == "waiting" {
                 waiting += 1
-                if q.tone == .late { late += 1 }
+                if q.tone == .late || (q.dueSource == "clock" && q.isOverdue) { late += 1 }
             } else if q.status == "owed" {
                 owed += 1
             }
         }
         return (waiting, late, owed)
     }
+
+    /// The Inbox tab's count: the waiting rows plus the overdue promises
+    /// that are mine.
+    var badge: Int { counts.waiting + visible.reduce(0) { $0 + $1.overdueMine } }
 
     var brands: [String] {
         Array(Set(items.compactMap { $0.firstThread?.brand })).sorted()
@@ -59,12 +81,17 @@ final class InboxModel {
         xs.sorted { (Stamp.date($0.lastActivityAt) ?? .distantPast) > (Stamp.date($1.lastActivityAt) ?? .distantPast) }
     }
 
+    /// A promise just went to someone else: the conversation leaves my
+    /// inbox now (the server hides it from me from here on).
+    func clear(personId: String) {
+        cleared[personId] = Date()
+    }
+
     func load() async {
+        let started = Date()
         do {
-            async let queue = API.queue(homeownersOnly: homeownersOnly, brand: brand, search: nil)
-            async let cards = API.atlasCards()
-            items = try await queue
-            deck = try? await cards
+            items = try await API.queue(homeownersOnly: homeownersOnly, brand: brand, search: nil)
+            cleared = cleared.filter { $0.value >= started }
             error = nil
         } catch {
             self.error = error.localizedDescription

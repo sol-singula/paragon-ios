@@ -71,9 +71,137 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     let threads: [QueueThread]?
     let preview: String?
 
+    // The one inbox (promises and Atlas's cards on the person's row). All
+    // optional: an older server sends none of them, a newer one may send
+    // more, and a malformed item never stops the inbox.
+    let dueAt: String?
+    /// clock | promise | card, or nil.
+    let dueSource: String?
+    let overdue: Bool?
+    /// Ascending code-unit order is the server's urgency order.
+    let sortKey: String?
+    /// The conversation to open from this row.
+    let threadId: String?
+    /// A card or promise is merged into this row: a slight violet tint.
+    let atlas: Bool?
+    let card: Lenient<RowItem>?
+    let cardId: String?
+    let title: String?
+    let why: String?
+    let items: LossyList<RowItem>?
+    /// A promise by hand on this row is mine.
+    let assignedToMe: Bool?
+    /// …and not yet a team promise: nobody else sees this conversation.
+    let `private`: Bool?
+
     var id: String { personId }
     var firstThread: QueueThread? { threads?.first }
     var tone: ClockTone { status == "waiting" ? ClockTone(pct: pct) : .calm }
+
+    var isAtlas: Bool { atlas == true || !rowItems.isEmpty }
+    var isPrivate: Bool { self.`private` == true }
+    /// Every card and promise on the row, soonest first.
+    var rowItems: [RowItem] { items?.items ?? (card?.value.map { [$0] } ?? []) }
+    /// The leading item (soonest due).
+    var leadItem: RowItem? { card?.value ?? rowItems.first }
+    var isOverdue: Bool {
+        if let o = overdue { return o && dueAt != nil }
+        return (Stamp.date(dueAt) ?? .distantFuture) <= Date()
+    }
+    /// The conversation a tap opens: the server's choice, else the waiting
+    /// thread, else the first.
+    var openThread: String? {
+        threadId ?? threads?.first(where: { $0.status == "waiting" })?.id ?? firstThread?.id
+    }
+    /// Overdue promises on this row that are mine (the tab's badge).
+    var overdueMine: Int {
+        rowItems.filter { $0.kind == "promise" && $0.mine == true && $0.isOverdue }.count
+    }
+}
+
+/// A card or promise on an inbox row (`paragon_queue` items[] and card).
+struct RowItem: Decodable, Hashable, Identifiable {
+    let id: String
+    let kind: String?
+    /// hand | atlas
+    let by: String?
+    let title: String?
+    let why: String?
+    let short: String?
+    let dueAt: String?
+    let openToAllAt: String?
+    let team: Bool?
+    let escalation: Flex?
+    let actionType: String?
+    let body: String?
+    let threadId: String?
+    let ownerId: String?
+    let mine: Bool?
+    let createdBy: String?
+    let createdByName: String?
+    let createdAt: String?
+
+    var isPromise: Bool { kind == "promise" }
+    var byHand: Bool { by == "hand" }
+    var isOverdue: Bool { (Stamp.date(dueAt) ?? .distantFuture) <= Date() }
+    var what: String { (title?.isEmpty == false ? title : short) ?? (isPromise ? "Promise" : "Atlas card") }
+}
+
+/// A promise on a conversation (`paragon_thread_promises`, the card's own
+/// shape). The owner's name is never read (no owner's name anywhere);
+/// `memberId` is only for "Yours".
+struct ThreadPromise: Decodable, Hashable, Identifiable {
+    let id: String
+    let kind: String?
+    let title: String?
+    let why: String?
+    let dueAt: String?
+    let openToAllAt: String?
+    let status: String?
+    let memberId: String?
+    let threadId: String?
+    let short: String?
+
+    var isOpen: Bool { status == nil || status == "open" }
+    var isOverdue: Bool { (Stamp.date(dueAt) ?? .distantFuture) <= Date() }
+    var what: String { (title?.isEmpty == false ? title : short) ?? "Promise" }
+}
+
+/// One person in the WHO picker (`paragon_promise_people`): me first, then
+/// who can take it; `whyNot` says why someone can't.
+struct PromisePerson: Decodable, Hashable, Identifiable {
+    let id: String
+    let name: String
+    let role: String?
+    let photoUrl: String?
+    let isMe: Bool?
+    let canTake: Bool?
+    let whyNot: String?
+
+    var first: String { name.split(separator: " ").first.map(String.init) ?? name }
+}
+
+/// A list where an element this version can't read is skipped.
+struct LossyList<T: Decodable & Hashable>: Decodable, Hashable {
+    let items: [T]
+    init(from decoder: Decoder) throws {
+        var out: [T] = []
+        if var c = try? decoder.unkeyedContainer() {
+            while !c.isAtEnd {
+                if let v = try? c.decode(T.self) { out.append(v) }
+                else { _ = try? c.decode(Skip.self) }
+            }
+        }
+        items = out
+    }
+    /// Reads anything, so a bad element is stepped over, never looped on.
+    private struct Skip: Decodable { init(from decoder: Decoder) throws {} }
+}
+
+/// A value that reads as nil when this version can't read it.
+struct Lenient<T: Decodable & Hashable>: Decodable, Hashable {
+    let value: T?
+    init(from decoder: Decoder) throws { value = try? T(from: decoder) }
 }
 
 enum ClockTone { case calm, soon, late
@@ -228,27 +356,6 @@ struct Notice: Decodable, Hashable, Identifiable {
     let threadId: String?
     let createdAt: String
     let read: Bool?
-}
-
-struct AtlasCard: Decodable, Hashable, Identifiable {
-    struct Action: Decodable, Hashable { let type: String?; let body: String? }
-    let id: String
-    let kind: String
-    let title: String
-    let why: String?
-    let action: Action?
-    let dueAt: String?
-    let personId: String?
-    let threadId: String?
-    let name: String?
-    let brand: String?
-    let short: String?
-}
-
-struct AtlasDeck: Decodable {
-    let cards: [AtlasCard]
-    let later: Int?
-    let clearedToday: Int?
 }
 
 struct CallCard: Decodable {
