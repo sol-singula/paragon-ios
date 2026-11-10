@@ -205,6 +205,8 @@ struct UiPrefs: Codable, Hashable {
         /// One choice (founder, 2026-11-10): all | homeowners | logistics |
         /// brand:<brand>. Older servers send none: read it from the two above.
         var filter: String?
+        /// mine (the default) | all: whose promises show on inbox rows.
+        var promises: String?
 
         var chosen: String {
             if let f = filter, !f.isEmpty { return f }

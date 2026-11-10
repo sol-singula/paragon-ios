@@ -253,3 +253,9 @@ need to be able to ring the phone and send notifications".
   `Branch.of(brand).code`) in and out, the call screen shows the line under the
   branch, and the card is read with the call's sid
   (`API.callCard(thread, parent:)`) so it names the line dialed, not the 877.
+- **Build 19, 2026-11-10**: whose promises show (founder: "make sure i only see
+  my own"): the filter menu's My promises (default) / All promises,
+  `InboxModel.promises`, saved as `inbox.promises`, sent as `p_promises`. One
+  promise per conversation: a row's menu and the conversation's menu say
+  **Change promise…** while one is open, and the Add sheet finds the open one
+  (`findExisting`) and becomes Change promise (the server changes it).

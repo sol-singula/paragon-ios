@@ -270,6 +270,10 @@ struct PromiseSheet: View {
     @State private var choicesFailed = false
     @State private var choice: PromiseChoice?
     @State private var picked = false
+    /// The conversation's open promise, when Add finds one (founder,
+    /// 2026-11-10: one promise per conversation, ever). Saving changes it:
+    /// the server turns a second promise into a change of the first.
+    @State private var existing: ThreadPromise?
 
     init(target: PromiseTarget, onSaved: @escaping (_ owner: PromisePerson?) -> Void) {
         self.target = target
@@ -297,8 +301,8 @@ struct PromiseSheet: View {
 
     private var title: String {
         switch target.mode {
-        case .add: return "Add promise"
-        case .change: return "Change…"
+        case .add: return existing != nil ? "Change promise" : "Add promise"
+        case .change(_, let promise, _, _, _): return promise ? "Change promise" : "Change…"
         }
     }
 
@@ -336,7 +340,7 @@ struct PromiseSheet: View {
         }
         .presentationDetents(showsWho && showsWhen ? [.large] : [.medium, .large])
         .presentationBackground(Theme.bg)
-        .task { if showsWho { await loadPeople() } }
+        .task { await findExisting(); if showsWho { await loadPeople() } }
         // Where Atlas would put it, again whenever WHO changes.
         .task(id: "\(vague ?? "")|\(owner ?? "")") { await loadSlot() }
         // The quick WHENs, again whenever WHO changes (Atlas places around their promises).
@@ -585,10 +589,21 @@ struct PromiseSheet: View {
         return Calendar.current.date(bySetting: .second, value: 0, of: d) ?? d
     }
 
+    /// Add on a conversation that has a promise open: it is that one's sheet.
+    private func findExisting() async {
+        guard isAdd, let ps = try? await API.threadPromises(target.threadId),
+              let p = ps.first(where: { $0.isOpen && ($0.kind ?? "promise") == "promise" }) else { return }
+        existing = p
+        if target.prefill == nil { text = p.what }
+        if let d = Stamp.date(p.dueAt), d > Date() { due = d; picked = true }
+    }
+
     private func loadPeople() async {
         do {
             people = try await API.promisePeople(thread: target.threadId)
-            if case .add = target.mode {
+            if case .add = target.mode, let had = existing?.memberId, people.contains(where: { $0.id == had }) {
+                owner = had
+            } else if case .add = target.mode {
                 owner = people.first { $0.isMe == true && $0.canTake != false }?.id
                     ?? people.first { $0.canTake != false }?.id
             }

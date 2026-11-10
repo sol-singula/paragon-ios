@@ -137,8 +137,15 @@ struct InboxView: View {
             }
         }
         if let t = q.openThread {
-            Button { promising = PromiseTarget(threadId: t, personId: q.personId, name: q.name) } label: {
-                Label("Add promise…", systemImage: "hand.raised")
+            // One promise per conversation: Change promise… for the open one.
+            if let p = q.rowItems.first(where: { $0.isPromise }) {
+                Button { promising = PromiseTarget.change(p, thread: t, personId: q.personId, name: q.name) } label: {
+                    Label("Change promise…", systemImage: "hand.raised")
+                }
+            } else {
+                Button { promising = PromiseTarget(threadId: t, personId: q.personId, name: q.name) } label: {
+                    Label("Add promise…", systemImage: "hand.raised")
+                }
             }
             let items = q.rowItems.filter { !$0.isGold }
             if items.count == 1, let i = items.first {
@@ -309,8 +316,15 @@ struct InboxView: View {
                     if model.brand == b { Label(name, systemImage: "checkmark") } else { Text(name) }
                 }
             }
+            Divider()
+            // Someone else's promise is on my rows only with All promises.
+            ForEach([("mine", "My promises"), ("all", "All promises")], id: \.0) { f in
+                Button { model.choose(promises: f.0) } label: {
+                    if model.promises == f.0 { Label(f.1, systemImage: "checkmark") } else { Text(f.1) }
+                }
+            }
         } label: {
-            Image(systemName: model.filter != "all"
+            Image(systemName: model.filter != "all" || model.promises == "all"
                   ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .foregroundStyle(Theme.secondary)
         }

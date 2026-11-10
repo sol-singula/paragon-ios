@@ -109,9 +109,11 @@ enum API {
     /// The inbox, filtered by one choice (`paragon_queue(p_filter, ...)`):
     /// all | homeowners | logistics | brand:<brand>. A server without that
     /// overload gets the old call.
-    static func queue(filter: String, search: String?) async throws -> [QueueItem] {
+    static func queue(filter: String, search: String?, promises: String? = nil) async throws -> [QueueItem] {
         do {
-            return try await rpc("paragon_queue", ["p_filter": filter, "p_search": search], as: [QueueItem]?.self) ?? []
+            var args: [String: Any?] = ["p_filter": filter, "p_search": search]
+            if let promises { args["p_promises"] = promises }
+            return try await rpc("paragon_queue", args, as: [QueueItem]?.self) ?? []
         } catch {
             let m = error.localizedDescription
             guard m.contains("p_filter") || m.localizedCaseInsensitiveContains("function") || m.contains("schema cache") else { throw error }

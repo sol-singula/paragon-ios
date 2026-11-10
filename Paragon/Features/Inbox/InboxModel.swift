@@ -16,6 +16,9 @@ final class InboxModel {
     /// person, the same as the desktop's: all | homeowners | logistics |
     /// brand:<brand>.
     private(set) var filter = "all"
+    /// My promises (default) or All promises (founder, 2026-11-10: "make sure
+    /// i only see my own. (add a filter to be able to see all promises)").
+    private(set) var promises = "mine"
     var brand: String? { filter.hasPrefix("brand:") ? String(filter.dropFirst(6)) : nil }
     /// What the chip and the menu call it.
     var filterLabel: String {
@@ -134,7 +137,7 @@ final class InboxModel {
         let started = Date()
         let asked = (self.filter, show)
         do {
-            let rows = try await API.queue(filter: self.filter, search: nil)
+            let rows = try await API.queue(filter: self.filter, search: nil, promises: promises)
             let before = shown.map(\.personId)
             items = rows
             cleared = cleared.filter { $0.value >= started }
@@ -248,6 +251,7 @@ final class InboxModel {
 
     private func apply(_ i: UiPrefs.Inbox) {
         filter = i.chosen
+        promises = i.promises == "all" ? "all" : "mine"
         show = i.tab == "all" ? .all : .waiting
     }
 
@@ -256,7 +260,7 @@ final class InboxModel {
     }
 
     private var current: UiPrefs.Inbox {
-        UiPrefs.Inbox(homeownersOnly: filter == "homeowners", brand: brand, tab: show == .all ? "all" : "waiting", filter: filter)
+        UiPrefs.Inbox(homeownersOnly: filter == "homeowners", brand: brand, tab: show == .all ? "all" : "waiting", filter: filter, promises: promises)
     }
 
     /// At launch or sign-in: the local copy now, then the server's.
@@ -280,6 +284,14 @@ final class InboxModel {
         filter = f
         cache(current)
         save(["filter": f])
+        Task { await load() }
+    }
+
+    /// Whose promises show on the rows, picked by the person.
+    func choose(promises p: String) {
+        promises = p
+        cache(current)
+        save(["promises": p])
         Task { await load() }
     }
 

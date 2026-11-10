@@ -169,6 +169,7 @@ struct ConversationView: View {
             call: call,
             info: { infoOpen = true },
             addPromise: view == nil || currentThread == nil ? nil : addPromise,
+            promiseOpen: promises.contains { ($0.kind ?? "promise") == "promise" },
             followUp: view == nil || currentThread == nil ? nil : followUp,
             editName: view == nil ? nil : editName)
     }
@@ -256,6 +257,8 @@ struct ConversationHeader: View {
     let info: () -> Void
     /// The header's menu: Add promise… (founder, 2026-11-09: WHO WHEN WHAT).
     var addPromise: (() -> Void)?
+    /// One promise per conversation (founder, 2026-11-10): "Change promise…" while one is open.
+    var promiseOpen = false
     /// Follow up later… : Add promise with WHAT "Follow up with <name>".
     var followUp: (() -> Void)? = nil
     /// Edit name (founder, 2026-11-09): from the menu, or a tap on the name.
@@ -293,7 +296,7 @@ struct ConversationHeader: View {
                 .accessibilityLabel("Contact info")
             if let addPromise {
                 Menu {
-                    Button(action: addPromise) { Label("Add promise…", systemImage: "hand.raised") }
+                    Button(action: addPromise) { Label(promiseOpen ? "Change promise…" : "Add promise…", systemImage: "hand.raised") }
                     if let followUp {
                         Button(action: followUp) { Label("Follow up later…", systemImage: "calendar.badge.clock") }
                     }
