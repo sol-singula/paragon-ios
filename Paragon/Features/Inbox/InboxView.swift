@@ -36,6 +36,8 @@ struct InboxView: View {
                 .environment(\.defaultMinListHeaderHeight, 0)
                 .refreshable { await model.load() }
                 .overlay { if !model.loaded { ProgressView().tint(Theme.muted) } }
+                // The activity feed (founder, 2026-11-10): a band under the list.
+                if !model.isSearching { FeedBand() }
             }
             .dayGlow()
             .toolbar(.hidden, for: .navigationBar)

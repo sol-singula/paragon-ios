@@ -132,6 +132,14 @@ need to be able to ring the phone and send notifications".
   a promise added or moved to later takes its conversation out of Waiting
   at once until something new happens (`LaterMarks`). A waiting row never
   shows a time ahead: how long they have waited, or how late.
+- **Build 16, 2026-11-10** (founder, "Flame sweep"): the activity feed,
+  a band under the inbox list (`Features/Inbox/FeedBand.swift`, the
+  desktop's `ActivityFeed.tsx`): `paragon_activity_feed(p_since)`, read
+  every 30 s while the inbox shows, at most three cards newest on top, five
+  minutes each, a fourth pushes the oldest off. A card drops in on a spring
+  and one flame gradient crosses it (`FeedCardView`); still for Reduce
+  Motion. No label, no points. "All quiet for now" when nothing is new; no
+  band while searching or when the server has no such function.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.
