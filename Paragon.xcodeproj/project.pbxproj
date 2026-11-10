@@ -58,12 +58,14 @@
 		D76249C70737E72DCA74615C /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB96A42A1AC076D41BC5631B /* Session.swift */; };
 		D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF93659363F43D9F38EA81F /* CostsView.swift */; };
 		EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1739E30D8C200ECEC6A334BF /* Assets.xcassets */; };
+		EEAAC2BF074C7DB6DB165F66 /* Renames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33CA4E9E51345423FCA975 /* Renames.swift */; };
 		F386EC7886941174AB685752 /* PushKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7276CD9082C2F3BEE56C13BC /* PushKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		05E0D1B1ACEBA2F08E7F8FD5 /* Promises.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Promises.swift; sourceTree = "<group>"; };
 		05E9690B8AF59BF579D0ED05 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		0C33CA4E9E51345423FCA975 /* Renames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renames.swift; sourceTree = "<group>"; };
 		1111AC1D38C9D489F3F967BC /* BranchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMark.swift; sourceTree = "<group>"; };
 		1739E30D8C200ECEC6A334BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1948F57C2B6673ACAA4E203E /* Paragon.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Paragon.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -247,6 +249,7 @@
 				C820DE09D57DC0C01BAE888B /* Models.swift */,
 				C2D1915B383F0486B0556152 /* Outbox.swift */,
 				24B083394A6A4A5A74F03710 /* Presence.swift */,
+				0C33CA4E9E51345423FCA975 /* Renames.swift */,
 				CC33203CA6ABF49F46B6E591 /* Router.swift */,
 				FB96A42A1AC076D41BC5631B /* Session.swift */,
 				37074D96BBC1E48785B3BF52 /* Stamp.swift */,
@@ -452,6 +455,7 @@
 				49E7FB4EE1F994DC6B7C0819 /* Promises.swift in Sources */,
 				53F6433CA85E34228F35A1CF /* PushManager.swift in Sources */,
 				A02E970E093BD8528FDF76F6 /* RemoteImage.swift in Sources */,
+				EEAAC2BF074C7DB6DB165F66 /* Renames.swift in Sources */,
 				1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */,
 				163777340452D02C27B7BCE9 /* Router.swift in Sources */,
 				833F4A12782D1879B1FA4727 /* SearchHitRow.swift in Sources */,
@@ -484,7 +488,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -566,7 +570,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
