@@ -39,7 +39,8 @@ struct NewMessageSheet: View {
 
     private var statesFor: [String: [String]] {
         var m: [String: [String]] = [:]
-        for l in lines where l.kind == "customer" && l.provider == "quo" && l.inQuo == true {
+        // The same rule as the search's line picker: my usable customer lines.
+        for l in LinePick.usable(lines) {
             guard let b = l.brand, let s = l.state else { continue }
             if !(m[b]?.contains(s) ?? false) { m[b, default: []].append(s) }
         }

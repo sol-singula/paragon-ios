@@ -726,6 +726,20 @@ struct LineInfo: Decodable, Hashable, Identifiable {
     let state: String?
     let kind: String?
     let inQuo: Bool?
+    var label: String?
+    var firstSeenAt: String?
+    var messages: Int?
+    /// I may not text or call from it (paragon.line_blocked); nil on an older server.
+    var blocked: Bool?
+}
+
+/// Who has a number in the business inbox (`paragon_phone_lookup`); nil when nobody does.
+struct PhoneLookup: Decodable {
+    struct Thread: Decodable { let id: String; let brand: String?; let state: String?; let line: String?; let locked: Bool? }
+    let ours: Bool?
+    let personId: String?
+    let name: String?
+    let threads: [Thread]?
 }
 
 struct StartedThread: Decodable {

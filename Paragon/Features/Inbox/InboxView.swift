@@ -11,6 +11,7 @@ struct InboxView: View {
     @State private var composing: NewMessagePrefill?
     @State private var notice: String?
     @State private var busyHit: String?
+    @State private var pickingLine: LinePickTarget?
 
     var body: some View {
         @Bindable var router = router
@@ -22,7 +23,7 @@ struct InboxView: View {
                 } trailing: {
                     filterMenu
                 }
-                SearchField(text: $model.search, prompt: "Search clients, people, numbers")
+                SearchField(text: $model.search, prompt: "Search clients, people, numbers") { call in submitSearch(call: call) }
                 List {
                     if model.isSearching {
                         searchResults
@@ -76,6 +77,19 @@ struct InboxView: View {
                     router.inboxPath.append(.person(personId: person, threadId: thread))
                     // After the sheet is gone, so the call screen can come up.
                     if p.then == .call {
+                        Task { try? await Task.sleep(for: .milliseconds(700)); calls.place(thread: thread, name: name, brand: brand) }
+                    }
+                    Task { await model.load() }
+                }
+            }
+            // A number with no conversation (founder, 2026-11-10): pick the line.
+            .sheet(item: $pickingLine) { t in
+                LinePickerSheet(target: t) { person, thread, name, brand in
+                    pickingLine = nil
+                    if t.then == .text { ComposerFocus.request(thread) }
+                    model.search = ""
+                    router.inboxPath.append(.person(personId: person, threadId: thread))
+                    if t.then == .call {
                         Task { try? await Task.sleep(for: .milliseconds(700)); calls.place(thread: thread, name: name, brand: brand) }
                     }
                     Task { await model.load() }
@@ -230,6 +244,7 @@ struct InboxView: View {
     /// Opening (and Text): their conversation; a lead nobody has texted yet
     /// opens New message with their name and phone filled in.
     private func openHit(_ h: SearchHit, then: NewMessagePrefill.Then = .text) async {
+        if h.type == "number" { await actOnNumber(h.id, .text); return }
         guard h.isPerson else {
             notice = "\(h.name) has no conversation in Paragon. Only clients and people who have texted or called open here."
             return
@@ -248,6 +263,7 @@ struct InboxView: View {
     /// Call: their primary conversation through CallManager, as the call
     /// button in the conversation does. A thread the wall locks is refused.
     private func callHit(_ h: SearchHit) async {
+        if h.type == "number" { await actOnNumber(h.id, .call); return }
         guard calls.active == nil else { notice = "You are already on a call."; return }
         busyHit = h.key
         defer { busyHit = nil }
@@ -262,6 +278,41 @@ struct InboxView: View {
             }
             calls.place(thread: t.id, name: v.person.name, brand: t.brand)
         } catch { notice = error.localizedDescription }
+    }
+
+    /// A typed number: with conversations, its own (no question, the sticky
+    /// line); with none, the line picker.
+    private func actOnNumber(_ digits: String, _ then: NewMessagePrefill.Then) async {
+        if then == .call, calls.active != nil { notice = "You are already on a call."; return }
+        busyHit = "number-\(digits)"
+        do {
+            let who = try await API.phoneLookup(digits)
+            busyHit = nil
+            if who?.ours == true { notice = "That number is one of our own lines."; return }
+            if let p = who?.personId, !(who?.threads ?? []).isEmpty {
+                let h = SearchHit(id: p, type: "conversation", name: who?.name ?? LinePick.format(digits),
+                                  secondary: nil, status: nil, statusColor: nil, brand: nil)
+                if then == .call { await callHit(h) } else { await openHit(h) }
+                return
+            }
+            pickingLine = LinePickTarget(phone: digits, name: who?.name, then: then)
+        } catch {
+            busyHit = nil
+            notice = error.localizedDescription
+        }
+    }
+
+    /// Return in the search on a number: Text; Cmd+Return: Call.
+    private func submitSearch(call: Bool) {
+        guard let d = LinePick.digits(model.query) else { return }
+        let hits = model.searchedFor == model.query ? model.hits : []
+        let then: NewMessagePrefill.Then = call ? .call : .text
+        if !hits.contains(where: { $0.type == "number" }),
+           let h = hits.first(where: { $0.type == "conversation" }) ?? hits.first(where: { $0.type == "lead" && ($0.score ?? 0) >= 100 }) {
+            Task { if call { await callHit(h) } else { await openHit(h) } }
+        } else {
+            Task { await actOnNumber(d, then) }
+        }
     }
 
     private func prefill(_ h: SearchHit, then: NewMessagePrefill.Then) async -> NewMessagePrefill {

@@ -183,12 +183,35 @@ final class InboxModel {
     }
 
     private func runSearch(_ q: String) async {
-        async let site = Self.siteHits(q)
+        // A number (founder, 2026-11-10): the site's search on its 10 digits,
+        // and who has it in Paragon (the queue search is names only).
+        let digits = LinePick.digits(q)
+        async let site = Self.siteHits(digits ?? q)
         async let mine = Self.queueHits(q)
-        let (rows, people) = await (site, mine)
+        async let who = Self.lookup(digits)
+        let (rows, people, found) = await (site, mine, who)
         guard !Task.isCancelled, q == query else { return }
         let leadNames = Set(rows.filter { $0.type == "lead" }.map { $0.name.lowercased() })
-        hits = rows + people.filter { !leadNames.contains($0.name.lowercased()) }.prefix(8)
+        var out: [SearchHit] = rows + Array(people.filter { !leadNames.contains($0.name.lowercased()) }.prefix(8))
+        if let digits, found?.ours != true {
+            let threads = found?.threads ?? []
+            let talked = found?.personId != nil && !threads.isEmpty
+            if talked, let pid = found?.personId, !out.contains(where: { $0.type == "conversation" && $0.id == pid }),
+               !leadNames.contains((found?.name ?? "").lowercased()) {
+                let t = threads.first
+                let sub = [t?.brand.map { Branch.of($0).name }, t?.line].compactMap { $0 }.joined(separator: " · ")
+                out.append(SearchHit(id: pid, type: "conversation", name: found?.name ?? LinePick.format(digits),
+                                     secondary: sub.isEmpty ? nil : sub, status: nil, statusColor: nil, brand: t?.brand))
+            }
+            // Nobody has it: one row for the number itself, with Text and Call.
+            let client = rows.contains { $0.type == "lead" && ($0.score ?? 0) >= 100 }
+            if !talked && !client {
+                out.insert(SearchHit(id: digits, type: "number", name: LinePick.format(digits),
+                                     secondary: found?.name.map { "\($0) · no conversation yet" } ?? "No conversation yet",
+                                     status: nil, statusColor: nil, brand: nil), at: 0)
+            }
+        }
+        hits = out
         searchedFor = q
         searching = false
         await resolveLeads(rows.filter { $0.type == "lead" && (conversationOf[$0.id] ?? "").isEmpty }.prefix(10).map(\.id), for: q)
@@ -217,12 +240,17 @@ final class InboxModel {
     /// yet, nil when not looked up.
     func knownConversation(_ lead: String) -> String? { conversationOf[lead] }
 
+    private static func lookup(_ digits: String?) async -> PhoneLookup? {
+        guard let digits else { return nil }
+        return (try? await API.phoneLookup(digits)) ?? nil
+    }
+
     private static func siteHits(_ q: String) async -> [SearchHit] {
         let rows = (try? await API.globalSearch(q, limit: 30)) ?? []
         return rows.map { r in
             SearchHit(id: r.id, type: r.resultType, name: r.primaryName ?? "Unnamed",
                       secondary: [r.secondaryInfo, r.extraInfo].compactMap { $0?.isEmpty == false ? $0 : nil }.first,
-                      status: r.statusName, statusColor: r.statusColor, brand: nil)
+                      status: r.statusName, statusColor: r.statusColor, brand: nil, score: r.relevanceScore)
         }
     }
 
@@ -321,14 +349,17 @@ struct SearchHit: Hashable, Identifiable {
     let status: String?
     let statusColor: String?
     let brand: String?
+    /// global_search's relevance: 100 is a client whose number is exactly the search.
+    var score: Double? = nil
 
     var key: String { "\(type)-\(id)" }
-    /// A person we can text or call: a client or a conversation.
-    var isPerson: Bool { type == "lead" || type == "conversation" }
+    /// Something we can text or call: a client, a conversation, or a typed number.
+    var isPerson: Bool { type == "lead" || type == "conversation" || type == "number" }
 
     /// The desktop's groups, in its order.
     struct Group: Hashable { let type: String; let label: String; let symbol: String }
     static let groups: [Group] = [
+        Group(type: "number", label: "Number", symbol: "phone"),
         Group(type: "lead", label: "Clients", symbol: "person"),
         Group(type: "conversation", label: "Conversations", symbol: "bubble.left"),
         Group(type: "contractor", label: "Contractors", symbol: "hammer"),

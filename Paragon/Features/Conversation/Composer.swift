@@ -18,6 +18,9 @@ struct Composer: View {
     /// Opens Add promise for this conversation (founder, 2026-11-10: a
     /// promise or a follow up without a call first).
     var promise: (() -> Void)? = nil
+    /// Focus the box when it appears (a conversation just started from the
+    /// search's line picker, founder 2026-11-10).
+    var autoFocus = false
     /// Hands over the words and the picked files; it returns at once.
     let send: (String, [OutFile]) -> Void
 
@@ -102,6 +105,10 @@ struct Composer: View {
             .padding(.horizontal, 10).padding(.top, 7).padding(.bottom, 8)
             .background(Theme.panel.ignoresSafeArea(edges: .bottom))
             .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
+        }
+        .onChange(of: autoFocus, initial: true) { _, on in
+            guard on else { return }
+            Task { try? await Task.sleep(for: .milliseconds(450)); focused = true }
         }
         .photosPicker(isPresented: $picking, selection: $picks, maxSelectionCount: max(1, Self.maxFiles - files.count), matching: .any(of: [.images, .videos]))
         .onChange(of: picks) { _, items in

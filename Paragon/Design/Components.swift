@@ -135,6 +135,9 @@ extension TopBar where Leading == EmptyView, Trailing == EmptyView {
 struct SearchField: View {
     @Binding var text: String
     var prompt: String
+    /// Return on the keyboard (`false`), or Cmd+Return on a hardware keyboard
+    /// (`true`): a typed number is texted or called (founder, 2026-11-10).
+    var onSubmit: ((Bool) -> Void)? = nil
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -148,6 +151,12 @@ struct SearchField: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .submitLabel(.search)
+                    .onSubmit { onSubmit?(false) }
+                    .onKeyPress(.return, phases: .down) { press in
+                        guard press.modifiers.contains(.command), let onSubmit else { return .ignored }
+                        onSubmit(true)
+                        return .handled
+                    }
                 if !text.isEmpty {
                     Button { text = "" } label: {
                         Image(systemName: "xmark.circle.fill").font(.system(size: 15)).foregroundStyle(Theme.muted)

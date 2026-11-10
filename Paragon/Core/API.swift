@@ -136,6 +136,11 @@ enum API {
         try await rpc("paragon_lead_contact", ["p_lead": lead], as: LeadContact?.self)
     }
 
+    /// Who has this number: a person and their customer conversations, or nil.
+    static func phoneLookup(_ phone: String) async throws -> PhoneLookup? {
+        try await rpc("paragon_phone_lookup", ["p_phone": phone], as: PhoneLookup?.self)
+    }
+
     static func lines() async throws -> [LineInfo] {
         try await rpc("paragon_lines", as: [LineInfo]?.self) ?? []
     }

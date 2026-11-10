@@ -259,3 +259,16 @@ need to be able to ring the phone and send notifications".
   promise per conversation: a row's menu and the conversation's menu say
   **Change promise…** while one is open, and the Add sheet finds the open one
   (`findExisting`) and becomes Change promise (the server changes it).
+- **Build 20, 2026-11-10**: search a number (founder: "if it doesnt exist, we
+  need the option to still click text or call ... it should ask us what line").
+  A search of 10 digits (or 11 starting with 1, any formatting;
+  `LinePick.digits`) also asks `API.phoneLookup` (`paragon_phone_lookup`); a
+  person found shows as a conversation, and when nobody has the number (no
+  conversation, no client exactly matching) a **Number** row, formatted, with
+  Text and Call. Return in the search texts it, Cmd+Return calls it. A number
+  with conversations never asks (its own line); one without opens
+  `LinePickerSheet`: `LinePick.usable` (New message's rule now too, minus the
+  lines I am blocked from, `LineInfo.blocked`), the area code's state first,
+  then most texts, "SH · Solara Main", the first row saying why. Picking calls
+  `startThread(brand, state)`; Text opens it with the composer focused
+  (`ComposerFocus`, `Composer.autoFocus`), Call places the call.

@@ -22,6 +22,7 @@ struct ConversationView: View {
     @State private var promising: PromiseTarget?
     @State private var renaming: RenameTarget?
     @State private var renames = Renames.shared
+    @State private var focusComposer = false
     @Environment(Session.self) private var session
 
     var body: some View {
@@ -52,6 +53,7 @@ struct ConversationView: View {
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
                          promise: currentThread == nil ? nil : addPromise,
+                         autoFocus: focusComposer,
                          send: send)
                     .onChange(of: v.person.name) { _, n in Presence.shared.focus(personId: personId, name: n) }
             } else if let e = error {
@@ -75,7 +77,10 @@ struct ConversationView: View {
         // A send went: read the thread now, so the real text takes its place.
         .onChange(of: outbox.settled[currentThread ?? ""] ?? 0) { _, _ in Task { await load() } }
         .task(id: personId) { await loadHouse() }
-        .onAppear { Presence.shared.focus(personId: personId, name: view?.person.name) }
+        .onAppear {
+            Presence.shared.focus(personId: personId, name: view?.person.name)
+            if ComposerFocus.take(threadId) { focusComposer = true }
+        }
         .onDisappear { Presence.shared.focus(personId: nil, name: nil) }
         .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
         .sheet(isPresented: $infoOpen) {
