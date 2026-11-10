@@ -43,6 +43,7 @@ struct ConversationView: View {
                 Composer(draft: $draft, label: v.sendLabel,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
+                         promise: currentThread == nil ? nil : addPromise,
                          send: send)
                     .onChange(of: v.person.name) { _, n in Presence.shared.focus(personId: personId, name: n) }
             } else if let e = error {
@@ -85,6 +86,13 @@ struct ConversationView: View {
     private func addPromise() {
         guard let t = currentThread else { return }
         promising = PromiseTarget(threadId: t, personId: personId, name: view?.person.name ?? "")
+    }
+
+    /// Follow up later… (founder, 2026-11-10): WHO = me, WHAT filled in.
+    private func followUp() {
+        guard let t = currentThread else { return }
+        let n = view.map { renames.shown($0.person.id, $0.person.name) } ?? ""
+        promising = PromiseTarget(threadId: t, personId: personId, name: view?.person.name ?? "", prefill: "Follow up with \(n)")
     }
 
     /// Change… : WHO, WHEN, WHAT (no separate hand off, founder 2026-11-10).
@@ -145,6 +153,7 @@ struct ConversationView: View {
             call: call,
             info: { infoOpen = true },
             addPromise: view == nil || currentThread == nil ? nil : addPromise,
+            followUp: view == nil || currentThread == nil ? nil : followUp,
             editName: view == nil ? nil : editName)
     }
 
@@ -218,6 +227,8 @@ struct ConversationHeader: View {
     let info: () -> Void
     /// The header's menu: Add promise… (founder, 2026-11-09: WHO WHEN WHAT).
     var addPromise: (() -> Void)?
+    /// Follow up later… : Add promise with WHAT "Follow up with <name>".
+    var followUp: (() -> Void)? = nil
     /// Edit name (founder, 2026-11-09): from the menu, or a tap on the name.
     var editName: (() -> Void)?
 
@@ -254,6 +265,9 @@ struct ConversationHeader: View {
             if let addPromise {
                 Menu {
                     Button(action: addPromise) { Label("Add promise…", systemImage: "hand.raised") }
+                    if let followUp {
+                        Button(action: followUp) { Label("Follow up later…", systemImage: "calendar.badge.clock") }
+                    }
                     if let editName {
                         Button(action: editName) { Label("Edit name", systemImage: "pencil") }
                     }

@@ -11,9 +11,10 @@ final class InboxModel {
     enum Show: Hashable { case waiting, all }
 
     var show: Show = .waiting
-    /// "Homeowners only" in the filter menu, on by default (founder,
-    /// 2026-11-10), saved on the person, the same switch as the desktop's.
-    private(set) var homeownersOnly = true
+    /// "Homeowners only" in the filter menu: an option, off unless turned on
+    /// (founder, 2026-11-10: "I'm on All, I should see all"), saved on the
+    /// person, the same switch as the desktop's.
+    private(set) var homeownersOnly = false
     /// paragon_queue's brand for Solara One and solbuild together.
     static let logistics = "logistics"
     var brand: String?
@@ -232,7 +233,7 @@ final class InboxModel {
     private var prefsRead = false
 
     private func apply(_ i: UiPrefs.Inbox) {
-        homeownersOnly = i.homeownersOnly ?? true
+        homeownersOnly = i.homeownersOnly == true
         brand = i.brand
         show = i.tab == "all" ? .all : .waiting
     }

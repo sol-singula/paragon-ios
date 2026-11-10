@@ -343,9 +343,8 @@ struct PromiseSheet: View {
                         .font(.uiMedium).foregroundStyle(able ? Theme.text : Theme.muted).lineLimit(1)
                     if !able, let w = p.whyNot, !w.isEmpty {
                         Text(String(w.prefix(1).uppercased() + w.dropFirst())).font(.meta).foregroundStyle(Theme.muted).lineLimit(1)
-                    } else if let r = p.role {
-                        Text(Role.label(r)).font(.meta).foregroundStyle(Theme.muted).lineLimit(1)
                     }
+                    // Names only, never a role (founder, 2026-11-10).
                 }
                 Spacer(minLength: 4)
                 Image(systemName: chosen ? "checkmark.circle.fill" : "circle")

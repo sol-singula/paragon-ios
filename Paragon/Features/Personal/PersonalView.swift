@@ -236,6 +236,8 @@ struct PersonalThreadView: View {
                                call: { calls.place(thread: threadId, name: name, brand: nil) },
                                info: { infoOpen = true },
                                addPromise: { promising = PromiseTarget(threadId: threadId, personId: thread?.person?.id, name: thread?.person?.name ?? name) },
+                               followUp: { promising = PromiseTarget(threadId: threadId, personId: thread?.person?.id, name: thread?.person?.name ?? name,
+                                                                     prefill: "Follow up with \(renames.shown(thread?.person?.id, thread?.person?.name ?? name))") },
                                editName: thread?.person == nil ? nil : {
                                    guard let p = thread?.person else { return }
                                    renaming = RenameTarget(personId: p.id, name: renames.shown(p.id, p.name), hasName: p.hasName != false || renames.justNamed(p.id))
@@ -255,6 +257,7 @@ struct PersonalThreadView: View {
                 Composer(draft: $draft, label: t.sendLabel,
                          blocked: t.person?.isStopped == true ? "They replied STOP" : nil,
                          placeholder: Composer.placeholder(for: t.person?.name ?? name, named: t.person?.hasName != false),
+                         promise: { promising = PromiseTarget(threadId: threadId, personId: t.person?.id, name: t.person?.name ?? name) },
                          send: send)
             } else {
                 Spacer(); ProgressView().tint(Theme.muted); Spacer()

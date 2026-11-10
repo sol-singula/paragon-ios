@@ -96,6 +96,15 @@ need to be able to ring the phone and send notifications".
   `PromiseSheet` with WHAT = the reason), highlighted with a hint when the
   reason reads like a job still to do (`looksLikeFollowUp`, the desktop's
   words).
+- **Build 13, 2026-11-10** (founder): a promise or follow up without a
+  call: a handshake in the composer (`Composer.promise`) opens
+  `PromiseSheet`, and the conversation's ⋯ has **Follow up later…**
+  (`ConversationHeader.followUp`, WHAT "Follow up with <name>"), in Inbox
+  and Personal conversations. The WHO picker shows names only, never a role
+  (founder: nobody should feel inferior to a role); Transfer already did.
+  Homeowners only is off unless the saved pref is `true`. The open
+  conversation is a pushed screen (`router.inboxPath`), so a row leaving the
+  list never closes it.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

@@ -15,6 +15,9 @@ struct Composer: View {
     let blocked: String?
     /// "Text Rachel".
     var placeholder = "Text…"
+    /// Opens Add promise for this conversation (founder, 2026-11-10: a
+    /// promise or a follow up without a call first).
+    var promise: (() -> Void)? = nil
     /// Hands over the words and the picked files; it returns at once.
     let send: (String, [OutFile]) -> Void
 
@@ -67,6 +70,13 @@ struct Composer: View {
                                 EmojiGrid(emoji: EmojiGrid.texting) { draft += $0 }
                                     .padding(10)
                                     .presentationCompactAdaptation(.popover)
+                            }
+                            if let promise {
+                                Button(action: promise) {
+                                    Image(systemName: "hand.raised").font(.system(size: 16)).foregroundStyle(Theme.muted)
+                                        .frame(width: 30, height: 36)
+                                }
+                                .accessibilityLabel("Add a promise or follow up")
                             }
                         }
                         TextField("", text: $draft, prompt: Text(placeholder).foregroundStyle(Theme.muted), axis: .vertical)
