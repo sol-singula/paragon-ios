@@ -204,6 +204,17 @@ enum API {
         try await rpc("paragon_promise_add_vague", ["p_thread": thread, "p_owner": owner, "p_hint": hint, "p_text": text], as: PromiseSlot?.self)
     }
 
+    /// The quick WHENs for a conversation (owner nil = me, or the promise's
+    /// own owner when `promise` is the one being moved).
+    static func promiseChoices(thread: String, owner: String?, promise: String?) async throws -> [PromiseChoice] {
+        (try await rpc("paragon_promise_choices", ["p_thread": thread, "p_owner": owner, "p_promise": promise], as: LossyList<PromiseChoice>?.self))?.items ?? []
+    }
+
+    /// Move a promise or card to a quick WHEN (`owner`: the new WHO, when it changes too).
+    static func promiseMove(_ id: String, hint: String, owner: String?) async throws {
+        try await call("paragon_promise_move", ["p_id": id, "p_hint": hint, "p_owner": owner])
+    }
+
     static func promisePeople(thread: String) async throws -> [PromisePerson] {
         (try await rpc("paragon_promise_people", ["p_thread": thread], as: LossyList<PromisePerson>?.self))?.items ?? []
     }

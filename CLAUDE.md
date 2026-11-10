@@ -105,6 +105,21 @@ need to be able to ring the phone and send notifications".
   Homeowners only is off unless the saved pref is `true`. The open
   conversation is a pushed screen (`router.inboxPath`), so a row leaving the
   list never closes it.
+- **Build 14, 2026-11-10** (founder: "the whole 'private' thing makes no
+  sense", "many more quick options on moving promises", moved to tomorrow
+  9 am "it should naturally release"). No private eye on a row: promises
+  are the team's (the server's `private` is always false). WHEN in
+  `PromiseSheet` is the server's list (`paragon_promise_choices`: In 1 hour,
+  In 3 hours, Soon / First thing, Later today, This afternoon, Today,
+  Tomorrow, Tomorrow 9 am, Tomorrow afternoon, This week, Next Monday 9 am,
+  Next week, In 2 weeks, Next month, in the line's hours) in Today / next
+  day / Later rows (`FlowRow`); violet ones Atlas places. Add saves a
+  choice through `paragon_promise_add_vague`, Change through
+  `paragon_promise_move`; a picked time as before. An older server gets the
+  old chips. A promise is on a row only once due (`RowItem.isDueNow`), and
+  a promise added or moved to later takes its conversation out of Waiting
+  at once until something new happens (`LaterMarks`). A waiting row never
+  shows a time ahead: how long they have waited, or how late.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

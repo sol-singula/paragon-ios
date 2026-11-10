@@ -153,6 +153,42 @@ final class GoneIDs: @unchecked Sendable {
     @MainActor func putBack(_ id: String) { lock.lock(); ids.remove(id); lock.unlock(); InboxModel.shared.localTick += 1 }
 }
 
+/// Later (founder, 2026-11-09: "if i schedule it for 9am tomorrow ... it
+/// should naturally release"): a promise added or moved here to a later time
+/// takes its conversation out of Waiting at once, and a moved item is off its
+/// row until its new time. The server agrees on its next read; anything new on
+/// the conversation after the mark brings it back.
+final class LaterMarks: @unchecked Sendable {
+    static let shared = LaterMarks()
+    private let lock = NSLock()
+    private var threads: [String: Date] = [:]
+    private var items: [String: Date] = [:]
+    /// A promise on `thread` (and item `id`, when moved) is now due at `due`.
+    @MainActor func mark(thread: String?, item: String? = nil, due: Date) {
+        guard due.timeIntervalSinceNow >= 120 else { return }
+        lock.lock()
+        if let t = thread { threads[t] = Date() }
+        if let i = item { items[i] = due }
+        lock.unlock()
+        InboxModel.shared.localTick += 1
+    }
+    @MainActor func unmark(thread: String?, item: String? = nil) {
+        lock.lock()
+        if let t = thread { threads[t] = nil }
+        if let i = item { items[i] = nil }
+        lock.unlock()
+        InboxModel.shared.localTick += 1
+    }
+    /// The new time of an item moved here, if any.
+    func due(_ item: String) -> Date? { lock.lock(); defer { lock.unlock() }; return items[item] }
+    /// Set for later here, with nothing new on the row since.
+    func hides(_ q: QueueItem) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        let last = Stamp.date(q.lastActivityAt) ?? .distantPast
+        return (q.threads ?? []).contains { t in threads[t.id].map { last <= $0 } ?? false }
+    }
+}
+
 /// Done (kept), Not needed (dismissed), for a promise or any other card.
 /// Instant: gone at once, the call behind it, back with the reason on a no.
 enum ItemActions {
@@ -228,6 +264,12 @@ struct PromiseSheet: View {
     @State private var slot: PromiseSlot?
     @State private var slotLoading = false
     @State private var slotError: String?
+    /// The quick WHENs (`paragon_promise_choices`, in the line's hours); nil
+    /// while loading. An older server without them gets the old chips.
+    @State private var choices: [PromiseChoice]?
+    @State private var choicesFailed = false
+    @State private var choice: PromiseChoice?
+    @State private var picked = false
 
     init(target: PromiseTarget, onSaved: @escaping (_ owner: PromisePerson?) -> Void) {
         self.target = target
@@ -297,6 +339,38 @@ struct PromiseSheet: View {
         .task { if showsWho { await loadPeople() } }
         // Where Atlas would put it, again whenever WHO changes.
         .task(id: "\(vague ?? "")|\(owner ?? "")") { await loadSlot() }
+        // The quick WHENs, again whenever WHO changes (Atlas places around their promises).
+        .task(id: owner ?? "") { await loadChoices() }
+    }
+
+    private func loadChoices() async {
+        let ownerArg: String?
+        let promiseId: String?
+        switch target.mode {
+        case .add:
+            guard owner != nil else { return }
+            ownerArg = people.first { $0.id == owner }?.isMe == true ? nil : owner
+            promiseId = nil
+        case .change(let id, _, _, _, let had):
+            ownerArg = owner != had ? owner : nil
+            promiseId = id
+        }
+        do {
+            let cs = try await API.promiseChoices(thread: target.threadId, owner: ownerArg, promise: promiseId)
+            choices = cs
+            choicesFailed = cs.isEmpty
+            if let c = choice, let same = cs.first(where: { $0.hint == c.hint }) { pick(same, byHand: false) }
+            else if isAdd && !picked, let first = cs.first { pick(first, byHand: false) }
+        } catch {
+            if !Task.isCancelled { choicesFailed = true }
+        }
+    }
+
+    private func pick(_ c: PromiseChoice, byHand: Bool = true) {
+        choice = c
+        vague = nil
+        if let d = Stamp.date(c.dueAt) { due = d }
+        if byHand { picked = true }
     }
 
     private var isAdd: Bool { if case .add = target.mode { return true }; return false }
@@ -380,9 +454,65 @@ struct PromiseSheet: View {
     /// The vague WHEN chips (founder, 2026-11-09): Atlas picks the time.
     private static let vagueChips: [(hint: String, label: String)] = [("soon", "Soon"), ("today", "Today"), ("this_week", "This week")]
 
+    private var whenTrailing: String {
+        if let c = choice, let w = c.when { return c.exact == true ? w : "Atlas: \(w)" }
+        return vague == nil ? DueTime.label(due) : (slot?.label.map { "Atlas: \($0)" } ?? "Atlas picks")
+    }
+
+    /// Many quick WHENs (founder, 2026-11-09: "many many"): Today, the next
+    /// day, Later, each with where it lands. Violet = Atlas places it.
+    private var quick: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(["today", "tomorrow", "later"], id: \.self) { g in
+                let list = (choices ?? []).filter { ($0.group ?? "later") == g }
+                if !list.isEmpty {
+                    FlowRow(spacing: 6) {
+                        ForEach(list, id: \.hint) { c in choiceChip(c) }
+                    }
+                }
+            }
+            if let c = choice, c.exact != true, let w = c.why, !w.isEmpty {
+                Text(w).font(.meta).foregroundStyle(Theme.muted).frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func choiceChip(_ c: PromiseChoice) -> some View {
+        let on = choice?.hint == c.hint
+        let vagueOne = c.exact != true
+        let tint = vagueOne ? Theme.violet : Theme.teal
+        return Button { pick(c) } label: {
+            Text(c.label).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                .foregroundStyle(on ? tint : Theme.text)
+                .padding(.horizontal, 10).frame(height: 32)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(on ? tint.opacity(0.16) : Theme.hover))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(on ? tint.opacity(0.5) : (vagueOne ? Theme.violet.opacity(0.25) : .clear)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(c.label), \(c.when ?? "")")
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
     private var when: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionLabel("When", trailing: vague == nil ? DueTime.label(due) : (slot?.label.map { "Atlas: \($0)" } ?? "Atlas picks"))
+            SectionLabel("When", trailing: whenTrailing)
+            if choices != nil && !choicesFailed {
+                quick
+            } else if choices == nil && !choicesFailed {
+                HStack { Spacer(); ProgressView().tint(Theme.muted); Spacer() }.padding(.vertical, 6)
+            } else {
+                oldChips
+            }
+            DatePicker("Pick a time", selection: Binding(get: { due }, set: { due = $0; vague = nil; choice = nil }), in: min(due, Date())...Date().addingTimeInterval(364 * 86_400))
+                .font(.ui).foregroundStyle(Theme.secondary)
+                .tint(Theme.teal)
+        }
+    }
+
+    /// Only while the server cannot list the quick WHENs.
+    private var oldChips: some View {
+        VStack(alignment: .leading, spacing: 8) {
             if isAdd {
                 HStack(spacing: 6) {
                     ForEach(Self.vagueChips, id: \.hint) { c in
@@ -427,9 +557,6 @@ struct PromiseSheet: View {
                     .buttonStyle(.plain)
                 }
             }
-            DatePicker("Pick a time", selection: Binding(get: { due }, set: { due = $0; vague = nil }), in: min(due, Date())...Date().addingTimeInterval(364 * 86_400))
-                .font(.ui).foregroundStyle(Theme.secondary)
-                .tint(Theme.teal)
         }
     }
 
@@ -480,30 +607,43 @@ struct PromiseSheet: View {
         let chosen = people.first { $0.id == owner }
         let toOther = chosen != nil && chosen?.isMe != true
         let text = trimmed, due = due, vague = vague, slotLabel = slot?.label, onSaved = onSaved, target = target
+        // A quick WHEN the server listed: saved by its hint, so Atlas places a
+        // vague one and an exact one is exactly that time.
+        let quick = choicesFailed ? nil : choice
         let work: () async throws -> Void
         switch target.mode {
         case .add:
             let to = toOther ? owner : nil
-            let when = vague == nil ? DueTime.label(due) : (slotLabel ?? "when Atlas places it")
+            let when = quick?.when ?? (vague == nil ? DueTime.label(due) : (slotLabel ?? "when Atlas places it"))
             Toast.shared.show(toOther ? "Promised to \(chosen!.first) · due \(when)" : "Promised · due \(when)")
             if toOther, let p = target.personId { InboxModel.shared.clear(personId: p) }
+            // Later: out of Waiting at once, back when it is due.
+            if vague == nil { LaterMarks.shared.mark(thread: target.threadId, due: due) }
             work = {
-                if let hint = vague { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: hint, text: text) }
-                else { try await API.promiseAdd(thread: target.threadId, owner: to, due: due, text: text) }
+                do {
+                    if let q = quick { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: q.hint, text: text) }
+                    else if let hint = vague { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: hint, text: text) }
+                    else { try await API.promiseAdd(thread: target.threadId, owner: to, due: due, text: text) }
+                } catch { await MainActor.run { LaterMarks.shared.unmark(thread: target.threadId) }; throw error }
             }
         case .change(let id, let promise, let before, let was, let had):
-            let moved = Stamp.date(before).map { abs($0.timeIntervalSince(due)) >= 60 } ?? true
+            let moved = quick != nil || (Stamp.date(before).map { abs($0.timeIntervalSince(due)) >= 60 } ?? true)
             let edited = promise && text != was.trimmingCharacters(in: .whitespacesAndNewlines)
             let newOwner = owner != nil && owner != had ? owner : nil
             guard moved || edited || newOwner != nil else { dismiss(); return }
             if newOwner != nil { reassigned = true }
             Toast.shared.show(newOwner != nil ? (toOther ? "Now \(chosen?.first ?? "theirs")'s" : "It is yours now")
-                              : moved ? "Due \(DueTime.label(due))" : "Promise updated")
+                              : moved ? "Due \(quick?.when ?? DueTime.label(due))" : "Promise updated")
             if newOwner != nil && toOther { GoneIDs.shared.hide(id) }
+            // Moved later: off its row, and the conversation out of Waiting, until it is due.
+            if moved { LaterMarks.shared.mark(thread: target.threadId, item: id, due: due) }
             // The time and text first, while I can still act on it; then WHO.
             work = {
                 do {
-                    if moved || edited {
+                    if let q = quick {
+                        try await API.promiseMove(id, hint: q.hint, owner: newOwner)
+                        if edited { try await API.promiseUpdate(id, due: nil, text: text) }
+                    } else if moved || edited {
                         if promise { try await API.promiseUpdate(id, due: moved ? due : nil, text: edited ? text : nil) }
                         else { try await API.atlasCardAct(id, action: "move", due: API.iso.string(from: due)) }
                     }
@@ -511,7 +651,13 @@ struct PromiseSheet: View {
                         if promise { try await API.promiseReassign(id, owner: o) }
                         else { try await API.atlasCardHand(id, to: o) }
                     }
-                } catch { if newOwner != nil && toOther { GoneIDs.shared.putBack(id) }; throw error }
+                } catch {
+                    await MainActor.run {
+                        if newOwner != nil && toOther { GoneIDs.shared.putBack(id) }
+                        if moved { LaterMarks.shared.unmark(thread: target.threadId, item: id) }
+                    }
+                    throw error
+                }
             }
         }
         dismiss()

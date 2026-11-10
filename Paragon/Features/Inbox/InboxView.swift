@@ -326,10 +326,6 @@ struct QueueRow: View {
                             .padding(.horizontal, 4).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.border))
                     }
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
-                    if q.isPrivate {
-                        Image(systemName: "eye.slash").font(.system(size: 10)).foregroundStyle(Theme.violet)
-                            .accessibilityLabel("Only you see this conversation")
-                    }
                     Spacer(minLength: 4)
                     Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                 }
@@ -375,8 +371,9 @@ struct QueueRow: View {
         return "Anyone"
     }
 
-    /// Relative to the row's due time when it has one (overdue in rose);
-    /// a waiting customer still on time shows how long they have waited.
+    /// Relative to the row's due time once it is late (rose); a waiting
+    /// customer still on time shows how long they have waited, never a time
+    /// ahead (founder, 2026-11-09: "we shouldnt say tomorrow 9am").
     private var clock: String {
         if q.dueAt != nil {
             if q.isOverdue { return DueTime.relative(q.dueAt) }

@@ -91,7 +91,8 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     let items: LossyList<RowItem>?
     /// A promise by hand on this row is mine.
     let assignedToMe: Bool?
-    /// …and not yet a team promise: nobody else sees this conversation.
+    /// Always false since 2026-11-10 (promises are the team's); kept so an
+    /// older server still decodes.
     let `private`: Bool?
 
     var id: String { personId }
@@ -99,13 +100,15 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     var tone: ClockTone { status == "waiting" ? ClockTone(pct: pct) : .calm }
 
     var isAtlas: Bool { allItems.isEmpty ? atlas == true : !rowItems.isEmpty }
-    var isPrivate: Bool { self.`private` == true }
     private var allItems: [RowItem] { items?.items ?? (card?.value.map { [$0] } ?? []) }
     /// Every card and promise on the row, soonest first, less what was just
     /// done here (`GoneIDs`, instant).
-    var rowItems: [RowItem] { allItems.filter { !GoneIDs.shared.contains($0.id) } }
+    /// A promise is on the row only once it is due (founder, 2026-11-09:
+    /// moved to tomorrow 9 am it "should naturally release"), the server's
+    /// rule too, kept here so a move made here takes effect at once.
+    var rowItems: [RowItem] { allItems.filter { !GoneIDs.shared.contains($0.id) && $0.isDueNow } }
     /// The leading item (soonest due).
-    var leadItem: RowItem? { card?.value.flatMap { GoneIDs.shared.contains($0.id) ? nil : $0 } ?? rowItems.first }
+    var leadItem: RowItem? { card?.value.flatMap { GoneIDs.shared.contains($0.id) || !$0.isDueNow ? nil : $0 } ?? rowItems.first }
     var isOverdue: Bool {
         if let o = overdue { return o && dueAt != nil }
         return (Stamp.date(dueAt) ?? .distantFuture) <= Date()
@@ -146,6 +149,11 @@ struct RowItem: Decodable, Hashable, Identifiable {
     var isPromise: Bool { kind == "promise" }
     var byHand: Bool { by == "hand" }
     var isOverdue: Bool { (Stamp.date(dueAt) ?? .distantFuture) <= Date() }
+    /// Due (or moved here to a later time: `LaterMarks`), so it belongs on the row now.
+    var isDueNow: Bool {
+        if let d = LaterMarks.shared.due(id) { return d <= Date() }
+        return (Stamp.date(dueAt) ?? .distantPast) <= Date()
+    }
     var what: String { (title?.isEmpty == false ? title : short) ?? (isPromise ? "Promise" : "Atlas card") }
 }
 
@@ -183,6 +191,21 @@ struct UiPrefs: Codable, Hashable {
 
 /// Where Atlas puts a vague WHEN: "Tue 1:00 pm" and why. Also what
 /// `paragon_promise_add_vague` answers (its id, due_at and why).
+/// One quick WHEN (`paragon_promise_choices`) and where it lands now, in the
+/// line's hours: vague ones placed by Atlas, exact ones exact.
+struct PromiseChoice: Decodable, Hashable {
+    let hint: String
+    let label: String
+    /// today | tomorrow | later
+    let group: String?
+    let exact: Bool?
+    let dueAt: String?
+    /// "Tue 9:00 am", in the line's zone.
+    let when: String?
+    let why: String?
+    let key: String?
+}
+
 struct PromiseSlot: Decodable, Hashable {
     let id: String?
     let dueAt: String?

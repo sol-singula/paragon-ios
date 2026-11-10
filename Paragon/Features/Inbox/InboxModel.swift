@@ -47,7 +47,9 @@ final class InboxModel {
         let rows = visible
         let base: [QueueItem]
         switch show {
-        case .waiting: base = rows.filter { $0.status == "waiting" || $0.isAtlas }
+        // Set for later here (a promise added or moved ahead): out of
+        // Waiting at once, until something new happens on it.
+        case .waiting: base = rows.filter { ($0.status == "waiting" && !LaterMarks.shared.hides($0)) || $0.isAtlas }
         case .all: base = rows
         }
         if show == .all { return recent(base) }
