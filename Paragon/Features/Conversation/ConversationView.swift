@@ -20,6 +20,8 @@ struct ConversationView: View {
     @State private var infoOpen = false
     @State private var promises: [ThreadPromise] = []
     @State private var promising: PromiseTarget?
+    @State private var renaming: RenameTarget?
+    @State private var renames = Renames.shared
     @Environment(Session.self) private var session
 
     var body: some View {
@@ -63,6 +65,9 @@ struct ConversationView: View {
         .sheet(isPresented: $infoOpen) {
             ContactInfoSheet(personId: personId, threadId: currentThread) { Task { await load() } }
         }
+        .sheet(item: $renaming) { r in
+            RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load() } }
+        }
         .sheet(item: $promising) { t in
             PromiseSheet(target: t) { owner in
                 if case .add = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
@@ -70,6 +75,12 @@ struct ConversationView: View {
                 Task { await load(); await InboxModel.shared.load() }
             }
         }
+    }
+
+    private func editName() {
+        guard let v = view else { return }
+        renaming = RenameTarget(personId: v.person.id, name: renames.shown(v.person.id, v.person.name),
+                                hasName: v.person.hasName != false || renames.justNamed(v.person.id))
     }
 
     private func addPromise() {
@@ -127,14 +138,15 @@ struct ConversationView: View {
         let t = view?.threads.first { $0.id == view?.threadId }
         return ConversationHeader(
             brand: t?.brand,
-            name: view?.person.name ?? " ",
+            name: view.map { renames.shown($0.person.id, $0.person.name) } ?? " ",
             subtitle: view == nil ? nil : [Branch.of(t?.brand).name, t?.state, view?.person.city].compactMap { $0 }.joined(separator: " · "),
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
             infoDisabled: view == nil,
             call: call,
             info: { infoOpen = true },
-            addPromise: view == nil || currentThread == nil ? nil : addPromise)
+            addPromise: view == nil || currentThread == nil ? nil : addPromise,
+            editName: view == nil ? nil : editName)
     }
 
     private func chips(_ v: PersonView) -> some View {
@@ -207,6 +219,8 @@ struct ConversationHeader: View {
     let info: () -> Void
     /// The header's menu: Add promise… (founder, 2026-11-09: WHO WHEN WHAT).
     var addPromise: (() -> Void)?
+    /// Edit name (founder, 2026-11-09): from the menu, or a tap on the name.
+    var editName: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -227,6 +241,10 @@ struct ConversationHeader: View {
                     Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { editName?() }
+            .accessibilityAddTraits(editName != nil ? .isButton : [])
+            .accessibilityHint(editName != nil ? "Tap to change their name" : "")
             Spacer(minLength: 4)
             PillButton(label: "Call", action: call)
                 .disabled(callDisabled).opacity(callDisabled ? 0.45 : 1)
@@ -237,6 +255,9 @@ struct ConversationHeader: View {
             if let addPromise {
                 Menu {
                     Button(action: addPromise) { Label("Add promise…", systemImage: "hand.raised") }
+                    if let editName {
+                        Button(action: editName) { Label("Edit name", systemImage: "pencil") }
+                    }
                     Button(action: info) { Label("Contact info", systemImage: "person.text.rectangle") }
                         .disabled(infoDisabled)
                 } label: {

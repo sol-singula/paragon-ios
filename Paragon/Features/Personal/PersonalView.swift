@@ -18,6 +18,7 @@ struct PersonalView: View {
     @State private var releasing: PersonTarget?
     @State private var info: PersonTarget?
     @State private var promising: PromiseTarget?
+    @State private var renaming: RenameTarget?
 
     private var member: LineOf? { router.personalOf }
     private var canOpenOthers: Bool { ["owner", "manager"].contains(session.me?.role ?? "") }
@@ -62,6 +63,12 @@ struct PersonalView: View {
                                 Button { promising = PromiseTarget(threadId: p.threadId, personId: p.personId, name: p.name) } label: {
                                     Label("Add promise…", systemImage: "hand.raised")
                                 }
+                                Button {
+                                    let n = Renames.shared.shown(p.personId, p.name)
+                                    renaming = RenameTarget(personId: p.personId, name: n, hasName: n != p.name || !p.name.hasPrefix("+"))
+                                } label: {
+                                    Label("Edit name", systemImage: "pencil")
+                                }
                                 Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
                                     Label("Release…", systemImage: "tray.and.arrow.up")
                                 }
@@ -84,6 +91,7 @@ struct PersonalView: View {
             .hidesSystemTabBar()
             .task(id: member) { items = []; loaded = false; await poll() }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await load() } } }
+            .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load() } } }
             .sheet(item: $info) { t in ContactInfoSheet(personId: t.personId, threadId: t.threadId) { Task { await load() } } }
             .sheet(item: $promising) { t in PromiseSheet(target: t) { _ in Task { await load(); await InboxModel.shared.load() } } }
             .navigationDestination(for: Route.self) { route in
@@ -165,10 +173,10 @@ struct PersonalRow: View {
     let p: PersonalItem
     var body: some View {
         HStack(spacing: 10) {
-            Initials(name: p.name, size: 34)
+            Initials(name: Renames.shared.shown(p.personId, p.name), size: 34)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(p.name).font(.name)
+                    Text(Renames.shared.shown(p.personId, p.name)).font(.name)
                         .foregroundStyle(p.status == "waiting" || p.askType == true ? Theme.text : Theme.secondary)
                         .lineLimit(1).truncationMode(.tail)
                     if p.askType == true {
@@ -207,16 +215,22 @@ struct PersonalThreadView: View {
     @State private var scrollKey = 0
     @State private var infoOpen = false
     @State private var promising: PromiseTarget?
+    @State private var renaming: RenameTarget?
+    @State private var renames = Renames.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            ConversationHeader(initialsOnly: true, name: thread?.person?.name ?? name,
+            ConversationHeader(initialsOnly: true, name: renames.shown(thread?.person?.id, thread?.person?.name ?? name),
                                subtitle: thread.map { $0.mine == false ? "\($0.lineOwner?.name ?? "A teammate")\u{2019}s line" : "Personal line" },
                                back: { dismiss() },
                                callDisabled: calls.active != nil, infoDisabled: thread?.person == nil,
                                call: { calls.place(thread: threadId, name: name, brand: nil) },
                                info: { infoOpen = true },
-                               addPromise: { promising = PromiseTarget(threadId: threadId, personId: thread?.person?.id, name: thread?.person?.name ?? name) })
+                               addPromise: { promising = PromiseTarget(threadId: threadId, personId: thread?.person?.id, name: thread?.person?.name ?? name) },
+                               editName: thread?.person == nil ? nil : {
+                                   guard let p = thread?.person else { return }
+                                   renaming = RenameTarget(personId: p.id, name: renames.shown(p.id, p.name), hasName: p.hasName != false || renames.justNamed(p.id))
+                               })
             if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
             if let t = thread {
                 if t.mine == false, let o = t.lineOwner {
@@ -245,6 +259,7 @@ struct PersonalThreadView: View {
             if let p = thread?.person { ContactInfoSheet(personId: p.id, threadId: threadId) { Task { await load() } } }
         }
         .sheet(item: $promising) { t in PromiseSheet(target: t) { _ in Task { await InboxModel.shared.load() } } }
+        .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load() } } }
     }
 
     private func load() async {

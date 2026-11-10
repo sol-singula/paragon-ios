@@ -52,17 +52,32 @@ final class Toast {
 
     private(set) var text: String?
     private(set) var isError = false
+    /// A button on the toast ("Undo"), for something one tap takes back.
+    private(set) var actionLabel: String?
+    private var action: (() -> Void)?
     private var task: Task<Void, Never>?
 
-    func show(_ text: String, error: Bool = false) {
+    func show(_ text: String, error: Bool = false, action: (label: String, run: () -> Void)? = nil) {
         task?.cancel()
         self.text = text
         isError = error
+        actionLabel = action?.label
+        self.action = action?.run
+        let wait: Double = action != nil ? 6 : (error ? 4 : 2.6)
         task = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(error ? 4 : 2.6))
+            try? await Task.sleep(for: .seconds(wait))
             guard !Task.isCancelled else { return }
             self?.text = nil
+            self?.actionLabel = nil
+            self?.action = nil
         }
+    }
+
+    func runAction() {
+        let a = action
+        task?.cancel()
+        text = nil; actionLabel = nil; action = nil
+        a?()
     }
 }
 
@@ -71,13 +86,19 @@ struct ToastView: View {
 
     var body: some View {
         VStack {
-            Spacer()
+            Spacer().allowsHitTesting(false)
             if let t = toast.text {
                 HStack(spacing: 7) {
                     Image(systemName: toast.isError ? "exclamationmark.circle.fill" : "checkmark.circle.fill")
                         .foregroundStyle(toast.isError ? Theme.rose : Theme.teal)
                     Text(t).font(.system(size: 13.5, weight: .medium)).foregroundStyle(Theme.text)
                         .lineLimit(2).multilineTextAlignment(.leading)
+                    if let label = toast.actionLabel {
+                        Button(label) { toast.runAction() }
+                            .font(.system(size: 13.5, weight: .semibold))
+                            .foregroundStyle(Theme.teal)
+                            .padding(.leading, 4)
+                    }
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
                 .background(Capsule().fill(Theme.hover))
@@ -86,10 +107,11 @@ struct ToastView: View {
                 .padding(.horizontal, 16).padding(.bottom, 70)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .accessibilityAddTraits(.updatesFrequently)
+                // Only a toast with a button takes touches.
+                .allowsHitTesting(toast.actionLabel != nil)
             }
         }
         .animation(.snappy, value: toast.text)
-        .allowsHitTesting(false)
     }
 }
 

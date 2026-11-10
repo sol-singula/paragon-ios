@@ -121,6 +121,77 @@ struct ReleaseSheet: View {
     }
 }
 
+/// Change someone's name (founder, 2026-11-09: "we need functionality to
+/// change contact name"): the field prefilled and focused, Save renames at
+/// once everywhere (`Renames`), with Undo on the toast.
+struct RenameSheet: View {
+    let personId: String
+    /// The name shown now.
+    let name: String
+    /// False for someone with no name yet: the field starts empty, no Undo.
+    var hasName = true
+    var onSaved: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("", text: $text, prompt: Text("Their name").foregroundStyle(Theme.muted))
+                    .font(.ui).foregroundStyle(Theme.text)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .onSubmit(save)
+                    .focused($focused)
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.input))
+                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(focused ? Theme.cyan.opacity(0.6) : Theme.inputBorder))
+                Text("Everyone sees the new name. The change is saved in the log.")
+                    .font(.meta).foregroundStyle(Theme.secondary)
+                Spacer()
+            }
+            .padding(16)
+            .background(Theme.bg)
+            .navigationTitle(hasName ? "Edit name" : "Name them")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: save).disabled(trimmed.isEmpty || trimmed.count > 120 || trimmed == name)
+                }
+            }
+        }
+        .presentationDetents([.height(220)])
+        .onAppear { text = hasName ? name : ""; focused = true }
+        // Focus set while the sheet is still sliding in is dropped.
+        .task {
+            try? await Task.sleep(for: .milliseconds(350))
+            if !focused { focused = true }
+        }
+    }
+
+    private func save() {
+        guard !trimmed.isEmpty, trimmed.count <= 120 else { return }
+        if trimmed != name {
+            Renames.shared.rename(personId, from: name, to: trimmed, offerUndo: hasName, onSaved: onSaved)
+        }
+        dismiss()
+    }
+}
+
+/// Someone to rename from a list row or a header.
+struct RenameTarget: Identifiable, Hashable {
+    let personId: String
+    let name: String
+    var hasName = true
+    var id: String { personId }
+}
+
 /// A person to act on from a list row (release, contact info).
 struct PersonTarget: Identifiable, Hashable {
     let personId: String
@@ -149,6 +220,8 @@ struct ContactInfoSheet: View {
     @State private var address = ""
     @State private var notes = ""
     @State private var newName = ""
+    @State private var renaming: RenameTarget?
+    @State private var renames = Renames.shared
     @State private var error: String?
     @State private var saved: String?
 
@@ -160,9 +233,19 @@ struct ContactInfoSheet: View {
                         HStack(spacing: 12) {
                             BranchMark(brand: v.threads.first { $0.id == v.threadId }?.brand, size: 36)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(v.person.name).font(.uiMedium).foregroundStyle(Theme.text).lineLimit(1)
+                                Text(renames.shown(v.person.id, v.person.name)).font(.uiMedium).foregroundStyle(Theme.text).lineLimit(1)
                                 if let c = v.person.city { Text(c).font(.meta).foregroundStyle(Theme.muted).lineLimit(1) }
                             }
+                            Spacer(minLength: 8)
+                            Button {
+                                renaming = RenameTarget(personId: v.person.id, name: renames.shown(v.person.id, v.person.name),
+                                                        hasName: v.person.hasName != false || renames.justNamed(v.person.id))
+                            } label: {
+                                Image(systemName: "pencil").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.teal)
+                                    .frame(width: 32, height: 32).contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Edit name")
                         }
                         if let h = house {
                             Button { houseBig = true } label: {
@@ -181,7 +264,7 @@ struct ContactInfoSheet: View {
                     }
                     .listRowBackground(Theme.card)
 
-                    if v.person.hasName == false {
+                    if v.person.hasName == false && !renames.justNamed(v.person.id) {
                         Section(label: "Name them") {
                             ForEach(d?.nameSuggestions ?? [], id: \.name) { s in
                                 Button { rename(s.name.replacingOccurrences(of: #"\s*\(.*\)$"#, with: "", options: .regularExpression)) } label: {
@@ -273,6 +356,9 @@ struct ContactInfoSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
+            .sheet(item: $renaming) { r in
+                RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load(); onChanged() } }
+            }
         }
         .task { await load() }
     }
@@ -358,12 +444,14 @@ struct ContactInfoSheet: View {
         }
     }
 
+    /// A name for someone who had none: instant through `Renames` (no
+    /// Undo, there is no name to go back to).
     private func rename(_ n: String) {
         let name = n.trimmingCharacters(in: .whitespaces)
         guard !name.isEmpty else { return }
-        Task {
-            do { try await API.personRename(personId, name: name); newName = ""; saved = "Saved."; await load(); onChanged() }
-            catch { self.error = "Could not name them: \(error.localizedDescription)" }
+        newName = ""
+        Renames.shared.rename(personId, from: view?.person.name ?? "", to: name, offerUndo: false) {
+            Task { await load(); onChanged() }
         }
     }
 }

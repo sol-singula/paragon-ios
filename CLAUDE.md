@@ -61,6 +61,14 @@ need to be able to ring the phone and send notifications".
   every 3 s); `Active.parent` is the server's call sid. The green "Return to
   call" bar runs a light streak. No Hold here: a hold ends our leg and the
   resume rings back, which this app does not answer by itself yet.
+- **Build 10, 2026-11-09**: change a contact's name (founder: "we need
+  functionality to change contact name"). "Edit name" in the conversation's
+  ⋯ (or tap the name in its header), on a held inbox or Personal row, and
+  the pencil in Contact info opens `RenameSheet` (prefilled, focused).
+  Instant through `Core/Renames.swift` (the desktop's `lib/renames.ts`):
+  the new name is on the row and header at once, `paragon_person_rename`
+  runs behind it, a refusal puts the old one back with the reason, and the
+  toast "Renamed to X · Undo" (`Toast.show(action:)`) renames back.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

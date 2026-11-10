@@ -5,6 +5,7 @@ struct InboxView: View {
     @State private var model = InboxModel.shared
     @State private var promising: PromiseTarget?
     @State private var releasing: PersonTarget?
+    @State private var renaming: RenameTarget?
     @Environment(CallManager.self) private var calls
     @Environment(Session.self) private var session
     @State private var composing: NewMessagePrefill?
@@ -49,6 +50,7 @@ struct InboxView: View {
                 }
             }
             .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { model.clear(personId: r.personId) }) { Task { await model.load() } } }
+            .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) }
             .sheet(item: $promising) { t in
                 PromiseSheet(target: t) { owner in
                     // Given to someone else: off my inbox at once.
@@ -131,6 +133,12 @@ struct InboxView: View {
                 }
             }
             Section {
+                Button {
+                    let n = Renames.shared.shown(q.personId, q.name)
+                    renaming = RenameTarget(personId: q.personId, name: n, hasName: n != q.name || !(q.name.hasPrefix("+") || q.name.hasPrefix("(")))
+                } label: {
+                    Label("Edit name", systemImage: "pencil")
+                }
                 Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
                     Label("Release…", systemImage: "tray.and.arrow.up")
                 }
@@ -296,7 +304,7 @@ struct QueueRow: View {
             BranchMark(brand: q.firstThread?.brand, size: 34)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(q.name)
+                    Text(Renames.shared.shown(q.personId, q.name))
                         .font(.name)
                         .foregroundStyle(q.status == "closed" && !q.isAtlas ? Theme.secondary : Theme.text)
                         .lineLimit(1)
