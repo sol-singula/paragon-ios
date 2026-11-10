@@ -272,3 +272,13 @@ need to be able to ring the phone and send notifications".
   then most texts, "SH · Solara Main", the first row saying why. Picking calls
   `startThread(brand, state)`; Text opens it with the composer focused
   (`ComposerFocus`, `Composer.autoFocus`), Call places the call.
+
+## Leaving a conversation after acting in it (founder, 2026-11-10)
+
+"It should always clear spam." Marked spam (Who is this? or Contact info):
+the row comes off the list (`InboxModel.clear(follow: false)`) and the
+screen pops back to it. A text sent, a call ending, any other type, a
+promise or gold's buttons re-read the inbox, and the inbox re-reads when you
+come back (`inboxPath` shrinks), so the row is already gone. A read never
+swaps the open conversation for the next one any more; Release and a promise
+given to someone else still do (`clear`). The desktop matches (`actedOn`).

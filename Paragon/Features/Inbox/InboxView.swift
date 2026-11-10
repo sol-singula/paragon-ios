@@ -44,8 +44,11 @@ struct InboxView: View {
             .toolbar(.hidden, for: .navigationBar)
             .hidesSystemTabBar()
             .onChange(of: model.search) { _, _ in model.searchChanged() }
+            // Back from a conversation: read the list now, so a row I just
+            // answered, typed or promised is already gone.
+            .onChange(of: router.inboxPath.count) { was, now in if now < was { Task { await model.load() } } }
             // The inbox polls from MainTabs, so it keeps up while a
-            // conversation is open (the next one opens by itself).
+            // conversation is open (the list underneath is current when you go back).
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .person(let p, let t): ConversationView(personId: p, threadId: t).id(p).hidesSystemTabBar()

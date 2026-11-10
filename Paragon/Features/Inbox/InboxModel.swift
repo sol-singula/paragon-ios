@@ -126,23 +126,25 @@ final class InboxModel {
     }
 
     /// A promise just went to someone else: the conversation leaves my
-    /// inbox now (the server hides it from me from here on).
-    func clear(personId: String) {
+    /// inbox now (the server hides it from me from here on). `follow: false`
+    /// (marked spam) only takes the row off; the screen pops back itself.
+    func clear(personId: String, follow: Bool = true) {
         let before = shown.map(\.personId)
         cleared[personId] = Date()
-        followOpen(was: before)
+        if follow { followOpen(was: before) }
     }
 
     func load() async {
         let started = Date()
-        let asked = (self.filter, show)
         do {
             let rows = try await API.queue(filter: self.filter, search: nil, promises: promises)
-            let before = shown.map(\.personId)
             items = rows
             cleared = cleared.filter { $0.value >= started }
-            // Only when the filter is the one this read asked for.
-            if asked.0 == self.filter && asked.1 == show && loaded { followOpen(was: before) }
+            // The open conversation is never swapped from under you by a
+            // read (founder, 2026-11-10, as on the desktop): a reply, a type,
+            // a call or a promise of mine takes the row off the list
+            // underneath, so it is gone when you go back. Release and a
+            // promise given away still move on (`clear`).
             error = nil
             Task { await Badge.refresh() }
         } catch {

@@ -45,7 +45,7 @@ struct ConversationView: View {
                 if v.threads.count > 1 { chips(v) }
                 if let h = house { houseBanner(h, v) }
                 if v.person.askType == true {
-                    WhoIsThisBar(personId: v.person.id, name: v.person.name) { _ in Task { await load() } }
+                    WhoIsThisBar(personId: v.person.id, name: v.person.name) { t in typed(t) }
                 }
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
                 TimelineList(events: v.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(v.threadId ?? currentThread))
@@ -75,7 +75,13 @@ struct ConversationView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task(id: threadId) { await poll() }
         // A send went: read the thread now, so the real text takes its place.
-        .onChange(of: outbox.settled[currentThread ?? ""] ?? 0) { _, _ in Task { await load() } }
+        .onChange(of: outbox.settled[currentThread ?? ""] ?? 0) { _, _ in Task { await load(); await InboxModel.shared.load() } }
+        // A call here ended: the list underneath re-reads (it may have closed).
+        .onChange(of: calls.active?.thread) { was, now in
+            if let was, was != now, view?.threads.contains(where: { $0.id == was }) == true {
+                Task { try? await Task.sleep(for: .milliseconds(800)); await InboxModel.shared.load() }
+            }
+        }
         .task(id: personId) { await loadHouse() }
         .onAppear {
             Presence.shared.focus(personId: personId, name: view?.person.name)
@@ -84,7 +90,9 @@ struct ConversationView: View {
         .onDisappear { Presence.shared.focus(personId: nil, name: nil) }
         .fullScreenCover(isPresented: $houseBig) { ImageViewer(url: house) }
         .sheet(isPresented: $infoOpen) {
-            ContactInfoSheet(personId: personId, threadId: currentThread) { Task { await load() } }
+            ContactInfoSheet(personId: personId, threadId: currentThread, onType: { t in
+                if t == "spam" { infoOpen = false; Task { try? await Task.sleep(for: .milliseconds(350)); typed(t) } }
+            }) { Task { await load(); await InboxModel.shared.load() } }
         }
         .sheet(item: $renaming) { r in
             RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load() } }
@@ -95,6 +103,19 @@ struct ConversationView: View {
                 if case .change = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
                 Task { await load(); await InboxModel.shared.load() }
             }
+        }
+    }
+
+    /// A contact type set here. Spam always clears (founder, 2026-11-10: "it
+    /// should always clear spam"): off the list and back to it at once. Any
+    /// other type: the list underneath re-reads.
+    private func typed(_ t: String) {
+        if t == "spam" {
+            InboxModel.shared.clear(personId: personId, follow: false)
+            dismiss()
+            Task { await InboxModel.shared.load() }
+        } else {
+            Task { await load(); await InboxModel.shared.load() }
         }
     }
 

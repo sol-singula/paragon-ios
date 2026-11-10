@@ -246,6 +246,8 @@ struct PersonTarget: Identifiable, Hashable {
 struct ContactInfoSheet: View {
     let personId: String
     var threadId: String?
+    /// A contact type was saved (the conversation pops back on spam).
+    var onType: (String) -> Void = { _ in }
     var onChanged: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
@@ -478,7 +480,7 @@ struct ContactInfoSheet: View {
 
     private func setType(_ t: String) {
         Task {
-            do { try await API.setContactType(personId, type: t); saved = t == "spam" ? "Marked as spam. Released and out of Waiting." : "Saved."; await load(); onChanged() }
+            do { try await API.setContactType(personId, type: t); saved = t == "spam" ? "Marked as spam. Released and out of Waiting." : "Saved."; await load(); onChanged(); onType(t) }
             catch { self.error = "Could not change it: \(error.localizedDescription)" }
         }
     }
