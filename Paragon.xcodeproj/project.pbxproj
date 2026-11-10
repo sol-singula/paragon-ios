@@ -10,6 +10,7 @@
 		02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */; };
 		02E9621B78DACBC1D2CFF6C8 /* Composer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8AA41283D6004E9AAA4F251 /* Composer.swift */; };
 		0A03A896C3C7B27842E1C3AC /* TeamMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A116009D8FF074AF1E4FCE3E /* TeamMessageRow.swift */; };
+		132382C6904C555AC128E180 /* DeviceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */; };
 		163777340452D02C27B7BCE9 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33203CA6ABF49F46B6E591 /* Router.swift */; };
 		189B4ABECE1E5649A8E149A7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5365F897E8EDAE5FC80D97F2 /* Theme.swift */; };
 		1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */; };
@@ -85,6 +86,7 @@
 		4DFAC2046693956AFC3F5427 /* Face.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Face.swift; sourceTree = "<group>"; };
 		4F49338858521F025132FABB /* TeamComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamComposer.swift; sourceTree = "<group>"; };
 		5365F897E8EDAE5FC80D97F2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceKey.swift; sourceTree = "<group>"; };
 		5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		6035F3E49FE86048CAD2C599 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
 		61F31BAA0F9BD5C20CAD92BF /* Storage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Storage.swift; sourceTree = "<group>"; };
@@ -235,6 +237,7 @@
 			children = (
 				20144B329707F8307DAAA282 /* API.swift */,
 				9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */,
+				5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */,
 				C820DE09D57DC0C01BAE888B /* Models.swift */,
 				C2D1915B383F0486B0556152 /* Outbox.swift */,
 				24B083394A6A4A5A74F03710 /* Presence.swift */,
@@ -429,6 +432,7 @@
 				2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */,
 				D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */,
 				8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */,
+				132382C6904C555AC128E180 /* DeviceKey.swift in Sources */,
 				D681B194A9EB0B03661C762F /* Face.swift in Sources */,
 				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
@@ -476,7 +480,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -558,7 +562,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 14;
+				CURRENT_PROJECT_VERSION = 15;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
