@@ -85,6 +85,17 @@ need to be able to ring the phone and send notifications".
   "Remove the 'alerts' page on iOS"): the tab, `AlertsView` and
   `AlertsModel` are gone; pushes still arrive, and a tapped one opens its
   conversation (or Personal, or Team), else the inbox (`Router.open(push:)`).
+- **Build 12, 2026-11-10** (desktop: search names, Homeowners only,
+  release hides, promise instead): search results keep the name's width
+  (Text and Call are round icon buttons, `IconCircleButton`); the filter
+  menu has a **Homeowners only** toggle (`InboxModel.choose(homeownersOnly:)`,
+  saved as `inbox.homeowners_only`), so there is a Who switch again, the
+  desktop's; a released conversation stays out of Inbox and Personal on the
+  server (`paragon.release_hides`), and Personal drops the row at once; the
+  Release sheet has **Add a promise instead** (dismisses, then
+  `PromiseSheet` with WHAT = the reason), highlighted with a hint when the
+  reason reads like a job still to do (`looksLikeFollowUp`, the desktop's
+  words).
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

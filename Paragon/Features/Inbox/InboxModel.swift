@@ -11,8 +11,8 @@ final class InboxModel {
     enum Show: Hashable { case waiting, all }
 
     var show: Show = .waiting
-    /// No Who picker (founder, 2026-11-09: remove "contractors and internal
-    /// too"), but a choice saved on the person is honoured.
+    /// "Homeowners only" in the filter menu, on by default (founder,
+    /// 2026-11-10), saved on the person, the same switch as the desktop's.
     private(set) var homeownersOnly = true
     /// paragon_queue's brand for Solara One and solbuild together.
     static let logistics = "logistics"
@@ -265,6 +265,14 @@ final class InboxModel {
         brand = b
         cache(current)
         save(["brand": b.map { $0 as Any } ?? NSNull()])
+        Task { await load() }
+    }
+
+    /// Homeowners only, on or off, picked by the person.
+    func choose(homeownersOnly on: Bool) {
+        homeownersOnly = on
+        cache(current)
+        save(["homeowners_only": on])
         Task { await load() }
     }
 

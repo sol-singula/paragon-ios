@@ -49,7 +49,16 @@ struct InboxView: View {
                 case .personal(let t, let n): PersonalThreadView(threadId: t, name: n).hidesSystemTabBar()
                 }
             }
-            .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { model.clear(personId: r.personId) }) { Task { await model.load() } } }
+            .sheet(item: $releasing) { r in
+                ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { model.clear(personId: r.personId) },
+                             onPromise: { what in
+                                 // Once the release sheet is down, Add promise (WHO = me, WHAT = the reason).
+                                 Task { @MainActor in
+                                     try? await Task.sleep(for: .milliseconds(450))
+                                     promising = PromiseTarget(threadId: r.threadId, personId: r.personId, name: r.name, prefill: what.isEmpty ? nil : what)
+                                 }
+                             }) { Task { await model.load() } }
+            }
             .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) }
             .sheet(item: $promising) { t in
                 PromiseSheet(target: t) { owner in
@@ -286,8 +295,14 @@ struct InboxView: View {
                     }
                 }
             }
+            Divider()
+            // "Homeowners only" on or off (founder, 2026-11-10), the desktop's
+            // switch: off shows contractors, vendors and internal too.
+            Button { model.choose(homeownersOnly: !model.homeownersOnly) } label: {
+                if model.homeownersOnly { Label("Homeowners only", systemImage: "checkmark") } else { Text("Homeowners only") }
+            }
         } label: {
-            Image(systemName: model.brand != nil
+            Image(systemName: model.brand != nil || !model.homeownersOnly
                   ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .foregroundStyle(Theme.secondary)
         }

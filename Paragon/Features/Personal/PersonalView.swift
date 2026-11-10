@@ -90,7 +90,16 @@ struct PersonalView: View {
             .toolbar(.hidden, for: .navigationBar)
             .hidesSystemTabBar()
             .task(id: member) { items = []; loaded = false; await poll() }
-            .sheet(item: $releasing) { r in ReleaseSheet(name: r.name, threadId: r.threadId) { Task { await load() } } }
+            .sheet(item: $releasing) { r in
+                // Off the list at once (the server keeps it off, 20261110080000).
+                ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { items.removeAll { $0.threadId == r.threadId } },
+                             onPromise: { what in
+                                 Task { @MainActor in
+                                     try? await Task.sleep(for: .milliseconds(450))
+                                     promising = PromiseTarget(threadId: r.threadId, personId: r.personId, name: r.name, prefill: what.isEmpty ? nil : what)
+                                 }
+                             }) { Task { await load() } }
+            }
             .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load() } } }
             .sheet(item: $info) { t in ContactInfoSheet(personId: t.personId, threadId: t.threadId) { Task { await load() } } }
             .sheet(item: $promising) { t in PromiseSheet(target: t) { _ in Task { await load(); await InboxModel.shared.load() } } }

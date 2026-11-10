@@ -50,10 +50,11 @@ struct SearchHitRow: View {
             .buttonStyle(.plain)
 
             if hit.isPerson {
+                // Icons only (founder, 2026-11-10), so the name keeps the width.
                 HStack(spacing: 6) {
-                    PillButton(label: "Text", action: onText)
+                    IconCircleButton(symbol: "message", action: onText)
                         .accessibilityLabel("Text \(hit.name)")
-                    PillButton(label: neverTexted ? "Start and call" : "Call", tone: .call, action: onCall)
+                    IconCircleButton(symbol: "phone", tone: .call, action: onCall)
                         .disabled(callDisabled)
                         .opacity(callDisabled ? 0.4 : 1)
                         .accessibilityLabel(neverTexted ? "Start a conversation with \(hit.name) and call" : "Call \(hit.name)")
@@ -62,6 +63,26 @@ struct SearchHitRow: View {
             }
         }
         .disabled(busy)
+    }
+}
+
+/// A round, icon-only Text or Call on a search result.
+struct IconCircleButton: View {
+    enum Tone { case plain, call }
+    let symbol: String
+    var tone: Tone = .plain
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(tone == .call ? Theme.green : Theme.text)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(tone == .call ? Theme.green.opacity(0.16) : Theme.hover))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.borderless)
     }
 }
 

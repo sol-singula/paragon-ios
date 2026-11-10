@@ -51,13 +51,20 @@ struct WhoIsThisBar: View {
     }
 }
 
-/// Release a conversation (hold its row): off the waiting list with a
-/// reason, logged. The inbox and Personal both use it.
+/// Release a conversation (hold its row): out of my lists with a reason,
+/// logged. The inbox and Personal both use it. "Add a promise instead"
+/// (founder, 2026-11-10: "everything should be promises") closes this and
+/// opens Add promise with the reason as WHAT; when the reason reads like a
+/// job still to do (`looksLikeFollowUp`, the desktop's words) it is the
+/// highlighted choice.
 struct ReleaseSheet: View {
     let name: String
     let threadId: String
     /// The moment Release is tapped (instant): take the row off now.
     var onGone: (() -> Void)? = nil
+    /// Add a promise instead, with the reason typed so far (the caller opens
+    /// PromiseSheet once this sheet has gone).
+    var onPromise: ((String) -> Void)? = nil
     /// After the server answers, yes or no.
     let onDone: () -> Void
 
@@ -70,7 +77,7 @@ struct ReleaseSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Takes this conversation off the waiting list now. It comes back the moment they text or call again. Your reason is saved in the log.")
+                Text("Takes this conversation out of your lists now. It comes back the moment they text or call again. Your reason is saved in the log.")
                     .font(.meta).foregroundStyle(Theme.secondary)
                 TextField("", text: $why, prompt: Text("Why? (wrong number, handled on a call, spam, they said no thanks…)").foregroundStyle(Theme.muted), axis: .vertical)
                     .lineLimit(3...6)
@@ -79,7 +86,27 @@ struct ReleaseSheet: View {
                     .padding(12)
                     .background(RoundedRectangle(cornerRadius: 12).fill(Theme.input))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(focused ? Theme.cyan.opacity(0.6) : Theme.inputBorder))
+                if followUp {
+                    Text("Sounds like something is still owed to them. Make it a promise so it has an owner and a time.")
+                        .font(.meta).foregroundStyle(Theme.violet)
+                }
                 if let error { Text(error).font(.meta).foregroundStyle(Theme.rose) }
+                if let onPromise {
+                    Button {
+                        let what = String(why.trimmingCharacters(in: .whitespacesAndNewlines).prefix(200))
+                        dismiss()
+                        onPromise(what)
+                    } label: {
+                        Label("Add a promise instead", systemImage: "hands.clap")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(maxWidth: .infinity).frame(height: 44)
+                            .foregroundStyle(followUp ? Color.white : Theme.violet)
+                            .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(followUp ? Theme.violet : Theme.violet.opacity(0.14)))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(busy)
+                }
                 Spacer()
             }
             .padding(16)
@@ -89,7 +116,9 @@ struct ReleaseSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Release") { release() }.disabled(busy || why.trimmingCharacters(in: .whitespacesAndNewlines).count < 3)
+                    Button("Release") { release() }
+                        .fontWeight(followUp ? .regular : .semibold)
+                        .disabled(busy || why.trimmingCharacters(in: .whitespacesAndNewlines).count < 3)
                 }
             }
         }
@@ -103,6 +132,8 @@ struct ReleaseSheet: View {
             if !focused { focused = true }
         }
     }
+
+    private var followUp: Bool { onPromise != nil && looksLikeFollowUp(why) }
 
     /// Instant (founder, 2026-11-09): closes and leaves the list now; a
     /// refusal is a toast with the reason, and the list reads again.
@@ -119,6 +150,14 @@ struct ReleaseSheet: View {
             onDone()
         }
     }
+}
+
+/// A release reason that is really a job still to do ("Made task for
+/// Mason", "will call back Tue"): the same words as the desktop's
+/// `looksLikeFollowUp` in Inbox.tsx.
+func looksLikeFollowUp(_ why: String) -> Bool {
+    let pattern = #"\b(task|tasks|follow(?:ing)?[- ]?up|f/u|call(?:ing)? (?:them |him |her )?back|callback|call back|will|gonna|going to|send|sending|need to|needs to|have to|has to|remind|reminder|get back|schedule|book|quote|tomorrow|later|todo|to do|next week|monday|tuesday|wednesday|thursday|friday|saturday)\b"#
+    return why.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
 }
 
 /// Change someone's name (founder, 2026-11-09: "we need functionality to
