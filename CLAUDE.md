@@ -57,7 +57,8 @@ need to be able to ring the phone and send notifications".
   urgency, no Sort picker; several promises fold into "N promises · next
   due …"; Done / Not needed / Hand / Change / Add / Release are instant
   (`GoneIDs`, `InboxModel.localTick`, back on a refusal); the timeline
-  re-settles at the bottom; the composer is one line, placeholder "Message".
+  re-settles at the bottom; the composer starts one line and grows to 8 lines
+  then scrolls (founder, 2026-11-10; Team's too), placeholder "Message".
 - **Build 8, 2026-11-09**: the inbox tab (Waiting / All), branch filter and homeowners-only are the person's
   (`paragon_ui_prefs` / `_set`, as on the desktop): a UserDefaults copy
   applies at launch, the server's answer wins before the first queue read
@@ -140,6 +141,14 @@ need to be able to ring the phone and send notifications".
   and one flame gradient crosses it (`FeedCardView`); still for Reduce
   Motion. No label, no points. "All quiet for now" when nothing is new; no
   band while searching or when the server has no such function.
+- **Build 22, 2026-11-10: feed reactions** (founder): cards stay ten
+  minutes; staff react with an emoji (`FeedReactionsRow`: a quick row, +
+  for the picker, in a popover), shared with everyone
+  (`paragon_feed_react`, `paragon_feed_reactions(ids)` on each poll); the
+  emojis keep moving while shown (`AnimatedEmoji`, bounce / wiggle / pulse,
+  still for Reduce Motion); long-press one for who. "All activity" at the
+  band's bottom right opens the last 24 hours (`ActivityListView`,
+  `paragon_activity_feed(p_since, p_limit: 300)`), where you react too.
 - **Build 17, 2026-11-10: gold cards** (founder: "add golden ones ... the
   email forms ANYTIME we get a form request ... MOST PRIORITY ... just ready
   to call"). The desktop's `screens/inbox/Gold.tsx`, here

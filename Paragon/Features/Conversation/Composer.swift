@@ -83,8 +83,8 @@ struct Composer: View {
                             }
                         }
                         TextField("", text: $draft, prompt: Text(placeholder).foregroundStyle(Theme.muted), axis: .vertical)
-                            // One line, always (founder, 2026-11-09); long text scrolls inside it.
-                            .lineLimit(1)
+                            // One line until you type, then it grows to 8 and scrolls (founder, 2026-11-10).
+                            .lineLimit(1...8)
                             .font(.ui).foregroundStyle(Theme.text)
                             .focused($focused)
                             .padding(.horizontal, 12).padding(.vertical, 8)

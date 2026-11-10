@@ -62,7 +62,7 @@ struct TeamComposer: View {
                     EmojiGrid(emoji: EmojiGrid.all) { text += $0 }.padding(10).presentationCompactAdaptation(.popover)
                 }
                 TextField("", text: $text, prompt: Text("Message \(channel.name)").foregroundStyle(Theme.muted), axis: .vertical)
-                    .lineLimit(1...6)
+                    .lineLimit(1...8)
                     .font(.ui).foregroundStyle(Theme.text)
                     .focused($focused)
                     .padding(.horizontal, 12).padding(.vertical, 9)
