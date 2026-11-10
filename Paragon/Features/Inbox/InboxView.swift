@@ -279,7 +279,7 @@ struct InboxView: View {
                 Text(summary(c)).font(.system(size: 13)).foregroundStyle(Theme.secondary)
             }
             Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"),
-                                (.all, "All")],
+                                (.all, "Recent")],
                       selection: Binding(get: { model.show }, set: { model.choose(show: $0) }))
         }
     }
@@ -294,28 +294,23 @@ struct InboxView: View {
 
     private var filterMenu: some View {
         Menu {
-            Menu("Branch") {
-                Button { model.choose(brand: nil) } label: {
-                    if model.brand == nil { Label("All branches", systemImage: "checkmark") } else { Text("All branches") }
-                }
-                // Solara One and solbuild together (founder, 2026-11-09).
-                Button { model.choose(brand: InboxModel.logistics) } label: {
-                    if model.brand == InboxModel.logistics { Label("Logistics only", systemImage: "checkmark") } else { Text("Logistics only") }
-                }
-                ForEach(model.brands, id: \.self) { b in
-                    Button { model.choose(brand: b) } label: {
-                        if model.brand == b { Label(Branch.of(b).name, systemImage: "checkmark") } else { Text(Branch.of(b).name) }
-                    }
+            // One choice (founder, 2026-11-10), the desktop's: All, Homeowners
+            // only, Logistics only (a logistics job in Nexus, or a vendor or
+            // contractor), or one branch.
+            ForEach([("all", "All"), ("homeowners", "Homeowners only"), ("logistics", "Logistics only")], id: \.0) { f in
+                Button { model.choose(filter: f.0) } label: {
+                    if model.filter == f.0 { Label(f.1, systemImage: "checkmark") } else { Text(f.1) }
                 }
             }
             Divider()
-            // "Homeowners only" on or off (founder, 2026-11-10), the desktop's
-            // switch: off shows contractors, vendors and internal too.
-            Button { model.choose(homeownersOnly: !model.homeownersOnly) } label: {
-                if model.homeownersOnly { Label("Homeowners only", systemImage: "checkmark") } else { Text("Homeowners only") }
+            ForEach(model.brands, id: \.self) { b in
+                Button { model.choose(filter: "brand:\(b)") } label: {
+                    let name = "\(Branch.of(b).code) · \(Branch.of(b).name)"
+                    if model.brand == b { Label(name, systemImage: "checkmark") } else { Text(name) }
+                }
             }
         } label: {
-            Image(systemName: model.brand != nil || !model.homeownersOnly
+            Image(systemName: model.filter != "all"
                   ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .foregroundStyle(Theme.secondary)
         }

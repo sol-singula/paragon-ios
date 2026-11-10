@@ -55,6 +55,15 @@ final class CallManager: NSObject {
         /// The parent call's sid (the server's name for this call): the
         /// customer's leg on a call in, ours on a call out.
         var parent: String = ""
+        /// The line on the call (the one the customer dialed on a call in).
+        var line: String?
+    }
+
+    /// The branch's abbreviation first (founder, 2026-11-10: "WE MUST SHOW THE
+    /// BRANCH ABBREVIATION SO WE KNOW HOW TO ANSWER"): "SH · Sonya Russell".
+    static func callerName(_ name: String, brand: String?) -> String {
+        guard let brand else { return name }
+        return "\(Branch.of(brand).code) · \(name)"
     }
 
     /// Everyone added to the call (a conference), read every few seconds
@@ -235,7 +244,7 @@ final class CallManager: NSObject {
                 }
                 let update = CXCallUpdate()
                 update.remoteHandle = CXHandle(type: .generic, value: name)
-                update.localizedCallerName = [name, brand.map { Branch.of($0).name }].compactMap { $0 }.joined(separator: " · ")
+                update.localizedCallerName = CallManager.callerName(name, brand: brand)
                 update.hasVideo = false
                 update.supportsDTMF = true
                 update.supportsHolding = false
@@ -358,11 +367,12 @@ final class CallManager: NSObject {
 
     /// Put the person's name on the incoming-call screen once the card is in.
     private func nameIncoming(_ uuid: UUID, thread: String) async {
-        guard !thread.isEmpty, let card = try? await API.callCard(thread) else { return }
+        let parent = active?.uuid == uuid ? active?.parent : nil
+        guard !thread.isEmpty, let card = try? await API.callCard(thread, parent: parent) else { return }
         let update = CXCallUpdate()
-        update.localizedCallerName = [card.name, Branch.of(card.brand).name].joined(separator: " · ")
+        update.localizedCallerName = Self.callerName(card.name, brand: card.brand)
         provider?.reportCall(with: uuid, updated: update)
-        set(uuid) { $0.name = card.name; $0.brand = card.brand }
+        set(uuid) { $0.name = card.name; $0.brand = card.brand; $0.line = card.line }
     }
 
     fileprivate func pushHandled() {

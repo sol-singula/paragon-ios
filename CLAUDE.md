@@ -243,3 +243,13 @@ need to be able to ring the phone and send notifications".
   (`OpenPromises`, `paragon_thread_promises`, never the owner's name). The
   tab's count is waiting rows plus my overdue promises. Every new queue
   field is optional, and items decode leniently (`LossyList`, `Lenient`).
+- **Build 18, 2026-11-10**: the inbox filter is one choice (founder: "All"
+  "Homeowners only" "Logistics only" or branch specific, All by default):
+  `InboxModel.filter` = all | homeowners | logistics | brand:<brand>, saved as
+  `inbox.filter` (the server also writes homeowners_only / brand for older
+  builds), read through `paragon_queue(p_filter, ...)` with the old call as a
+  fallback. The All tab reads **Recent**, newest first. Calls lead with the
+  branch: CallKit's name is "SH · Sonya Russell" (`CallManager.callerName`,
+  `Branch.of(brand).code`) in and out, the call screen shows the line under the
+  branch, and the card is read with the call's sid
+  (`API.callCard(thread, parent:)`) so it names the line dialed, not the 877.

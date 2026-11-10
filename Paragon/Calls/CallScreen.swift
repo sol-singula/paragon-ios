@@ -32,6 +32,8 @@ struct CallScreen: View {
                     Text(a.name).font(.system(size: 28, weight: .semibold)).foregroundStyle(Theme.text)
                         .lineLimit(1).minimumScaleFactor(0.6).padding(.top, 18).padding(.horizontal, 24)
                     if a.brand != nil { Text(Branch.of(a.brand).name).font(.ui).foregroundStyle(Theme.secondary).padding(.top, 4) }
+                    // The line on the call, small (the one they dialed on a call in).
+                    if let line = a.line { Text(line).font(.system(size: 12)).foregroundStyle(Theme.secondary.opacity(0.8)).padding(.top, 1) }
                     CallClock(active: a).padding(.top, 10)
                     if !keypad { factsCard(a).padding(.top, 14).padding(.horizontal, 24) }
                     if keypad {

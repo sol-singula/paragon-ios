@@ -11,13 +11,22 @@ final class InboxModel {
     enum Show: Hashable { case waiting, all }
 
     var show: Show = .waiting
-    /// "Homeowners only" in the filter menu: an option, off unless turned on
-    /// (founder, 2026-11-10: "I'm on All, I should see all"), saved on the
-    /// person, the same switch as the desktop's.
-    private(set) var homeownersOnly = false
-    /// paragon_queue's brand for Solara One and solbuild together.
-    static let logistics = "logistics"
-    var brand: String?
+    /// The filter, one choice (founder, 2026-11-10: "All" "Homeowners only"
+    /// "Logistics only" or branch specific, All by default), saved on the
+    /// person, the same as the desktop's: all | homeowners | logistics |
+    /// brand:<brand>.
+    private(set) var filter = "all"
+    var brand: String? { filter.hasPrefix("brand:") ? String(filter.dropFirst(6)) : nil }
+    /// What the chip and the menu call it.
+    var filterLabel: String {
+        switch filter {
+        case "homeowners": return "Homeowners only"
+        case "logistics": return "Logistics only"
+        default: return brand.map { Branch.of($0).name } ?? "All"
+        }
+    }
+    /// The branches the menu offers: every brand we have, and any a row names.
+    static let knownBrands = ["Solara", "Solara One", "Just Glass", "NixThePitch", "solbuild", "BlackSwan"]
     var search = ""
 
     private(set) var items: [QueueItem] = []
@@ -86,7 +95,8 @@ final class InboxModel {
     var badge: Int { lateBadge ?? counts.late }
 
     var brands: [String] {
-        Array(Set(items.compactMap { $0.firstThread?.brand })).sorted()
+        let extra = Set(items.compactMap { $0.firstThread?.brand }).subtracting(Self.knownBrands).sorted()
+        return Self.knownBrands + extra
     }
 
     /// The next conversation opens by itself (founder, 2026-11-09: "as soon
@@ -122,14 +132,14 @@ final class InboxModel {
 
     func load() async {
         let started = Date()
-        let filter = (brand, show)
+        let asked = (self.filter, show)
         do {
-            let rows = try await API.queue(homeownersOnly: homeownersOnly, brand: brand, search: nil)
+            let rows = try await API.queue(filter: self.filter, search: nil)
             let before = shown.map(\.personId)
             items = rows
             cleared = cleared.filter { $0.value >= started }
             // Only when the filter is the one this read asked for.
-            if filter.0 == brand && filter.1 == show && loaded { followOpen(was: before) }
+            if asked.0 == self.filter && asked.1 == show && loaded { followOpen(was: before) }
             error = nil
             Task { await Badge.refresh() }
         } catch {
@@ -214,7 +224,7 @@ final class InboxModel {
     }
 
     private static func queueHits(_ q: String) async -> [SearchHit] {
-        let rows = (try? await API.queue(homeownersOnly: false, brand: nil, search: q)) ?? []
+        let rows = (try? await API.queue(filter: "all", search: q)) ?? []
         return rows.map { m in
             let brand = m.firstThread?.brand
             let sub = [brand.map { Branch.of($0).name }, m.preview.map(Preview.line)].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · ")
@@ -237,8 +247,7 @@ final class InboxModel {
     private var prefsRead = false
 
     private func apply(_ i: UiPrefs.Inbox) {
-        homeownersOnly = i.homeownersOnly == true
-        brand = i.brand
+        filter = i.chosen
         show = i.tab == "all" ? .all : .waiting
     }
 
@@ -247,7 +256,7 @@ final class InboxModel {
     }
 
     private var current: UiPrefs.Inbox {
-        UiPrefs.Inbox(homeownersOnly: homeownersOnly, brand: brand, tab: show == .all ? "all" : "waiting")
+        UiPrefs.Inbox(homeownersOnly: filter == "homeowners", brand: brand, tab: show == .all ? "all" : "waiting", filter: filter)
     }
 
     /// At launch or sign-in: the local copy now, then the server's.
@@ -265,19 +274,12 @@ final class InboxModel {
         save(["tab": s == .all ? "all" : "waiting"])
     }
 
-    /// The branch filter, picked by the person.
-    func choose(brand b: String?) {
-        brand = b
+    /// The filter, picked by the person. The server also writes
+    /// homeowners_only and brand for older builds.
+    func choose(filter f: String) {
+        filter = f
         cache(current)
-        save(["brand": b.map { $0 as Any } ?? NSNull()])
-        Task { await load() }
-    }
-
-    /// Homeowners only, on or off, picked by the person.
-    func choose(homeownersOnly on: Bool) {
-        homeownersOnly = on
-        cache(current)
-        save(["homeowners_only": on])
+        save(["filter": f])
         Task { await load() }
     }
 

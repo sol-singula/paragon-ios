@@ -106,8 +106,18 @@ enum API {
         try await rpc("paragon_badge_count", as: Int?.self) ?? 0
     }
 
-    static func queue(homeownersOnly: Bool, brand: String?, search: String?) async throws -> [QueueItem] {
-        try await rpc("paragon_queue", ["p_homeowners_only": homeownersOnly, "p_brand": brand, "p_search": search], as: [QueueItem]?.self) ?? []
+    /// The inbox, filtered by one choice (`paragon_queue(p_filter, ...)`):
+    /// all | homeowners | logistics | brand:<brand>. A server without that
+    /// overload gets the old call.
+    static func queue(filter: String, search: String?) async throws -> [QueueItem] {
+        do {
+            return try await rpc("paragon_queue", ["p_filter": filter, "p_search": search], as: [QueueItem]?.self) ?? []
+        } catch {
+            let m = error.localizedDescription
+            guard m.contains("p_filter") || m.localizedCaseInsensitiveContains("function") || m.contains("schema cache") else { throw error }
+            let brand: String? = filter == "logistics" ? "logistics" : filter.hasPrefix("brand:") ? String(filter.dropFirst(6)) : nil
+            return try await rpc("paragon_queue", ["p_homeowners_only": filter == "homeowners", "p_brand": brand, "p_search": search], as: [QueueItem]?.self) ?? []
+        }
     }
 
     /// Solbuild's search: clients, team, contractors, businesses.
@@ -263,8 +273,13 @@ enum API {
         try await call("paragon_atlas_card_act", ["p_id": id, "p_action": "hand", "p_due": nil, "p_note": nil, "p_member": member])
     }
 
-    static func callCard(_ thread: String) async throws -> CallCard? {
-        try await rpc("paragon_call_card", ["p_thread": thread], as: CallCard?.self)
+    /// With the call's sid the card names the line the customer dialed
+    /// (`paragon_call_card(thread, parent)`), never the 877 bridge; an older
+    /// server gets the thread's line.
+    static func callCard(_ thread: String, parent: String? = nil) async throws -> CallCard? {
+        if let parent, !parent.isEmpty,
+           let c = try? await rpc("paragon_call_card", ["p_thread": thread, "p_parent": parent], as: CallCard?.self) { return c }
+        return try await rpc("paragon_call_card", ["p_thread": thread], as: CallCard?.self)
     }
 
     /// Only paragon-send sends. Attachments are files already uploaded to

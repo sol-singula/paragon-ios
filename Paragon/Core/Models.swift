@@ -202,6 +202,16 @@ struct UiPrefs: Codable, Hashable {
         var homeownersOnly: Bool?
         var brand: String?
         var tab: String?
+        /// One choice (founder, 2026-11-10): all | homeowners | logistics |
+        /// brand:<brand>. Older servers send none: read it from the two above.
+        var filter: String?
+
+        var chosen: String {
+            if let f = filter, !f.isEmpty { return f }
+            if brand == "logistics" { return "logistics" }
+            if let b = brand, !b.isEmpty { return "brand:\(b)" }
+            return homeownersOnly == true ? "homeowners" : "all"
+        }
     }
     var inbox: Inbox?
 }
@@ -462,6 +472,8 @@ struct CallCard: Decodable {
     let hasName: Bool?
     let city: String?
     let greeting: String?
+    /// The line they dialed, when the card was read with the call's sid.
+    var dialedLine: String?
 }
 
 /// Someone added to a call (a conference, paragon-voice op=control).
