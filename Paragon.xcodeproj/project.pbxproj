@@ -59,6 +59,7 @@
 		D681B194A9EB0B03661C762F /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFAC2046693956AFC3F5427 /* Face.swift */; };
 		D76249C70737E72DCA74615C /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB96A42A1AC076D41BC5631B /* Session.swift */; };
 		D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF93659363F43D9F38EA81F /* CostsView.swift */; };
+		E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E78795BAA9AF32A2FD833812 /* LinePicker.swift */; };
 		EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1739E30D8C200ECEC6A334BF /* Assets.xcassets */; };
 		EEAAC2BF074C7DB6DB165F66 /* Renames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33CA4E9E51345423FCA975 /* Renames.swift */; };
 		F386EC7886941174AB685752 /* PushKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7276CD9082C2F3BEE56C13BC /* PushKit.framework */; };
@@ -118,6 +119,7 @@
 		D3CB6E37F0CEF7FF191C87DC /* FeedBand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedBand.swift; sourceTree = "<group>"; };
 		D8AA41283D6004E9AAA4F251 /* Composer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Composer.swift; sourceTree = "<group>"; };
 		E17DE6809FADC88837910EC0 /* TeamBell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamBell.swift; sourceTree = "<group>"; };
+		E78795BAA9AF32A2FD833812 /* LinePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinePicker.swift; sourceTree = "<group>"; };
 		E985959092523BAB6488B5B0 /* TeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamView.swift; sourceTree = "<group>"; };
 		F79E3ED26B00A6706D54F3CC /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timeline.swift; sourceTree = "<group>"; };
 		FA5B1771D340E15C64FA9A10 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 				1C59A3A5DF250F5979DB5D4E /* Gold.swift */,
 				4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */,
 				6035F3E49FE86048CAD2C599 /* InboxView.swift */,
+				E78795BAA9AF32A2FD833812 /* LinePicker.swift */,
 				95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */,
 				9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */,
 			);
@@ -444,6 +447,7 @@
 				BE447ECA47FE07A95E6FAFB8 /* Gold.swift in Sources */,
 				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
+				E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
 				D27A9A23666ACE52AAC4C7DA /* NotificationsView.swift in Sources */,
@@ -488,7 +492,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -570,7 +574,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
