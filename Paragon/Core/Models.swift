@@ -94,8 +94,17 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     /// Always false since 2026-11-10 (promises are the team's); kept so an
     /// older server still decodes.
     let `private`: Bool?
+    /// A website form waiting for a call (founder, 2026-11-10): gold, above everything.
+    let gold: Bool?
+    /// The gold card's form and try count, when it leads the row.
+    let webForm: Lenient<WebForm>?
 
     var id: String { personId }
+    /// The gold card leading this row (still due and not just cleared here).
+    var goldItem: RowItem? { leadItem.flatMap { $0.isGold ? $0 : nil } }
+    var isGold: Bool { goldItem != nil }
+    /// The form on the gold card (the item's own copy, else the row's).
+    var goldForm: WebForm? { goldItem?.webForm?.value ?? webForm?.value }
     var firstThread: QueueThread? { threads?.first }
     var tone: ClockTone { status == "waiting" ? ClockTone(pct: pct) : .calm }
 
@@ -106,7 +115,11 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     /// A promise is on the row only once it is due (founder, 2026-11-09:
     /// moved to tomorrow 9 am it "should naturally release"), the server's
     /// rule too, kept here so a move made here takes effect at once.
-    var rowItems: [RowItem] { allItems.filter { !GoneIDs.shared.contains($0.id) && $0.isDueNow } }
+    var rowItems: [RowItem] {
+        let due = allItems.filter { !GoneIDs.shared.contains($0.id) && $0.isDueNow }
+        // A gold card leads its row (the server's order too).
+        return due.filter(\.isGold) + due.filter { !$0.isGold }
+    }
     /// The leading item (soonest due).
     var leadItem: RowItem? { card?.value.flatMap { GoneIDs.shared.contains($0.id) || !$0.isDueNow ? nil : $0 } ?? rowItems.first }
     var isOverdue: Bool {
@@ -145,8 +158,12 @@ struct RowItem: Decodable, Hashable, Identifiable {
     let createdBy: String?
     let createdByName: String?
     let createdAt: String?
+    /// Only on a gold website-form card.
+    let webForm: Lenient<WebForm>?
 
     var isPromise: Bool { kind == "promise" }
+    /// A gold card: a website form, ready to call. Never a promise.
+    var isGold: Bool { kind == "web_form" }
     var byHand: Bool { by == "hand" }
     var isOverdue: Bool { (Stamp.date(dueAt) ?? .distantFuture) <= Date() }
     /// Due (or moved here to a later time: `LaterMarks`), so it belongs on the row now.
@@ -224,6 +241,38 @@ struct PromisePerson: Decodable, Hashable, Identifiable {
     let whyNot: String?
 
     var first: String { name.split(separator: " ").first.map(String.init) ?? name }
+}
+
+/// A gold card's form (atlas_tasks kind 'web_form', `paragon_queue` web_form):
+/// what they asked for, how to reach them, and which try this is.
+struct WebForm: Decodable, Hashable {
+    struct Field: Decodable, Hashable { let label: String; let value: String }
+    struct Attempt: Decodable, Hashable { let at: String?; let outcome: String? }
+    struct Form: Decodable, Hashable {
+        let name: String?
+        let phone: String?
+        let email: String?
+        let address: String?
+        let wants: String?
+        let message: String?
+        let fields: LossyList<Field>?
+        /// Their answer to the form's text box: true, false, or nil (not asked).
+        let textsOk: Bool?
+        let submittedAt: String?
+        let site: String?
+    }
+    /// This try, 1-based, and the most there will be.
+    let `try`: Int?
+    let tries: Int?
+    let maxTries: Int?
+    let attempts: LossyList<Attempt>?
+    let brand: String?
+    let site: String?
+    let formName: String?
+    let form: Form?
+
+    /// "Try 2 of 3".
+    var label: String { "Try \(min(`try` ?? 1, maxTries ?? 3)) of \(maxTries ?? 3)" }
 }
 
 /// A list where an element this version can't read is skipped.

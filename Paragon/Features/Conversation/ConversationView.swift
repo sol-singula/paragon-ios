@@ -28,6 +28,14 @@ struct ConversationView: View {
         VStack(spacing: 0) {
             header
             if let v = view {
+                // Gold (2026-11-10): a website form on top, ready to call.
+                if let g = goldRow?.goldItem {
+                    GoldPanel(item: g, form: goldRow?.goldForm, name: renames.shown(v.person.id, v.person.name),
+                              canCall: calls.active == nil && (g.threadId ?? currentThread) != nil,
+                              call: { callGold(g) },
+                              later: { Gold.later(g, personId: personId, name: v.person.name) { Task { await InboxModel.shared.load() } } },
+                              done: { Gold.done(g, name: v.person.name) { Task { await InboxModel.shared.load() } } })
+                }
                 if !promises.isEmpty {
                     OpenPromises(promises: promises, meId: session.me?.id,
                                  open: { p in promising = target(p) },
@@ -53,7 +61,15 @@ struct ConversationView: View {
                 Spacer(); ProgressView().tint(Theme.muted); Spacer()
             }
         }
-        .background(Theme.bg)
+        .background {
+            ZStack {
+                Theme.bg
+                if goldRow?.isGold == true {
+                    LinearGradient(colors: [Theme.gold.opacity(0.14), Theme.gold.opacity(0.04), .clear], startPoint: .top, endPoint: .bottom)
+                }
+            }
+            .ignoresSafeArea()
+        }
         .toolbar(.hidden, for: .navigationBar)
         .task(id: threadId) { await poll() }
         // A send went: read the thread now, so the real text takes its place.
@@ -202,6 +218,19 @@ struct ConversationView: View {
         guard let t = currentThread, !body.isEmpty || !files.isEmpty else { return }
         outbox.send(thread: t, body: body, files: files)
         scrollKey += 1
+    }
+
+    /// This person's inbox row, for its gold card (the inbox is the one reader of paragon_queue).
+    private var goldRow: QueueItem? {
+        _ = InboxModel.shared.localTick
+        return InboxModel.shared.items.first { $0.personId == personId }
+    }
+
+    private func callGold(_ g: RowItem) {
+        guard let t = g.threadId ?? currentThread, let v = view else { return }
+        if t != currentThread { threadId = t }
+        let th = v.threads.first { $0.id == t }
+        calls.place(thread: t, name: v.person.name, brand: th?.brand)
     }
 
     private func call() {

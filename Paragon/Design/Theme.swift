@@ -19,6 +19,9 @@ enum Theme {
     static let violet = Color(hex: 0x8B5CF6)
     static let rose = Color(hex: 0xF43F5E)
     static let amber = Color(hex: 0xF59E0B)
+    /// Gold cards: a website form, ready to call (2026-11-10).
+    static let gold = Color(hex: 0xF59E0B)
+    static let goldText = Color(hex: 0xFBBF24)
     static let green = Color(hex: 0x22C55E)
 
     /// Their side of a conversation (the raised surface) and ours (teal at 18%).

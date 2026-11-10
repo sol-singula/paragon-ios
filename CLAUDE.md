@@ -140,6 +140,20 @@ need to be able to ring the phone and send notifications".
   and one flame gradient crosses it (`FeedCardView`); still for Reduce
   Motion. No label, no points. "All quiet for now" when nothing is new; no
   band while searching or when the server has no such function.
+- **Build 17, 2026-11-10: gold cards** (founder: "add golden ones ... the
+  email forms ANYTIME we get a form request ... MOST PRIORITY ... just ready
+  to call"). The desktop's `screens/inbox/Gold.tsx`, here
+  `Features/Inbox/Gold.swift`. A `paragon_queue` row with `gold` and an item
+  of kind `web_form` (its `web_form`: the form, `try`, `max_tries`) is gold
+  (`QueueItem.goldItem` / `isGold`, `Theme.gold`), first in Waiting whatever
+  the sort keys say, "Website form · what they want" on the second line and
+  "Try 2 of 3" where the time goes. Never a promise: no hand, no violet, no
+  Done / Not needed / Change. Hold the row: Try again later
+  (`paragon_web_form_later`, instant through `GoneIDs` + `LaterMarks`) or
+  Talked to them (`paragon_web_form_done`). The conversation has a gold wash
+  and `GoldPanel` on top: the form, a big gold Call (`calls.place`), Try
+  again later, Not gold any more. An older server sends no gold and nothing
+  shows. The server side is the paragon repo's "Gold cards" note.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

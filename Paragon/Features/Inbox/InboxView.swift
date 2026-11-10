@@ -110,7 +110,7 @@ struct InboxView: View {
                 }
                 .contextMenu { rowMenu(q) }
                 .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
-                .listRowBackground(QueueRowBackground(atlas: q.isAtlas))
+                .listRowBackground(QueueRowBackground(atlas: q.isAtlas, gold: q.isGold))
                 .listRowSeparatorTint(Theme.border)
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
@@ -125,11 +125,22 @@ struct InboxView: View {
 
     /// Hold a row: Add promise…, the card or promise's own actions, Release….
     @ViewBuilder private func rowMenu(_ q: QueueItem) -> some View {
+        if let g = q.goldItem {
+            // A gold card is not a promise: its own two actions.
+            Section("New website lead") {
+                Button { Gold.later(g, personId: q.personId, name: q.name, changed: reload) } label: {
+                    Label("Try again later", systemImage: "clock.arrow.circlepath")
+                }
+                Button { Gold.done(g, name: q.name, changed: reload) } label: {
+                    Label("Talked to them · not gold", systemImage: "checkmark")
+                }
+            }
+        }
         if let t = q.openThread {
             Button { promising = PromiseTarget(threadId: t, personId: q.personId, name: q.name) } label: {
                 Label("Add promise…", systemImage: "hand.raised")
             }
-            let items = q.rowItems
+            let items = q.rowItems.filter { !$0.isGold }
             if items.count == 1, let i = items.first {
                 Section(i.what) {
                     ItemMenu(item: i, thread: t, personId: q.personId, name: q.name, open: { promising = $0 }, changed: reload)
@@ -329,11 +340,17 @@ struct QueueRow: View {
                     }
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
                     Spacer(minLength: 4)
-                    Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
+                    if let w = q.goldForm, q.isGold {
+                        Text(w.label).font(.tag).foregroundStyle(Theme.goldText)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Capsule().fill(Theme.gold.opacity(0.22)))
+                    } else {
+                        Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
+                    }
                 }
                 // Always two lines (founder, 2026-11-10): the promise (WHO · WHAT)
                 // or the last message, never both.
-                if let i = q.leadItem { itemLine(i) } else {
+                if let g = q.goldItem { goldLine(g) } else if let i = q.leadItem { itemLine(i) } else {
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     // A missed call (or a voicemail, which is one) reads in rose (founder, 2026-11-09).
                     .font(.system(size: 14)).foregroundStyle(
@@ -360,6 +377,20 @@ struct QueueRow: View {
         }
         .font(.system(size: 14))
         .foregroundStyle(Theme.violet)
+        .lineLimit(1)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// A gold row's second line: the website form and what they want.
+    private func goldLine(_ g: RowItem) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: "phone.fill").font(.system(size: 10))
+            Text("Website form").fontWeight(.semibold)
+            Text("·")
+            Text(q.goldForm?.form?.wants ?? g.why ?? "Ready to call").foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
+        }
+        .font(.system(size: 14))
+        .foregroundStyle(Theme.goldText)
         .lineLimit(1)
         .accessibilityElement(children: .combine)
     }
@@ -403,8 +434,13 @@ struct QueueRow: View {
 /// violet leading edge; every other row stays clear.
 struct QueueRowBackground: View {
     let atlas: Bool
+    var gold: Bool = false
     var body: some View {
-        if atlas {
+        if gold {
+            // Gold (2026-11-10): a website form, ready to call.
+            Theme.gold.opacity(0.18)
+                .overlay(alignment: .leading) { Rectangle().fill(Theme.gold).frame(width: 3) }
+        } else if atlas {
             Theme.violet.opacity(0.07)
                 .overlay(alignment: .leading) { Rectangle().fill(Theme.violet.opacity(0.85)).frame(width: 2) }
         } else {

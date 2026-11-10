@@ -178,6 +178,17 @@ enum API {
 
     static func notificationsRead() async throws { try await call("paragon_notifications_read") }
 
+    /// Gold (2026-11-10): they did not pick up. Out of the inbox, back for the
+    /// next try, or a normal conversation after the last one.
+    struct WebFormLater: Decodable { let ended: Bool?; let tries: Int?; let maxTries: Int?; let dueAt: String? }
+    static func webFormLater(_ id: String) async throws -> WebFormLater {
+        try await rpc("paragon_web_form_later", ["p_id": id])
+    }
+    /// Gold no more: a normal conversation now.
+    static func webFormDone(_ id: String, note: String? = nil) async throws {
+        try await call("paragon_web_form_done", ["p_id": id, "p_note": note])
+    }
+
     static func atlasCardAct(_ id: String, action: String, due: String? = nil, note: String? = nil) async throws {
         try await call("paragon_atlas_card_act", ["p_id": id, "p_action": action, "p_due": due, "p_note": note, "p_member": nil])
     }

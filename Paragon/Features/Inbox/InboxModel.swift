@@ -53,17 +53,19 @@ final class InboxModel {
         case .all: base = rows
         }
         if show == .all { return recent(base) }
-        if base.contains(where: { $0.sortKey != nil }) {
+        // Gold first (founder, 2026-11-10: "MOST PRIORITY"), whatever the keys say.
+        let gold = base.filter(\.isGold), rest = base.filter { !$0.isGold }
+        if rest.contains(where: { $0.sortKey != nil }) {
             // Stable: equal or missing keys keep the server's order.
-            return base.enumerated().sorted { a, b in
+            return gold + rest.enumerated().sorted { a, b in
                 let ka = a.element.sortKey, kb = b.element.sortKey
                 if let ka, let kb, ka != kb { return ka.utf16.lexicographicallyPrecedes(kb.utf16) }
                 if (ka == nil) != (kb == nil) { return ka != nil }
                 return a.offset < b.offset
             }.map(\.element)
         }
-        if show == .waiting { return base.filter { $0.status == "waiting" } + base.filter { $0.status != "waiting" } }
-        return base
+        if show == .waiting { return gold + rest.filter { $0.status == "waiting" } + rest.filter { $0.status != "waiting" } }
+        return gold + rest
     }
 
     /// Who is waiting on a reply and how many of them are late ("4 waiting · 1 late").
