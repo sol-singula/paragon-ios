@@ -44,7 +44,6 @@
 		9C0C8A256DBC6A8A98273544 /* TeamBell.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17DE6809FADC88837910EC0 /* TeamBell.swift */; };
 		9EDDB15FB858C7822E8AA2F9 /* CallScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34909A603EEA24631BDE1E52 /* CallScreen.swift */; };
 		A02E970E093BD8528FDF76F6 /* RemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333DD5D9632078211CA6CBF3 /* RemoteImage.swift */; };
-		A2B489F0935C52BE462F7C82 /* AlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518DB2AA45DF8453EC06C55B /* AlertsView.swift */; };
 		A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */; };
 		AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */; };
 		AE1ECAAB55050FEC0CA592F0 /* ringtone-low-classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = 96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */; };
@@ -85,7 +84,6 @@
 		4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxModel.swift; sourceTree = "<group>"; };
 		4DFAC2046693956AFC3F5427 /* Face.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Face.swift; sourceTree = "<group>"; };
 		4F49338858521F025132FABB /* TeamComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamComposer.swift; sourceTree = "<group>"; };
-		518DB2AA45DF8453EC06C55B /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
 		5365F897E8EDAE5FC80D97F2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		6035F3E49FE86048CAD2C599 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
@@ -169,14 +167,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		29052B206A2544787D1D60E0 /* Alerts */ = {
-			isa = PBXGroup;
-			children = (
-				518DB2AA45DF8453EC06C55B /* AlertsView.swift */,
-			);
-			path = Alerts;
-			sourceTree = "<group>";
-		};
 		42FD86229EA27573977AC523 /* Inbox */ = {
 			isa = PBXGroup;
 			children = (
@@ -202,7 +192,6 @@
 		590A042895D4047B329D8880 /* Features */ = {
 			isa = PBXGroup;
 			children = (
-				29052B206A2544787D1D60E0 /* Alerts */,
 				4CA336E644ADF1B12D61502D /* Conversation */,
 				42FD86229EA27573977AC523 /* Inbox */,
 				FF4B81C0F1647D81B7041361 /* Personal */,
@@ -428,7 +417,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA4417210661B52D92B1A27F /* API.swift in Sources */,
-				A2B489F0935C52BE462F7C82 /* AlertsView.swift in Sources */,
 				9A0F82C7EFCCDFF6D8298832 /* AppConfig.swift in Sources */,
 				644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */,
 				3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */,
