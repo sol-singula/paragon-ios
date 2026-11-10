@@ -142,7 +142,7 @@ struct NotificationsView: View {
             }
             if let p = model.prefs {
                 Section {
-                    Text("Yours alone, on every phone and computer you sign in on. Everything still lands in Alerts; these decide what pops up and what makes a sound.")
+                    Text("Yours alone, on every phone and computer you sign in on. These decide what pops up and what makes a sound.")
                         .font(.meta).foregroundStyle(Theme.muted)
                 }
                 .listRowBackground(Theme.bg)

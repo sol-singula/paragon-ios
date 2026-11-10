@@ -10,7 +10,8 @@ struct LineOf: Equatable, Hashable { let id: String; let name: String }
 final class Router {
     static let shared = Router()
 
-    enum Tab: Hashable { case inbox, personal, team, alerts, settings }
+    /// No Alerts tab (founder, 2026-11-10: "Remove the 'alerts' page on iOS").
+    enum Tab: Hashable { case inbox, personal, team, settings }
 
     var tab: Tab = .inbox
     var inboxPath: [Route] = []
@@ -49,7 +50,9 @@ final class Router {
         } else if let person {
             open(.person(personId: person, threadId: thread))
         } else {
-            tab = .alerts
+            // Nothing to open (an owner's page about a line, say): the inbox.
+            tab = .inbox
+            inboxPath = []
         }
     }
 }

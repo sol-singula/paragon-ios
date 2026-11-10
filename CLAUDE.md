@@ -81,7 +81,10 @@ need to be able to ring the phone and send notifications".
   conversations, `paragon_badge_count()` (`Badge.refresh`, at launch, on
   coming to the front, after every inbox load); paragon-push sends the same
   number on every push and a badge-only push when it changes. Team and
-  Alerts tabs carry no badge.
+  Alerts tabs carry no badge. **No Alerts page** (founder, same day:
+  "Remove the 'alerts' page on iOS"): the tab, `AlertsView` and
+  `AlertsModel` are gone; pushes still arrive, and a tapped one opens its
+  conversation (or Personal, or Team), else the inbox (`Router.open(push:)`).
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.

@@ -46,7 +46,6 @@ struct MainTabs: View {
     @Environment(Router.self) private var router
     @Environment(CallManager.self) private var calls
     @Environment(Session.self) private var session
-    @MainActor private var alerts: AlertsModel { AlertsModel.shared }
     @MainActor private var team: TeamModel { TeamModel.shared }
     @MainActor private var inbox: InboxModel { InboxModel.shared }
     @MainActor private var keyboard: KeyboardWatcher { KeyboardWatcher.shared }
@@ -64,7 +63,6 @@ struct MainTabs: View {
                 InboxView().hidesSystemTabBar().tag(Router.Tab.inbox)
                 PersonalView().hidesSystemTabBar().tag(Router.Tab.personal)
                 TeamView().hidesSystemTabBar().tag(Router.Tab.team)
-                AlertsView().hidesSystemTabBar().tag(Router.Tab.alerts)
                 SettingsView().hidesSystemTabBar().tag(Router.Tab.settings)
             }
             if showsBar {
@@ -77,7 +75,6 @@ struct MainTabs: View {
         .overlay { ToastView() }
         .animation(.easeOut(duration: 0.2), value: calls.ended)
         .sheet(item: $followUp) { t in PromiseSheet(target: t) { _ in Task { await inbox.load() } } }
-        .task { await alerts.poll() }
         .task { await inbox.poll() }
         .task { await team.poll() }
         .task { await TeamStore.shared.poll() }
@@ -98,14 +95,13 @@ struct MainTabs: View {
 
     private var items: [ParagonTabBar.Item] {
         // One badge (founder, 2026-11-10): the late waiting conversations,
-        // on the Inbox tab and the app icon. Team chat, Alerts and promises
-        // carry none.
+        // on the Inbox tab and the app icon. Team chat and promises carry
+        // none, and there is no Alerts tab (founder, 2026-11-10).
         let late = inbox.badge
         return [
             .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: late > 0 ? count(late) : nil),
             .init(tab: .personal, title: "Personal", symbol: "person", badge: nil),
             .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right", badge: nil),
-            .init(tab: .alerts, title: "Alerts", symbol: "bell", badge: nil),
             .init(tab: .settings, title: "Settings", symbol: "gearshape", badge: nil),
         ]
     }
