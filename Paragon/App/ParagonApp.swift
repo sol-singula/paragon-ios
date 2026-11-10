@@ -37,6 +37,7 @@ struct ParagonApp: App {
         }
         .onChange(of: phase) { _, now in
             if now == .active {
+                Task { await Session.shared.wake() }
                 PushManager.shared.refreshBadge()
                 Presence.shared.retrack()
                 Task { await TeamModel.shared.load() }

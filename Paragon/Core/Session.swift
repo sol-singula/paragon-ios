@@ -40,8 +40,7 @@ final class Session {
                 return
             } catch {
                 if Supa.client.auth.currentSession == nil || Self.isDefinitiveAuthFailure(error) {
-                    reconnecting = false
-                    state = .signedOut
+                    await renewOrSignOut()
                     return
                 }
                 reconnecting = true
@@ -51,15 +50,73 @@ final class Session {
         }
     }
 
-    /// The SDK says signed out only after a definitive answer or Sign out.
+    /// Back in front (or woken for a call): refresh now rather than on the
+    /// SDK's next tick, and renew if the session was time-boxed meanwhile.
+    func wake() async {
+        guard !signingOut, !renewing else { return }
+        switch state {
+        case .ready, .notMember, .loading: break
+        case .signedOut:
+            // Signed out by a time-box while asleep, with a key still here.
+            if DeviceKey.stored != nil { await renewOrSignOut() }
+            return
+        }
+        do {
+            _ = try await Supa.client.auth.session
+            noteConnected()
+            await DeviceKey.ensure()
+        } catch {
+            if Supa.client.auth.currentSession == nil || Self.isDefinitiveAuthFailure(error) { await renewOrSignOut() }
+            else { reconnecting = true }
+        }
+    }
+
+    /// The SDK says signed out after a definitive answer or Sign out. A
+    /// definitive answer is first tried against this install's device key
+    /// (Supabase time-boxes every session at 12 hours: `session_expired`).
     private func watchSignOut() {
         guard !watching else { return }
         watching = true
         Task { [weak self] in
-            for await (event, _) in Supa.client.auth.authStateChanges where event == .signedOut {
+            for await (event, session) in Supa.client.auth.authStateChanges {
                 guard let self else { return }
-                self.reconnecting = false
-                self.state = .signedOut
+                switch event {
+                case .signedOut:
+                    if self.signingOut || self.renewing { continue }
+                    Task { await self.renewOrSignOut() }
+                case .signedIn, .tokenRefreshed, .initialSession:
+                    if session != nil { Task { await DeviceKey.ensure() } }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    private var signingOut = false
+    private var renewing = false
+
+    /// Only a refused device key signs out; anything else keeps trying with
+    /// backoff while "Reconnecting…" shows.
+    private func renewOrSignOut() async {
+        guard !renewing else { return }
+        renewing = true
+        defer { renewing = false }
+        var attempt = 0
+        while !signingOut {
+            switch await DeviceKey.renew() {
+            case .renewed:
+                reconnecting = false
+                await loadMe()
+                return
+            case .dead:
+                reconnecting = false
+                state = .signedOut
+                return
+            case .retry:
+                reconnecting = true
+                try? await Task.sleep(for: Self.backoff(attempt))
+                attempt += 1
             }
         }
     }
@@ -96,16 +153,22 @@ final class Session {
         defer { working = false }
         do {
             try await Supa.client.auth.signIn(email: email.trimmingCharacters(in: .whitespaces), password: password)
+            await DeviceKey.ensure()
             await loadMe()
         } catch {
             self.error = Self.friendly(error)
         }
     }
 
+    /// Sign out is this phone only (the SDK's default, global, also ended the
+    /// person's desktop and website sessions) and revokes the device key.
     func signOut() async {
+        signingOut = true
+        defer { signingOut = false }
         await PushManager.shared.forgetDevice()
         await CallManager.shared.unregister()
-        try? await Supa.client.auth.signOut()
+        await DeviceKey.revoke()
+        try? await Supa.client.auth.signOut(scope: .local)
         state = .signedOut
     }
 
@@ -128,8 +191,8 @@ final class Session {
                 return
             } catch {
                 if Supa.client.auth.currentSession == nil || Self.isDefinitiveAuthFailure(error) {
-                    reconnecting = false
-                    state = .signedOut
+                    if renewing { return }
+                    await renewOrSignOut()
                     return
                 }
                 reconnecting = true

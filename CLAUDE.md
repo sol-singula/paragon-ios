@@ -18,6 +18,18 @@ need to be able to ring the phone and send notifications".
   the session; a network error, timeout or 5xx keeps it, `Session` retries
   with backoff and RootView shows "Reconnecting…". A failed data call never
   signs out. Same rule as the desktop's `web/src/lib/connection.ts`.
+- **Signed in until Sign out** (founder, 2026-11-10: "they should never have
+  to sign in again"). Supabase time-boxes every session at 12 hours
+  (`session_expired`; every Paragon sign-out in the logs was that). The
+  session stays in the keychain (`Supa`: `KeychainLocalStorage`, service
+  supabase.gotrue.swift, after first unlock), and `Core/DeviceKey.swift`
+  holds this install's device key (paragon-renew, the desktop's
+  `lib/renew.ts`): when the SDK drops a session, `Session.renewOrSignOut`
+  trades the key for a new one (`verifyOTP` magiclink) and only a 401
+  `device_key_refused` (signed out here, removed from Paragon, banned,
+  password changed) shows Sign in. Foreground runs `Session.wake()`. Sign
+  out is `.local` (the SDK's default ended the desktop's session too) and
+  revokes the key. Build 15.
 - **Look.** `Design/Theme.swift` is the desktop's dark theme colour for colour.
   Branch circles follow the desktop's `lib/branches.ts` (SO orange, SH green,
   JG blue, BS white, everything else purple). Atlas is always the violet ring.
