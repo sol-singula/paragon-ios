@@ -12,10 +12,9 @@ struct PromiseTarget: Identifiable, Hashable {
     enum Mode: Hashable {
         /// A new promise: WHO, WHEN, WHAT.
         case add
-        /// WHO again, for a promise or an Atlas card.
-        case hand(itemId: String, promise: Bool)
-        /// WHEN (and WHAT for a promise).
-        case change(itemId: String, promise: Bool, due: String?, text: String)
+        /// Change… (founder, 2026-11-10: no more "handing" off): WHO, WHEN,
+        /// and WHAT for a promise, in one sheet. `owner` is who has it now.
+        case change(itemId: String, promise: Bool, due: String?, text: String, owner: String?)
     }
 
     let threadId: String
@@ -28,18 +27,13 @@ struct PromiseTarget: Identifiable, Hashable {
     var id: String {
         switch mode {
         case .add: return "add-\(threadId)"
-        case .hand(let i, _): return "hand-\(i)"
-        case .change(let i, _, _, _): return "change-\(i)"
+        case .change(let i, _, _, _, _): return "change-\(i)"
         }
-    }
-
-    static func hand(_ item: RowItem, thread: String, personId: String?, name: String) -> PromiseTarget {
-        PromiseTarget(threadId: item.threadId ?? thread, personId: personId, name: name, mode: .hand(itemId: item.id, promise: item.isPromise))
     }
 
     static func change(_ item: RowItem, thread: String, personId: String?, name: String) -> PromiseTarget {
         PromiseTarget(threadId: item.threadId ?? thread, personId: personId, name: name,
-                      mode: .change(itemId: item.id, promise: item.isPromise, due: item.dueAt, text: item.title ?? ""))
+                      mode: .change(itemId: item.id, promise: item.isPromise, due: item.dueAt, text: item.title ?? "", owner: item.ownerId))
     }
 }
 
@@ -130,15 +124,12 @@ enum DueTime {
         return "\(monthDay.string(from: d)) \(time.string(from: d))"
     }
 
-    /// "in 25 min", "in 3 h", "late 40 min", relative to the due time.
+    /// Short (founder, 2026-11-10): "in 25m", "in 3h", "40m late", "4h late", "2d late".
     static func relative(_ s: String?, now: Date = Date()) -> String {
         guard let d = Stamp.date(s) else { return "" }
         let mins = Int((abs(d.timeIntervalSince(now)) / 60).rounded())
-        let span: String
-        if mins < 60 { span = "\(mins) min" }
-        else if mins < 24 * 60 { span = mins % 60 == 0 || mins >= 6 * 60 ? "\(mins / 60) h" : "\(mins / 60) h \(mins % 60) min" }
-        else { span = "\(mins / 1440) d" }
-        if d <= now { return "late \(span)" }
+        let span = Stamp.compact(mins)
+        if d <= now { return mins < 1 ? "now" : "\(span) late" }
         return mins < 1 ? "now" : "in \(span)"
     }
 
@@ -194,7 +185,8 @@ enum ItemActions {
     }
 }
 
-/// The four actions on a row's card or promise, for a context menu.
+/// The three actions on a row's card or promise, for a context menu: Done,
+/// Not needed, Change… (WHO, WHEN, WHAT; no separate hand off).
 struct ItemMenu: View {
     let item: RowItem
     let thread: String
@@ -209,9 +201,6 @@ struct ItemMenu: View {
         }
         Button { ItemActions.notNeeded(item.id, promise: item.isPromise, onDone: changed) } label: {
             Label("Not needed", systemImage: "xmark.circle")
-        }
-        Button { open(.hand(item, thread: thread, personId: personId, name: name)) } label: {
-            Label("Hand to…", systemImage: "arrowshape.turn.up.right")
         }
         Button { open(.change(item, thread: thread, personId: personId, name: name)) } label: {
             Label("Change…", systemImage: "clock.arrow.circlepath")
@@ -244,31 +233,30 @@ struct PromiseSheet: View {
         self.target = target
         self.onSaved = onSaved
         switch target.mode {
-        case .change(_, _, let d, let t):
+        case .change(_, _, let d, let t, let o):
             // As it stands (late or not): WHEN is only sent when it is changed.
             _due = State(initialValue: Stamp.date(d) ?? Self.inAnHour())
             _text = State(initialValue: t)
+            _owner = State(initialValue: o)
         default:
             _due = State(initialValue: Self.inAnHour())
             _text = State(initialValue: target.prefill ?? "")
         }
     }
 
-    private var showsWho: Bool { if case .change = target.mode { return false }; return true }
-    private var showsWhen: Bool { if case .hand = target.mode { return false }; return true }
+    private let showsWho = true
+    private let showsWhen = true
     private var showsWhat: Bool {
         switch target.mode {
         case .add: return true
-        case .hand: return false
-        case .change(_, let promise, _, _): return promise
+        case .change(_, let promise, _, _, _): return promise
         }
     }
 
     private var title: String {
         switch target.mode {
         case .add: return "Add promise"
-        case .hand: return "Hand to…"
-        case .change(_, let promise, _, _): return promise ? "Change promise" : "Move card"
+        case .change: return "Change…"
         }
     }
 
@@ -278,8 +266,7 @@ struct PromiseSheet: View {
         if busy { return false }
         switch target.mode {
         case .add: return owner != nil && !trimmed.isEmpty && trimmed.count <= 200
-        case .hand: return owner != nil
-        case .change(_, let promise, _, _): return !promise || (!trimmed.isEmpty && trimmed.count <= 200)
+        case .change(_, let promise, _, _, _): return !promise || (!trimmed.isEmpty && trimmed.count <= 200)
         }
     }
 
@@ -488,6 +475,7 @@ struct PromiseSheet: View {
     /// the moment Save is tapped; the call runs behind it, and a refusal is a
     /// toast with the server's words (the lists read again).
     private func save() {
+        var reassigned = false
         busy = true
         error = nil
         let chosen = people.first { $0.id == owner }
@@ -504,29 +492,33 @@ struct PromiseSheet: View {
                 if let hint = vague { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: hint, text: text) }
                 else { try await API.promiseAdd(thread: target.threadId, owner: to, due: due, text: text) }
             }
-        case .hand(let id, let promise):
-            guard let owner = owner else { busy = false; return }
-            Toast.shared.show("Handed to \(chosen?.first ?? "them")")
-            if toOther { GoneIDs.shared.hide(id) }
-            work = {
-                do {
-                    if promise { try await API.promiseReassign(id, owner: owner) }
-                    else { try await API.atlasCardHand(id, to: owner) }
-                } catch { if toOther { GoneIDs.shared.putBack(id) }; throw error }
-            }
-        case .change(let id, let promise, let before, let was):
+        case .change(let id, let promise, let before, let was, let had):
             let moved = Stamp.date(before).map { abs($0.timeIntervalSince(due)) >= 60 } ?? true
             let edited = promise && text != was.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard moved || edited else { dismiss(); return }
-            Toast.shared.show(moved ? "Due \(DueTime.label(due))" : "Promise updated")
+            let newOwner = owner != nil && owner != had ? owner : nil
+            guard moved || edited || newOwner != nil else { dismiss(); return }
+            if newOwner != nil { reassigned = true }
+            Toast.shared.show(newOwner != nil ? (toOther ? "Now \(chosen?.first ?? "theirs")'s" : "It is yours now")
+                              : moved ? "Due \(DueTime.label(due))" : "Promise updated")
+            if newOwner != nil && toOther { GoneIDs.shared.hide(id) }
+            // The time and text first, while I can still act on it; then WHO.
             work = {
-                if promise { try await API.promiseUpdate(id, due: moved ? due : nil, text: edited ? text : nil) }
-                else { try await API.atlasCardAct(id, action: "move", due: API.iso.string(from: due)) }
+                do {
+                    if moved || edited {
+                        if promise { try await API.promiseUpdate(id, due: moved ? due : nil, text: edited ? text : nil) }
+                        else { try await API.atlasCardAct(id, action: "move", due: API.iso.string(from: due)) }
+                    }
+                    if let o = newOwner {
+                        if promise { try await API.promiseReassign(id, owner: o) }
+                        else { try await API.atlasCardHand(id, to: o) }
+                    }
+                } catch { if newOwner != nil && toOther { GoneIDs.shared.putBack(id) }; throw error }
             }
         }
         dismiss()
+        let saidOwner = isAdd || reassigned ? chosen : nil
         Task { @MainActor in
-            do { try await work(); onSaved(chosen) }
+            do { try await work(); onSaved(saidOwner) }
             catch {
                 Toast.shared.show(error.localizedDescription, error: true)
                 await InboxModel.shared.load()
@@ -540,7 +532,6 @@ struct OpenPromises: View {
     let promises: [ThreadPromise]
     let meId: String?
     let open: (ThreadPromise) -> Void
-    let hand: (ThreadPromise) -> Void
     let changed: () -> Void
 
     @State private var inbox = InboxModel.shared
@@ -594,8 +585,9 @@ struct OpenPromises: View {
         HStack(spacing: 8) {
             Image(systemName: "hand.raised.fill").font(.system(size: 11)).foregroundStyle(Theme.violet)
             Text(p.what).font(.system(size: 13)).foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
-            if p.memberId != nil, p.memberId == meId {
-                Text("Yours").font(.tag).foregroundStyle(Theme.violet)
+            // Whose it is, by name (founder, 2026-11-10: never "you" or "team").
+            if let m = p.memberId, let n = TeamStore.shared.byId[m]?.name.split(separator: " ").first {
+                Text(String(n)).font(.tag).foregroundStyle(Theme.violet)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(RoundedRectangle(cornerRadius: 5).fill(Theme.violet.opacity(0.16)))
             }
@@ -604,7 +596,6 @@ struct OpenPromises: View {
             Menu {
                 Button { ItemActions.done(p.id, promise: true, onDone: changed) } label: { Label("Done", systemImage: "checkmark.circle") }
                 Button { ItemActions.notNeeded(p.id, promise: true, onDone: changed) } label: { Label("Not needed", systemImage: "xmark.circle") }
-                Button { hand(p) } label: { Label("Hand to…", systemImage: "arrowshape.turn.up.right") }
                 Button { open(p) } label: { Label("Change…", systemImage: "clock.arrow.circlepath") }
             } label: {
                 Image(systemName: "ellipsis").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.secondary)

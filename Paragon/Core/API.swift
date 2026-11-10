@@ -101,6 +101,11 @@ enum API {
         try await rpc("paragon_ui_prefs_set", ["p": p], as: UiPrefs?.self)
     }
 
+    /// The app icon badge: my late waiting conversations (paragon_badge_count).
+    static func badgeCount() async throws -> Int {
+        try await rpc("paragon_badge_count", as: Int?.self) ?? 0
+    }
+
     static func queue(homeownersOnly: Bool, brand: String?, search: String?) async throws -> [QueueItem] {
         try await rpc("paragon_queue", ["p_homeowners_only": homeownersOnly, "p_brand": brand, "p_search": search], as: [QueueItem]?.self) ?? []
     }

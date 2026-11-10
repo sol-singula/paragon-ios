@@ -29,13 +29,17 @@ enum Stamp {
         return withFraction.date(from: s) ?? plain.date(from: s)
     }
 
+    /// Short (founder, 2026-11-10: "say 29m late or 4h late"): "4m", "2h", "3d".
     static func span(_ from: String?, to: Date = Date()) -> String {
         guard let d = date(from) else { return "" }
-        let mins = max(0, Int((to.timeIntervalSince(d) / 60).rounded()))
-        if mins < 60 { return "\(mins) min" }
+        return compact(max(0, Int((to.timeIntervalSince(d) / 60).rounded())))
+    }
+
+    /// Minutes as "29m", "4h" (whole hours, minutes dropped), "2d".
+    static func compact(_ mins: Int) -> String {
+        if mins < 60 { return "\(mins)m" }
         let h = mins / 60
-        if h < 24 { return mins % 60 == 0 ? "\(h) h" : "\(h) h \(mins % 60) min" }
-        return "\(h / 24) d"
+        return h < 24 ? "\(h)h" : "\(h / 24)d"
     }
 
     private static let time: DateFormatter = { let f = DateFormatter(); f.dateFormat = "h:mm a"; f.amSymbol = "am"; f.pmSymbol = "pm"; return f }()

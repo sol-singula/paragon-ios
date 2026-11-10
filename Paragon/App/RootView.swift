@@ -97,14 +97,15 @@ struct MainTabs: View {
     }
 
     private var items: [ParagonTabBar.Item] {
-        // Waiting rows plus the overdue promises that are mine.
-        let waiting = inbox.badge
+        // One badge (founder, 2026-11-10): the late waiting conversations,
+        // on the Inbox tab and the app icon. Team chat, Alerts and promises
+        // carry none.
+        let late = inbox.badge
         return [
-            .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: waiting > 0 ? count(waiting) : nil),
+            .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: late > 0 ? count(late) : nil),
             .init(tab: .personal, title: "Personal", symbol: "person", badge: nil),
-            .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right",
-                  badge: team.mentioned ? "@" : (team.badge > 0 ? count(team.badge) : nil)),
-            .init(tab: .alerts, title: "Alerts", symbol: "bell", badge: alerts.unread > 0 ? count(alerts.unread) : nil),
+            .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right", badge: nil),
+            .init(tab: .alerts, title: "Alerts", symbol: "bell", badge: nil),
             .init(tab: .settings, title: "Settings", symbol: "gearshape", badge: nil),
         ]
     }

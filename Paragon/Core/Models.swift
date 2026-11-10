@@ -151,7 +151,7 @@ struct RowItem: Decodable, Hashable, Identifiable {
 
 /// A promise on a conversation (`paragon_thread_promises`, the card's own
 /// shape). The owner's name is never read (no owner's name anywhere);
-/// `memberId` is only for "Yours".
+/// `memberId` names whose it is (their first name, from the team).
 struct ThreadPromise: Decodable, Hashable, Identifiable {
     let id: String
     let kind: String?

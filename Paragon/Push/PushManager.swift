@@ -73,6 +73,6 @@ final class PushManager {
     }
 
     func refreshBadge() {
-        Task { await AlertsModel.shared.load() }
+        Task { await Badge.refresh(); await AlertsModel.shared.load() }
     }
 }

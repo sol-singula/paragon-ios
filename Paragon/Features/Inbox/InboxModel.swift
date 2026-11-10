@@ -7,7 +7,8 @@ final class InboxModel {
     /// One for the app, so the tab bar can show the waiting count.
     static let shared = InboxModel()
 
-    enum Show: Hashable { case waiting, owed, all }
+    /// Waiting and All (founder, 2026-11-10: no Owed; everything is promises).
+    enum Show: Hashable { case waiting, all }
 
     var show: Show = .waiting
     /// No Who picker (founder, 2026-11-09: remove "contractors and internal
@@ -34,19 +35,18 @@ final class InboxModel {
     private var visible: [QueueItem] { cleared.isEmpty ? items : items.filter { cleared[$0.personId] == nil } }
 
     /// One order per tab, no Sort control (founder, 2026-11-09): All is every
-    /// conversation, most recent activity first. Waiting (and Owed) is the
+    /// conversation, most recent activity first. Waiting is the
     /// server's urgency order (one rule, every client): overdue first, then
     /// the soonest due, promises and cards in among the waiting
     /// conversations. `sort_key` keeps it after any merge; an older server
-    /// without it gets its old order, waiting before owed. The next
+    /// without it gets its old order, waiting first. The next
     /// conversation after one closes follows this order.
     var shown: [QueueItem] {
         _ = localTick
         let rows = visible
         let base: [QueueItem]
         switch show {
-        case .waiting: base = rows.filter { $0.status == "waiting" || $0.status == "owed" || $0.isAtlas }
-        case .owed: base = rows.filter { $0.status == "owed" }
+        case .waiting: base = rows.filter { $0.status == "waiting" || $0.isAtlas }
         case .all: base = rows
         }
         if show == .all { return recent(base) }
@@ -63,24 +63,22 @@ final class InboxModel {
         return base
     }
 
-    /// Who is waiting on a reply, how many of them are late, and how many
-    /// replies we owe ("4 waiting · 1 late · 2 owed").
-    var counts: (waiting: Int, late: Int, owed: Int) {
-        var waiting = 0, late = 0, owed = 0
-        for q in visible {
-            if q.status == "waiting" {
-                waiting += 1
-                if q.tone == .late || (q.dueSource == "clock" && q.isOverdue) { late += 1 }
-            } else if q.status == "owed" {
-                owed += 1
-            }
+    /// Who is waiting on a reply and how many of them are late ("4 waiting · 1 late").
+    var counts: (waiting: Int, late: Int) {
+        var waiting = 0, late = 0
+        for q in visible where q.status == "waiting" {
+            waiting += 1
+            if q.tone == .late || (q.dueSource == "clock" && q.isOverdue) { late += 1 }
         }
-        return (waiting, late, owed)
+        return (waiting, late)
     }
 
-    /// The Inbox tab's count: the waiting rows plus the overdue promises
-    /// that are mine.
-    var badge: Int { counts.waiting + visible.reduce(0) { $0 + $1.overdueMine } }
+    /// The one badge (founder, 2026-11-10: "badge notifications should ONLY
+    /// be the total amount of LATE, waiting conversations"): the server's
+    /// paragon_badge_count(), the same number as the app icon. Read after
+    /// every inbox load (`Badge.refresh`); until then the late count here.
+    var lateBadge: Int?
+    var badge: Int { lateBadge ?? counts.late }
 
     var brands: [String] {
         Array(Set(items.compactMap { $0.firstThread?.brand })).sorted()
@@ -128,6 +126,7 @@ final class InboxModel {
             // Only when the filter is the one this read asked for.
             if filter.0 == brand && filter.1 == show && loaded { followOpen(was: before) }
             error = nil
+            Task { await Badge.refresh() }
         } catch {
             self.error = error.localizedDescription
         }
@@ -254,10 +253,9 @@ final class InboxModel {
         if let p = try? await API.uiPrefs(), let i = p.inbox { apply(i); cache(i) }
     }
 
-    /// Waiting / Owed / All, picked by the person. Owed is not a saved tab.
+    /// Waiting / All, picked by the person.
     func choose(show s: Show) {
         show = s
-        guard s != .owed else { return }
         cache(current)
         save(["tab": s == .all ? "all" : "waiting"])
     }

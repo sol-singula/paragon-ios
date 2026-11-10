@@ -55,7 +55,7 @@ struct InboxView: View {
                 PromiseSheet(target: t) { owner in
                     // Given to someone else: off my inbox at once.
                     if case .add = t.mode, let p = t.personId, owner?.isMe == false { model.clear(personId: p) }
-                    if case .hand(_, true) = t.mode, let p = t.personId, owner?.isMe == false { model.clear(personId: p) }
+                    if case .change(_, true, _, _, _) = t.mode, let p = t.personId, owner?.isMe == false { model.clear(personId: p) }
                     Task { await model.load() }
                 }
             }
@@ -104,7 +104,7 @@ struct InboxView: View {
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
             if model.loaded && model.shown.isEmpty {
-                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : model.show == .owed ? "No replies owed" : "Nothing here",
+                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : "Nothing here",
                           detail: model.show == .all ? nil : "You're caught up.",
                           symbol: "checkmark.circle")
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -257,19 +257,17 @@ struct InboxView: View {
                 Text(summary(c)).font(.system(size: 13)).foregroundStyle(Theme.secondary)
             }
             Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"),
-                                (.owed, c.owed > 0 ? "Owed \(c.owed)" : "Owed"),
                                 (.all, "All")],
                       selection: Binding(get: { model.show }, set: { model.choose(show: $0) }))
         }
     }
 
-    /// "4 waiting · 1 late · 2 owed"; only what there is.
-    private func summary(_ c: (waiting: Int, late: Int, owed: Int)) -> String {
+    /// "4 waiting · 1 late"; only what there is.
+    private func summary(_ c: (waiting: Int, late: Int)) -> String {
         guard model.loaded else { return " " }
         var parts = ["\(c.waiting) waiting"]
         if c.late > 0 { parts.append("\(c.late) late") }
-        if c.owed > 0 { parts.append("\(c.owed) owed") }
-        return c.waiting == 0 && c.owed == 0 ? "Nobody is waiting" : parts.joined(separator: " · ")
+        return c.waiting == 0 ? "Nobody is waiting" : parts.joined(separator: " · ")
     }
 
     private var filterMenu: some View {
@@ -320,47 +318,46 @@ struct QueueRow: View {
                     Spacer(minLength: 4)
                     Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                 }
+                // Always two lines (founder, 2026-11-10): the promise (WHO · WHAT)
+                // or the last message, never both.
+                if let i = q.leadItem { itemLine(i) } else {
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     // A missed call (or a voicemail, which is one) reads in rose (founder, 2026-11-09).
                     .font(.system(size: 14)).foregroundStyle(
                         (q.preview?.hasPrefix("Missed call") == true || q.preview?.hasPrefix("Voicemail") == true) ? Theme.rose
                         : q.status == "closed" ? Theme.muted : Theme.secondary)
                     .lineLimit(1).truncationMode(.tail)
-                if let i = q.leadItem { itemLine(i) }
+                }
             }
         }
     }
 
-    /// Who, when, what of the row's leading card or promise, in one line.
+    /// Who and what of the row's leading card or promise, in one line. No
+    /// time (founder, 2026-11-10): it comes up in the inbox when it is due.
     private func itemLine(_ i: RowItem) -> some View {
         HStack(spacing: 4) {
             if i.byHand { Image(systemName: "hand.raised.fill").font(.system(size: 9)) }
             else { AtlasRing(size: 10) }
             Text(who(i)).fontWeight(.semibold)
-            if i.dueAt != nil {
-                Text("·")
-                Text(DueTime.relative(i.dueAt)).foregroundStyle(i.isOverdue ? Theme.rose : Theme.violet.opacity(0.9))
-            }
             Text("·")
             Text(i.what).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
             if q.rowItems.count > 1 {
                 Text("+\(q.rowItems.count - 1)").foregroundStyle(Theme.muted).layoutPriority(1)
             }
         }
-        .font(.system(size: 12.5))
+        .font(.system(size: 14))
         .foregroundStyle(Theme.violet)
         .lineLimit(1)
         .accessibilityElement(children: .combine)
     }
 
-    /// Never another person's name on a row (founder: showing a lead's
-    /// "owner" keeps everyone else from touching it): "You", "Team", Atlas,
-    /// else "A teammate". The conversation's promise list names them.
+    /// The staff member's first name (founder, 2026-11-10: "dont say 'you'
+    /// or 'team' anymore, say the name of the staff member"); Atlas for one
+    /// of Atlas's cards; "Anyone" for a promise nobody has.
     private func who(_ i: RowItem) -> String {
-        if i.mine == true { return "You" }
-        if i.team == true { return "Team" }
-        if !i.byHand { return "Atlas" }
-        return "A teammate"
+        if !i.isPromise && !i.byHand { return "Atlas" }
+        if let o = i.ownerId, let n = TeamStore.shared.byId[o]?.name.split(separator: " ").first { return String(n) }
+        return "Anyone"
     }
 
     /// Relative to the row's due time when it has one (overdue in rose);
@@ -368,22 +365,22 @@ struct QueueRow: View {
     private var clock: String {
         if q.dueAt != nil {
             if q.isOverdue { return DueTime.relative(q.dueAt) }
-            if q.dueSource != "clock" { return DueTime.relative(q.dueAt) }
+            // A promise or card ahead: no time or date, the last activity.
+            if q.dueSource != "clock" { return Stamp.when(q.lastActivityAt) }
         }
         switch q.status {
         case "waiting": return Stamp.span(q.waitingSince)
-        case "owed": return "Owed"
         default: return Stamp.when(q.lastActivityAt)
         }
     }
 
     private var clockColor: Color {
         if q.dueAt != nil, q.isOverdue { return Theme.rose }
-        if q.dueAt != nil, q.dueSource != "clock" { return DueTime.color(q.dueAt) }
+        if q.dueAt != nil, q.dueSource != "clock" { return Theme.muted }
         switch q.tone {
         case .late: return Theme.rose
         case .soon: return Theme.amber
-        case .calm: return q.status == "owed" ? Theme.amber : Theme.muted
+        case .calm: return Theme.muted
         }
     }
 }

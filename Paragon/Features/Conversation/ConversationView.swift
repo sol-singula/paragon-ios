@@ -30,8 +30,7 @@ struct ConversationView: View {
             if let v = view {
                 if !promises.isEmpty {
                     OpenPromises(promises: promises, meId: session.me?.id,
-                                 open: { p in promising = target(p, change: true) },
-                                 hand: { p in promising = target(p, change: false) },
+                                 open: { p in promising = target(p) },
                                  changed: { Task { await load() } })
                 }
                 if v.threads.count > 1 { chips(v) }
@@ -71,7 +70,7 @@ struct ConversationView: View {
         .sheet(item: $promising) { t in
             PromiseSheet(target: t) { owner in
                 if case .add = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
-                if case .hand = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
+                if case .change = t.mode, owner?.isMe == false { InboxModel.shared.clear(personId: personId) }
                 Task { await load(); await InboxModel.shared.load() }
             }
         }
@@ -88,12 +87,12 @@ struct ConversationView: View {
         promising = PromiseTarget(threadId: t, personId: personId, name: view?.person.name ?? "")
     }
 
-    private func target(_ p: ThreadPromise, change: Bool) -> PromiseTarget {
+    /// Change… : WHO, WHEN, WHAT (no separate hand off, founder 2026-11-10).
+    private func target(_ p: ThreadPromise) -> PromiseTarget {
         let thread = p.threadId ?? currentThread ?? ""
         let name = view?.person.name ?? ""
-        return change
-            ? PromiseTarget(threadId: thread, personId: personId, name: name, mode: .change(itemId: p.id, promise: true, due: p.dueAt, text: p.title ?? ""))
-            : PromiseTarget(threadId: thread, personId: personId, name: name, mode: .hand(itemId: p.id, promise: true))
+        return PromiseTarget(threadId: thread, personId: personId, name: name,
+                             mode: .change(itemId: p.id, promise: true, due: p.dueAt, text: p.title ?? "", owner: p.memberId))
     }
 
     /// Their house, from Nexus's saved Street View, as a short banner

@@ -17,7 +17,6 @@ final class AlertsModel {
         do {
             items = try await API.notifications()
             error = nil
-            UNBadge.set(unread)
         } catch { self.error = error.localizedDescription }
     }
 
@@ -32,8 +31,15 @@ final class AlertsModel {
     }
 }
 
-enum UNBadge {
-    static func set(_ n: Int) {
+/// The app icon's number, and the Inbox tab's: LATE waiting conversations
+/// only (founder, 2026-11-10), paragon_badge_count() on the server, the same
+/// number paragon-push sends. Never unread alerts, Team chat or promises.
+/// Read at launch, on coming to the front and after every inbox load.
+enum Badge {
+    @MainActor
+    static func refresh() async {
+        guard let n = try? await API.badgeCount() else { return }
+        InboxModel.shared.lateBadge = n
         UNUserNotificationCenter.current().setBadgeCount(n) { _ in }
     }
 }

@@ -46,8 +46,7 @@ need to be able to ring the phone and send notifications".
   due …"; Done / Not needed / Hand / Change / Add / Release are instant
   (`GoneIDs`, `InboxModel.localTick`, back on a refusal); the timeline
   re-settles at the bottom; the composer is one line, placeholder "Message".
-- **Build 8, 2026-11-09**: the inbox tab (Waiting / All; Owed is not
-  saved), branch filter and homeowners-only are the person's
+- **Build 8, 2026-11-09**: the inbox tab (Waiting / All), branch filter and homeowners-only are the person's
   (`paragon_ui_prefs` / `_set`, as on the desktop): a UserDefaults copy
   applies at launch, the server's answer wins before the first queue read
   (`InboxModel.loadPrefs`, `choose(show:)`, `choose(brand:)`). No Who picker.
@@ -69,6 +68,20 @@ need to be able to ring the phone and send notifications".
   the new name is on the row and header at once, `paragon_person_rename`
   runs behind it, a refusal puts the old one back with the reason, and the
   toast "Renamed to X · Undo" (`Toast.show(action:)`) renames back.
+- **Build 11, 2026-11-10** (founder): everything is promises, nothing is
+  owed: tabs are Waiting / All (`InboxModel.Show`), no Owed tab, label or
+  count. No "Hand to…": the promise sheet's Change… (`PromiseTarget.Mode
+  .change`, now with `owner`) is WHO, WHEN, WHAT; a new WHO saves after the
+  time and text (`paragon_promise_reassign` / card_act 'hand'). Rows are
+  always two lines (the promise as Name · what, or the preview); a promise
+  shows no time on the row (it comes up when due), only "29m late" once
+  late; owners by first name, never You / Team ("Anyone" when nobody has
+  it); every span is short (`Stamp.compact`: 29m, 4h, 2d). **The one
+  badge**: the app icon and the Inbox tab show only LATE waiting
+  conversations, `paragon_badge_count()` (`Badge.refresh`, at launch, on
+  coming to the front, after every inbox load); paragon-push sends the same
+  number on every push and a badge-only push when it changes. Team and
+  Alerts tabs carry no badge.
 - **Notifications.** paragon-push sends APNs for `paragon.notifications` rows
   and personal-line texts. No automatic texts to customers come from here:
   everything the app sends is a person pressing Send.
@@ -150,7 +163,7 @@ need to be able to ring the phone and send notifications".
   (`InboxModel.clear`) and `Toast` says "Promised to Ryan · due 9:00 am".
   The Atlas guide is gone: a row with `atlas` (or items) is a conversation
   row tinted violet with a thin violet edge and one who · when · what line
-  (`QueueRow.itemLine`); its menu has Done, Not needed, Hand to…, Change…
+  (`QueueRow.itemLine`); its menu has Done, Not needed, Change…
   (promises through `paragon_promise_*`, other cards through
   `paragon_atlas_card_act`). Most urgent is the server's order
   (`sort_key`, plain code-unit compare); overdue is rose and relative to
