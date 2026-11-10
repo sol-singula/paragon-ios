@@ -12,6 +12,7 @@
 		0A03A896C3C7B27842E1C3AC /* TeamMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A116009D8FF074AF1E4FCE3E /* TeamMessageRow.swift */; };
 		132382C6904C555AC128E180 /* DeviceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */; };
 		163777340452D02C27B7BCE9 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33203CA6ABF49F46B6E591 /* Router.swift */; };
+		184C7726C4A0AF6E6D0375C4 /* FeedBand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CB6E37F0CEF7FF191C87DC /* FeedBand.swift */; };
 		189B4ABECE1E5649A8E149A7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5365F897E8EDAE5FC80D97F2 /* Theme.swift */; };
 		1AF0E6421144C51AEB5DE58A /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FFC785B54A7A3CC67AEEEF2 /* RootView.swift */; };
 		1D3927101967BD6693B5BAAE /* Timeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F79E3ED26B00A6706D54F3CC /* Timeline.swift */; };
@@ -49,6 +50,7 @@
 		AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */; };
 		AE1ECAAB55050FEC0CA592F0 /* ringtone-low-classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = 96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */; };
 		BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E7E2FEBECA52D7136550E /* PersonalView.swift */; };
+		BE447ECA47FE07A95E6FAFB8 /* Gold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C59A3A5DF250F5979DB5D4E /* Gold.swift */; };
 		C17752ED671FD5864015656E /* ringback-pulse.caf in Resources */ = {isa = PBXBuildFile; fileRef = 316EFFA4EEC076F5332AA9A5 /* ringback-pulse.caf */; };
 		CA4417210661B52D92B1A27F /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20144B329707F8307DAAA282 /* API.swift */; };
 		CDA376FE842D089D31702075 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6035F3E49FE86048CAD2C599 /* InboxView.swift */; };
@@ -69,6 +71,7 @@
 		1111AC1D38C9D489F3F967BC /* BranchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMark.swift; sourceTree = "<group>"; };
 		1739E30D8C200ECEC6A334BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1948F57C2B6673ACAA4E203E /* Paragon.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Paragon.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1C59A3A5DF250F5979DB5D4E /* Gold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gold.swift; sourceTree = "<group>"; };
 		20144B329707F8307DAAA282 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
 		24B083394A6A4A5A74F03710 /* Presence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presence.swift; sourceTree = "<group>"; };
 		2F7E2269DD6A673CFBC56F24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -112,6 +115,7 @@
 		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
 		CD1D2CECDBCEFAA975602601 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
 		CDE1DBC55AD2A92387B13971 /* DayGlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayGlow.swift; sourceTree = "<group>"; };
+		D3CB6E37F0CEF7FF191C87DC /* FeedBand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedBand.swift; sourceTree = "<group>"; };
 		D8AA41283D6004E9AAA4F251 /* Composer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Composer.swift; sourceTree = "<group>"; };
 		E17DE6809FADC88837910EC0 /* TeamBell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamBell.swift; sourceTree = "<group>"; };
 		E985959092523BAB6488B5B0 /* TeamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamView.swift; sourceTree = "<group>"; };
@@ -172,6 +176,8 @@
 		42FD86229EA27573977AC523 /* Inbox */ = {
 			isa = PBXGroup;
 			children = (
+				D3CB6E37F0CEF7FF191C87DC /* FeedBand.swift */,
+				1C59A3A5DF250F5979DB5D4E /* Gold.swift */,
 				4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */,
 				6035F3E49FE86048CAD2C599 /* InboxView.swift */,
 				95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */,
@@ -434,6 +440,8 @@
 				8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */,
 				132382C6904C555AC128E180 /* DeviceKey.swift in Sources */,
 				D681B194A9EB0B03661C762F /* Face.swift in Sources */,
+				184C7726C4A0AF6E6D0375C4 /* FeedBand.swift in Sources */,
+				BE447ECA47FE07A95E6FAFB8 /* Gold.swift in Sources */,
 				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
@@ -480,7 +488,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -562,7 +570,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 17;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
