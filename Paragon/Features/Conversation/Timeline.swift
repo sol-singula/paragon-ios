@@ -139,6 +139,8 @@ struct TextBubble: View {
     var react: ((TimelineEvent, String) -> Void)? = nil
 
     @Environment(TeamStore.self) private var team
+    /// The quick bar is up (hold the message).
+    @State private var bar = false
 
     var body: some View {
         let ours = !e.isIn
@@ -149,10 +151,10 @@ struct TextBubble: View {
             VStack(alignment: ours ? .trailing : .leading, spacing: 3) {
                 VStack(alignment: .leading, spacing: 6) {
                     if hasText || media.isEmpty {
+                        // No textSelection: holding the message is the reaction bar (Copy is on it).
                         Text(hasText ? e.body! : "(no text)")
                             .font(.ui)
                             .foregroundStyle(hasText ? Theme.text : Theme.muted)
-                            .textSelection(.enabled)
                     }
                     ForEach(Array(media.enumerated()), id: \.offset) { _, m in
                         if let s = m.url, let u = URL(string: s) {
@@ -177,16 +179,33 @@ struct TextBubble: View {
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(bubble.fill(ours ? (atlas ? Theme.atlasBubble : Theme.outBubble) : Theme.inBubble))
                 .contentShape(bubble)
-                .contextMenu {
-                    if let react, hasText {
-                        Section("React (sends a text)") {
-                            ForEach(Reactions.quick, id: \.self) { emoji in
-                                Button(emoji) { react(e, emoji) }
-                            }
+                // Hold to react (founder, 2026-11-11: "react with emojis by holding down on a message on
+                // ios just like we can hover over a message on desktop"): the desktop's quick bar, over
+                // the message, with Copy at the end. Tap the message, pick one, or wait to close it.
+                .scaleEffect(bar ? 1.03 : 1)
+                .onTapGesture { if bar { withAnimation(.spring(duration: 0.25)) { bar = false } } }
+                .onLongPressGesture(minimumDuration: 0.35) {
+                    guard hasText else { return }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { bar = true }
+                }
+                .overlay(alignment: ours ? .topTrailing : .topLeading) {
+                    if bar {
+                        ReactBar(canReact: react != nil, pick: { emoji in
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.spring(duration: 0.25)) { bar = false }
+                            react?(e, emoji)
+                        }, copy: {
+                            UIPasteboard.general.string = e.body
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            withAnimation(.spring(duration: 0.25)) { bar = false }
+                        })
+                        .offset(y: -50)
+                        .transition(.scale(scale: 0.6, anchor: ours ? .bottomTrailing : .bottomLeading).combined(with: .opacity))
+                        .task {
+                            try? await Task.sleep(for: .seconds(5))
+                            withAnimation(.spring(duration: 0.25)) { bar = false }
                         }
-                    }
-                    if hasText {
-                        Button { UIPasteboard.general.string = e.body } label: { Label("Copy text", systemImage: "doc.on.doc") }
                     }
                 }
                 HStack(spacing: 4) {
@@ -212,6 +231,7 @@ struct TextBubble: View {
         }
         .frame(maxWidth: .infinity, alignment: ours ? .trailing : .leading)
         .padding(ours ? .leading : .trailing, ours ? 40 : 56)
+        .zIndex(bar ? 1 : 0)
     }
 
     /// Rounded 16 with the corner nearest the sender small, as a text
@@ -396,6 +416,48 @@ struct CallRow: View {
 private struct TimelineBottomY: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+/// The quick bar a held message shows: the desktop's six reactions, then Copy.
+/// A reaction is sent as a text (SMS has no reactions), the same as the desktop's.
+struct ReactBar: View {
+    var canReact: Bool
+    var pick: (String) -> Void
+    var copy: () -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if canReact {
+                ForEach(Reactions.quick, id: \.self) { emoji in
+                    Button { pick(emoji) } label: {
+                        Text(emoji).font(.system(size: 24)).frame(width: 40, height: 40)
+                    }
+                    .buttonStyle(ReactKey())
+                    .accessibilityLabel("React \(emoji)")
+                }
+                Rectangle().fill(Theme.border).frame(width: 1, height: 24).padding(.horizontal, 2)
+            }
+            Button(action: copy) {
+                Image(systemName: "doc.on.doc").font(.system(size: 16, weight: .medium)).foregroundStyle(Theme.text)
+                    .frame(width: 40, height: 40)
+            }
+            .buttonStyle(ReactKey())
+            .accessibilityLabel("Copy text")
+        }
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Theme.border.opacity(0.6), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+        .fixedSize()
+    }
+}
+
+private struct ReactKey: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 1.35 : 1)
+            .animation(.spring(response: 0.2, dampingFraction: 0.5), value: configuration.isPressed)
+    }
 }
 
 /// Emoji reactions over SMS, the desktop's `lib/reactions.ts`. SMS has no
