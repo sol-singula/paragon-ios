@@ -395,7 +395,7 @@ struct CallFollowUpBar: View {
             Button {
                 open(PromiseTarget(threadId: ended.thread, personId: nil, name: ended.name, prefill: "Follow up with \(ended.name)"))
                 calls.clearEnded()
-            } label: { Text("Follow up later").font(.metaMedium) }
+            } label: { Text("Follow up").font(.metaMedium) }
             .buttonStyle(.bordered).tint(Theme.teal).controlSize(.small)
             Button { calls.clearEnded() } label: {
                 Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.muted)

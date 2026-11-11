@@ -360,7 +360,13 @@ struct ContactInfoSheet: View {
                                     Text(found).foregroundStyle(Theme.text)
                                 }
                                 Spacer()
+                                // Not it (founder, 2026-11-11): declined for everyone, never suggested again.
+                                Button("Not it") {
+                                    Task { try? await API.declineFoundAddress(personId, found); await load() }
+                                }
+                                .buttonStyle(.borderless).foregroundStyle(Theme.muted)
                                 Button("Save") { address = found; save(address: found) }
+                                    .buttonStyle(.borderless)
                             }
                         }
                     }

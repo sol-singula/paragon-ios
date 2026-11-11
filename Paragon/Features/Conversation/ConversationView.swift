@@ -340,7 +340,7 @@ struct ConversationHeader: View {
                 Menu {
                     Button(action: addPromise) { Label(promiseOpen ? "Change promise…" : "Add promise…", systemImage: "hand.raised") }
                     if let followUp {
-                        Button(action: followUp) { Label("Follow up later…", systemImage: "calendar.badge.clock") }
+                        Button(action: followUp) { Label("Follow up…", systemImage: "calendar.badge.clock") }
                     }
                     if let editName {
                         Button(action: editName) { Label("Edit name", systemImage: "pencil") }

@@ -187,6 +187,11 @@ enum API {
         try await rpc("paragon_person_details", ["p_person": person], as: PersonDetails?.self)
     }
 
+    /// "Not it" on a suggested address: never suggest that address for this contact again.
+    static func declineFoundAddress(_ person: String, _ address: String) async throws {
+        try await call("paragon_decline_found_address", ["p_person": person, "p_address": address])
+    }
+
     static func personUpdate(_ person: String, email: String? = nil, address: String? = nil, notes: String? = nil) async throws {
         try await call("paragon_person_update", ["p_person": person, "p_email": email, "p_address": address, "p_notes": notes])
     }
