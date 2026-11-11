@@ -193,7 +193,8 @@ struct ConversationView: View {
         return ConversationHeader(
             brand: t?.brand,
             name: view.map { renames.shown($0.person.id, $0.person.name) } ?? " ",
-            subtitle: view == nil ? nil : [Branch.of(t?.brand).name, t?.state, view?.person.city].compactMap { $0 }.joined(separator: " · "),
+            // The branch, not its state (founder, 2026-11-11): a branch texts from any state.
+            subtitle: view == nil ? nil : [Branch.of(t?.brand).name, view?.person.city].compactMap { $0 }.joined(separator: " · "),
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
             infoDisabled: view == nil,
@@ -210,7 +211,9 @@ struct ConversationView: View {
             HStack(spacing: 6) {
                 ForEach(v.threads) { t in
                     Button { threadId = t.id } label: {
-                        BranchChip(brand: t.brand, state: t.state, selected: t.id == v.threadId,
+                        // A state only to tell apart two conversations under one brand.
+                        BranchChip(brand: t.brand, state: v.threads.contains { $0.id != t.id && $0.brand == t.brand } ? t.state : nil,
+                                   selected: t.id == v.threadId,
                                    waiting: t.status == "waiting" && t.locked != true)
                     }
                     .buttonStyle(.plain)

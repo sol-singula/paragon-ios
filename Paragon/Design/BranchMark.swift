@@ -21,7 +21,7 @@ struct Branch: Equatable {
         case "blackswan": return Branch(code: "BS", color: Color(hex: 0xE4E4E7), name: "Blackswan", ink: Color(hex: 0x111111))
         case "nixthepitch": return Branch(code: "NTP", color: purple, name: "NixThePitch")
         case "solbuild": return Branch(code: "SB", color: purple, name: "solbuild")
-        case let k where k.hasPrefix("solara"): return Branch(code: "SH", color: Color(hex: 0x16A34A), name: "Solara Home")
+        case let k where k.hasPrefix("solara"): return Branch(code: "SH", color: Color(hex: 0x16A34A), name: "Solara")
         default:
             let words = brand.split(separator: " ")
             let code = words.count > 1 ? words.compactMap { $0.first }.map(String.init).joined() : String(brand.prefix(2))
