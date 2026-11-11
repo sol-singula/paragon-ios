@@ -407,7 +407,25 @@ struct CallFollowUpBar: View {
         .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 6)
         .background(Theme.card)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+        // A flame outline that runs out over the bar's life (founder, 2026-11-11, example 3).
+        .overlay { CountdownOutline(seconds: CallManager.endedSeconds).id(ended.at) }
         .transition(.move(edge: .top).combined(with: .opacity))
+    }
+}
+
+/// The after-call bar's outline, unwinding from full to nothing over `seconds`.
+private struct CountdownOutline: View {
+    let seconds: Double
+    @State private var left: CGFloat = 1
+
+    var body: some View {
+        Rectangle()
+            .trim(from: 0, to: left)
+            .stroke(LinearGradient(colors: [Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255),
+                                            Color(red: 240 / 255, green: 97 / 255, blue: 109 / 255)],
+                                   startPoint: .leading, endPoint: .trailing), lineWidth: 2)
+            .allowsHitTesting(false)
+            .onAppear { left = 1; withAnimation(.linear(duration: seconds)) { left = 0 } }
     }
 }
 

@@ -126,6 +126,8 @@ final class CallManager: NSObject {
     struct Ended: Equatable { let thread: String; let name: String; let at: Date }
     private(set) var ended: Ended?
     func clearEnded() { ended = nil }
+    /// How long the after-call bar stays (founder, 2026-11-11: half of 30 s).
+    static let endedSeconds: Double = 15
     /// Pulse's player volume (about -9 dB).
     static let pulseVolume: Float = 0.35
     var showScreen = false
@@ -334,7 +336,7 @@ final class CallManager: NSObject {
             ended = e
             endedClear?.cancel()
             endedClear = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(30))
+                try? await Task.sleep(for: .seconds(CallManager.endedSeconds))
                 guard !Task.isCancelled else { return }
                 if self?.ended == e { self?.ended = nil }
             }
