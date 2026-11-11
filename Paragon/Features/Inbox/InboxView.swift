@@ -226,8 +226,11 @@ struct InboxView: View {
                 } label: {
                     Label("Edit name", systemImage: "pencil")
                 }
-                Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
-                    Label("Release…", systemImage: "tray.and.arrow.up")
+                // Not on Recent (founder, 2026-11-11): Recent is everyone, so nothing to release there.
+                if model.show != .all {
+                    Button { releasing = PersonTarget(personId: q.personId, threadId: t, name: q.name) } label: {
+                        Label("Release…", systemImage: "tray.and.arrow.up")
+                    }
                 }
             }
         }
