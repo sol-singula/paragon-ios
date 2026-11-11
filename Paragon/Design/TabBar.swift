@@ -14,11 +14,29 @@ struct ParagonTabBar: View {
         let symbol: String
         /// "4", "@", or nil for none.
         let badge: String?
+        /// Team unread (founder, 2026-11-11, "Warm with a glint"): the icon and
+        /// its count in the flame colors with a soft glint passing, until read.
+        var warm: Bool = false
         var id: Router.Tab { tab }
     }
 
     let items: [Item]
     @Binding var selection: Router.Tab
+    @Environment(\.accessibilityReduceMotion) private var still
+
+    @ViewBuilder
+    private func icon(_ item: Item, on: Bool) -> some View {
+        let glyph = Image(systemName: item.symbol).font(.system(size: 20, weight: .regular))
+        if item.warm {
+            glyph
+                .foregroundStyle(Flame.gradient)
+                .overlay {
+                    if !still { WarmGlint(strength: 0.95).mask { glyph } }
+                }
+        } else {
+            glyph
+        }
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -26,8 +44,7 @@ struct ParagonTabBar: View {
                 let on = selection == item.tab
                 Button { selection = item.tab } label: {
                     VStack(spacing: 3) {
-                        Image(systemName: item.symbol)
-                            .font(.system(size: 20, weight: .regular))
+                        icon(item, on: on)
                             .frame(width: 30, height: 24)
                             .overlay(alignment: .topTrailing) {
                                 if let b = item.badge {
@@ -37,7 +54,15 @@ struct ParagonTabBar: View {
                                         .foregroundStyle(.white)
                                         .padding(.horizontal, 4)
                                         .frame(minWidth: 16, minHeight: 16)
-                                        .background(Capsule().fill(Theme.rose))
+                                        .background {
+                                            if item.warm {
+                                                Capsule().fill(Flame.gradient)
+                                                    .overlay { if !still { WarmGlint(strength: 0.55) } }
+                                                    .clipShape(Capsule())
+                                            } else {
+                                                Capsule().fill(Theme.rose)
+                                            }
+                                        }
                                         .offset(x: 8, y: -4)
                                         .fixedSize()
                                 }
@@ -64,6 +89,35 @@ struct ParagonTabBar: View {
                 .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
                 .ignoresSafeArea(edges: .bottom)
         }
+    }
+}
+
+/// The activity cards' flame: orange into rose.
+enum Flame {
+    static let orange = Color(red: 251 / 255, green: 146 / 255, blue: 60 / 255)
+    static let rose = Color(red: 240 / 255, green: 97 / 255, blue: 109 / 255)
+    static let gradient = LinearGradient(colors: [orange, rose], startPoint: .leading, endPoint: .trailing)
+}
+
+/// A soft white glint that crosses its frame in 1.8 s and rests 2.2 s, forever
+/// (the desktop's team-glint). Clip or mask it to what it should shine on.
+struct WarmGlint: View {
+    var strength: Double
+
+    var body: some View {
+        TimelineView(.animation) { ctx in
+            let t = ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4
+            let p = min(1, t / 0.45)
+            let eased = p < 0.5 ? 2 * p * p : 1 - pow(-2 * p + 2, 2) / 2
+            GeometryReader { g in
+                LinearGradient(colors: [.clear, Color.white.opacity(strength), .clear],
+                               startPoint: .leading, endPoint: .trailing)
+                    .frame(width: g.size.width * 0.6, height: g.size.height * 1.6)
+                    .rotationEffect(.degrees(20))
+                    .offset(x: -g.size.width * 0.8 + eased * g.size.width * 1.6, y: -g.size.height * 0.3)
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

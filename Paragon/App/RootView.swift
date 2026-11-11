@@ -96,13 +96,15 @@ struct MainTabs: View {
     }
 
     private var items: [ParagonTabBar.Item] {
-        // One badge (founder, 2026-11-10): the late waiting conversations,
-        // on the Inbox tab and the app icon. Team chat and promises carry
-        // none, and there is no Alerts tab (founder, 2026-11-10).
+        // The late waiting conversations on the Inbox tab and the app icon;
+        // Team's unread on its own tab (founder, 2026-11-11). No Alerts tab.
         let late = inbox.badge
         return [
             .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: late > 0 ? count(late) : nil),
-            .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right", badge: nil),
+            // Team (founder, 2026-11-11): the count, and the icon warm with a glint until read.
+            .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right",
+                  badge: team.badge > 0 ? count(team.badge) : (team.mentioned ? "@" : nil),
+                  warm: team.badge > 0 || team.mentioned),
             .init(tab: .settings, title: "Settings", symbol: "gearshape", badge: nil),
         ]
     }
