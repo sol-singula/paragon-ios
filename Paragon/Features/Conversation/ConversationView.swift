@@ -41,7 +41,6 @@ struct ConversationView: View {
                                  open: { p in promising = target(p) },
                                  changed: { Task { await load() } })
                 }
-                if v.threads.count > 1 { chips(v) }
                 if let h = house { houseBanner(h, v) }
                 if v.person.askType == true {
                     WhoIsThisBar(personId: v.person.id, name: v.person.name) { t in typed(t) }
@@ -203,7 +202,9 @@ struct ConversationView: View {
             addPromise: view == nil || currentThread == nil ? nil : addPromise,
             promiseOpen: promises.contains { ($0.kind ?? "promise") == "promise" },
             followUp: view == nil || currentThread == nil ? nil : followUp,
-            editName: view == nil ? nil : editName)
+            editName: view == nil ? nil : editName,
+            threads: view?.threads ?? [], openThread: view?.threadId,
+            pickThread: { threadId = $0 })
     }
 
     private func chips(_ v: PersonView) -> some View {
@@ -297,6 +298,11 @@ struct ConversationHeader: View {
     var followUp: (() -> Void)? = nil
     /// Edit name (founder, 2026-11-09): from the menu, or a tap on the name.
     var editName: (() -> Void)?
+    /// Their conversations (design A, founder 2026-11-11): stacked branch badges in place of the
+    /// mark, the open one in front; tap for the menu of them.
+    var threads: [PersonThread] = []
+    var openThread: String? = nil
+    var pickThread: ((String) -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 8) {
@@ -310,7 +316,9 @@ struct ConversationHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Back")
 
-            if initialsOnly { Initials(name: name, size: 28) } else { BranchMark(brand: brand, size: 28) }
+            if initialsOnly { Initials(name: name, size: 28) }
+            else if threads.count > 1, let pickThread { BranchStackMenu(threads: threads, openId: openThread, pick: pickThread) }
+            else { BranchMark(brand: brand, size: 28) }
             VStack(alignment: .leading, spacing: 1) {
                 Text(name).font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.text).lineLimit(1)
                 if let subtitle, !subtitle.isEmpty {
@@ -353,5 +361,48 @@ struct ConversationHeader: View {
         .padding(.leading, 6).padding(.trailing, 12).padding(.top, 4).padding(.bottom, 8)
         .background(Theme.bg)
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.border).frame(height: 1) }
+    }
+}
+
+/// The person's conversations as stacked branch badges, the open one in front (design A, the
+/// desktop's BranchStack). A red dot when another is waiting. Tap: the menu of them.
+struct BranchStackMenu: View {
+    let threads: [PersonThread]
+    let openId: String?
+    let pick: (String) -> Void
+
+    private func label(_ t: PersonThread) -> String {
+        let name = t.brand.map { Branch.of($0).name } ?? (t.space == "personal" ? "Personal" : (t.space ?? ""))
+        let twin = threads.contains { $0.id != t.id && $0.brand == t.brand }
+        return twin ? [name, t.state].compactMap { $0 }.joined(separator: " ") : name
+    }
+
+    var body: some View {
+        let open = threads.first { $0.id == openId } ?? threads[0]
+        let others = threads.filter { $0.id != open.id }
+        let waiting = others.contains { $0.status == "waiting" && $0.locked != true }
+        Menu {
+            ForEach(threads) { t in
+                Button { pick(t.id) } label: {
+                    let extra = t.locked == true ? " · locked" : t.status == "waiting" ? " · waiting" : ""
+                    if t.id == open.id { Label(label(t) + extra, systemImage: "checkmark") } else { Text(label(t) + extra) }
+                }
+            }
+        } label: {
+            ZStack(alignment: .leading) {
+                ForEach(Array(others.prefix(2).enumerated().reversed()), id: \.element.id) { i, t in
+                    BranchMark(brand: t.brand, size: 24)
+                        .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 2))
+                        .offset(x: CGFloat(i + 1) * 11)
+                }
+                BranchMark(brand: open.brand, size: 28)
+                    .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 2))
+            }
+            .frame(width: 28 + CGFloat(min(others.count, 2)) * 11, alignment: .leading)
+            .overlay(alignment: .topTrailing) {
+                if waiting { Circle().fill(Theme.rose).frame(width: 8, height: 8).overlay(Circle().strokeBorder(Theme.bg, lineWidth: 1.5)) }
+            }
+        }
+        .accessibilityLabel("\(threads.count) conversations, \(label(open)) open")
     }
 }
