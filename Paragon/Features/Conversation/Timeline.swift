@@ -8,46 +8,88 @@ struct TimelineList: View {
     var scrollKey: Int = 0
     /// Ours on the way out (the Outbox), after everything else.
     var pending: [Outbox.Item] = []
+    /// Hold a text to react (founder, 2026-11-11): the reaction goes out as a
+    /// text through the Outbox, the same as a reply. Nil when we can't send.
+    var react: ((TimelineEvent, String) -> Void)? = nil
     @State private var viewing: ViewedImage?
+    /// At (or within a thumb of) the bottom: new things keep us there.
+    @State private var pinned = true
+
+    private static let bottomID = "timeline-bottom"
+    private static let space = "timeline"
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 6) {
-                    ForEach(Array(events.enumerated()), id: \.element.id) { i, e in
-                        if showDay(i) { DayDivider(at: e.at) }
-                        if e.isCall { CallRow(e: e) } else { TextBubble(e: e, showFace: showFace(i) && !(i == events.count - 1 && !pending.isEmpty), open: { viewing = ViewedImage(url: $0) }) }
+        GeometryReader { outer in
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        LazyVStack(spacing: 6) {
+                            ForEach(Array(events.enumerated()), id: \.element.id) { i, e in
+                                if showDay(i) { DayDivider(at: e.at) }
+                                if e.isCall { CallRow(e: e) }
+                                else if let r = Reactions.parse(e.body) { ReactionLine(e: e, reaction: r) }
+                                else {
+                                    TextBubble(e: e, showFace: showFace(i) && !(i == events.count - 1 && !pending.isEmpty),
+                                               open: { viewing = ViewedImage(url: $0) }, react: react)
+                                }
+                            }
+                            if !pending.isEmpty && !lastIsToday { DayDivider(at: ISO8601DateFormatter().string(from: Date())) }
+                            ForEach(Array(pending.enumerated()), id: \.element.id) { i, p in
+                                PendingBubble(item: p, showFace: i == pending.count - 1)
+                            }
+                        }
+                        .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 12)
+                        // The bottom mark sits under the padding, so "at the
+                        // bottom" shows the last message whole, never a sliver
+                        // under the composer.
+                        Color.clear.frame(height: 1).id(Self.bottomID)
+                            .background(GeometryReader { g in
+                                Color.clear.preference(key: TimelineBottomY.self, value: g.frame(in: .named(Self.space)).maxY)
+                            })
                     }
-                    if !pending.isEmpty && !lastIsToday { DayDivider(at: ISO8601DateFormatter().string(from: Date())) }
-                    ForEach(Array(pending.enumerated()), id: \.element.id) { i, p in
-                        PendingBubble(item: p, showFace: i == pending.count - 1)
-                    }
-                    Color.clear.frame(height: 1).id("bottom")
                 }
-                .padding(.horizontal, 12).padding(.vertical, 10)
+                .coordinateSpace(name: Self.space)
+                .defaultScrollAnchor(.bottom)
+                .scrollDismissesKeyboard(.interactively)
+                .onPreferenceChange(TimelineBottomY.self) { y in
+                    // How far below the viewport the last message ends.
+                    let near = y - outer.size.height < 90
+                    if near != pinned { pinned = near }
+                }
+                .onAppear { settle(proxy) }
+                // Always at the bottom (founder, 2026-11-09 and 2026-11-11:
+                // "sometimes it's even hiding a message"): on open, and again
+                // as the lazy rows find their heights.
+                .onChange(of: events.first?.id) { _, _ in settle(proxy) }
+                // Something new: stay at the bottom if we were there, or if
+                // it is ours.
+                .onChange(of: events.last?.id) { _, _ in
+                    if pinned || events.last?.isIn == false { settle(proxy, quick: true) }
+                }
+                .onChange(of: pending.count) { old, new in if new > old { settle(proxy, quick: true) } }
+                .onChange(of: scrollKey) { _, _ in settle(proxy, quick: true) }
+                // The keyboard coming up, or the composer growing a line: the
+                // view gets shorter; whoever was at the bottom stays there.
+                .onChange(of: outer.size.height) { old, new in
+                    if pinned && new != old { settle(proxy, quick: true) }
+                }
+                .onChange(of: KeyboardWatcher.shared.visible) { _, up in
+                    if up && pinned { settle(proxy, quick: true) }
+                }
             }
-            .defaultScrollAnchor(.bottom)
-            .scrollDismissesKeyboard(.interactively)
-            // Always at the bottom (founder, 2026-11-09: "I have to scroll down
-            // half a message"): on open and again as rows settle (pictures,
-            // call words), and whenever something new arrives.
-            .onAppear { settle(proxy) }
-            .onChange(of: events.first?.id) { _, _ in settle(proxy) }
-            .onChange(of: events.last?.id) { _, _ in settle(proxy) }
-            .onChange(of: events.count) { _, _ in withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } }
-            .onChange(of: pending.count) { old, new in if new > old { withAnimation { proxy.scrollTo("bottom", anchor: .bottom) } } }
-            .onChange(of: scrollKey) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
         }
         .fullScreenCover(item: $viewing) { v in ImageViewer(url: v.url) }
     }
 
-    /// To the bottom now and once more as the lazy rows find their heights.
-    private func settle(_ proxy: ScrollViewProxy) {
-        proxy.scrollTo("bottom", anchor: .bottom)
+    /// To the bottom now and again as the lazy rows settle (estimated
+    /// heights become real ones, a keyboard finishes its animation). No
+    /// animation: an animated scroll to a lazy row lands short.
+    private func settle(_ proxy: ScrollViewProxy, quick: Bool = false) {
+        proxy.scrollTo(Self.bottomID, anchor: .bottom)
         Task { @MainActor in
-            for ms in [120, 400, 1000] {
+            for ms in quick ? [60, 250, 500] : [30, 120, 300, 600, 1000, 1600] {
                 try? await Task.sleep(for: .milliseconds(ms))
-                proxy.scrollTo("bottom", anchor: .bottom)
+                proxy.scrollTo(Self.bottomID, anchor: .bottom)
             }
         }
     }
@@ -93,6 +135,8 @@ struct TextBubble: View {
     let e: TimelineEvent
     var showFace = false
     var open: (URL) -> Void = { _ in }
+    /// Hold to react (sends a text, as the desktop's reactions do).
+    var react: ((TimelineEvent, String) -> Void)? = nil
 
     @Environment(TeamStore.self) private var team
 
@@ -132,6 +176,19 @@ struct TextBubble: View {
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .background(bubble.fill(ours ? (atlas ? Theme.atlasBubble : Theme.outBubble) : Theme.inBubble))
+                .contentShape(bubble)
+                .contextMenu {
+                    if let react, hasText {
+                        Section("React (sends a text)") {
+                            ForEach(Reactions.quick, id: \.self) { emoji in
+                                Button(emoji) { react(e, emoji) }
+                            }
+                        }
+                    }
+                    if hasText {
+                        Button { UIPasteboard.general.string = e.body } label: { Label("Copy text", systemImage: "doc.on.doc") }
+                    }
+                }
                 HStack(spacing: 4) {
                     if atlas { AtlasRing(size: 10) }
                     Text(meta).font(.system(size: 11)).foregroundStyle(failed ? Theme.rose : Theme.muted)
@@ -198,7 +255,10 @@ struct PendingBubble: View {
         HStack(alignment: .bottom, spacing: 5) {
             VStack(alignment: .trailing, spacing: 3) {
                 VStack(alignment: .leading, spacing: 6) {
-                    if !item.body.isEmpty {
+                    if let r = Reactions.parse(item.body) {
+                        // A reaction on its way: the emoji and what it answers.
+                        Text("\(r.emoji) to \u{201C}\(Reactions.short(r.quote))\u{201D}").font(.ui).foregroundStyle(Theme.text)
+                    } else if !item.body.isEmpty {
                         Text(item.body).font(.ui).foregroundStyle(Theme.text).textSelection(.enabled)
                     }
                     ForEach(item.files) { f in
@@ -330,5 +390,99 @@ struct CallRow: View {
         let d = Stamp.duration(e.duration)
         let who = e.by.map { " · \($0)" } ?? ""
         return (e.isIn ? "Call in" : "Call out") + (d.isEmpty ? "" : " · \(d)") + who
+    }
+}
+
+private struct TimelineBottomY: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+/// Emoji reactions over SMS, the desktop's `lib/reactions.ts`. SMS has no
+/// reactions: a phone (or Quo) sends one as a text quoting the message,
+/// iPhone's `Liked “Sounds good”` or Android / Quo's `👍 to “Sounds good”`
+/// (with odd spaces round the emoji). We read both, and send ours in the
+/// Android / Quo form, which phones show as a reaction.
+enum Reactions {
+    struct Reaction: Hashable { let emoji: String; let quote: String; let removed: Bool }
+
+    static let quick = ["👍", "❤️", "😂", "😮", "🙏", "👏"]
+
+    private static let words: [String: String] = [
+        "liked": "👍", "loved": "❤️", "laughed at": "😂", "emphasized": "‼️", "disliked": "👎", "questioned": "❓",
+    ]
+
+    private static func rx(_ p: String, _ ci: Bool = true) -> NSRegularExpression? {
+        try? NSRegularExpression(pattern: p, options: ci ? [.caseInsensitive] : [])
+    }
+    private static let removedRx = rx(#"^removed an? (?:.{1,20}) from [“"]([\s\S]*?)[”"]?\s*$"#)
+    private static let wordRx = rx(#"^(liked|loved|laughed at|emphasized|disliked|questioned)\s+[“"]([\s\S]*?)[”"]?\s*$"#)
+    private static let reactedRx = rx(#"^reacted\s+(\S{1,8})\s+to\s+[“"]([\s\S]*?)[”"]?\s*$"#)
+    private static let emojiRx = rx(#"^(\S{1,8})\s+to\s+[“"]([\s\S]*?)[”"]?\s*$"#, false)
+
+    /// Hair, zero-width and no-break spaces read as plain spaces.
+    private static func plain(_ s: String) -> String {
+        var out = String.UnicodeScalarView()
+        for u in s.unicodeScalars {
+            let v = u.value
+            let odd = (0x2000...0x200F).contains(v) || (0x2028...0x202F).contains(v) || (0x205F...0x206F).contains(v) || v == 0xFEFF || v == 0x00A0
+            out.append(odd ? " " : u)
+        }
+        return String(out).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func groups(_ r: NSRegularExpression?, _ t: String) -> [String]? {
+        guard let r else { return nil }
+        let ns = t as NSString
+        guard let m = r.firstMatch(in: t, range: NSRange(location: 0, length: ns.length)) else { return nil }
+        return (1..<m.numberOfRanges).map { i in
+            let rg = m.range(at: i)
+            return rg.location == NSNotFound ? "" : ns.substring(with: rg)
+        }
+    }
+
+    private static func isEmoji(_ s: String) -> Bool {
+        s.unicodeScalars.contains { $0.properties.isEmojiPresentation || ($0.properties.isEmoji && $0.value >= 0x2000) }
+    }
+
+    static func parse(_ body: String?) -> Reaction? {
+        let t = plain(body ?? "")
+        // Every reaction quotes; most texts don't, and skip the patterns.
+        guard !t.isEmpty, t.count < 400, t.contains("\u{201C}") || t.contains("\"") else { return nil }
+        if let g = groups(removedRx, t) { return Reaction(emoji: "", quote: g[0].trimmingCharacters(in: .whitespaces), removed: true) }
+        if let g = groups(wordRx, t), let e = words[g[0].lowercased()] { return Reaction(emoji: e, quote: g[1].trimmingCharacters(in: .whitespaces), removed: false) }
+        if let g = groups(reactedRx, t) { return Reaction(emoji: g[0], quote: g[1].trimmingCharacters(in: .whitespaces), removed: false) }
+        if let g = groups(emojiRx, t), isEmoji(g[0]) { return Reaction(emoji: g[0], quote: g[1].trimmingCharacters(in: .whitespaces), removed: false) }
+        return nil
+    }
+
+    /// The text that carries our reaction; a long message is quoted in part.
+    static func text(_ emoji: String, _ body: String) -> String {
+        let flat = body.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let q = flat.count > 80 ? String(flat.prefix(77)) + "…" : flat
+        return "\u{200A}\u{200B}\(emoji)\u{200B} to \u{201C}\u{200A}\(q)\u{200A}\u{201D} "
+    }
+
+    static func short(_ q: String) -> String { q.count > 60 ? String(q.prefix(60)) + "…" : q }
+}
+
+/// A reaction in the thread: one quiet line on the sender's side, "👍 They
+/// reacted to “…” · 9:14 am" (the desktop's).
+struct ReactionLine: View {
+    let e: TimelineEvent
+    let reaction: Reactions.Reaction
+
+    var body: some View {
+        let ours = !e.isIn
+        let who = ours ? (e.by?.split(separator: " ").first.map(String.init) ?? "We") : "They"
+        let what = reaction.removed ? "removed a reaction from" : "reacted to"
+        HStack(spacing: 4) {
+            if !reaction.emoji.isEmpty { Text(reaction.emoji).font(.system(size: 15)) }
+            Text("\(who) \(what) \u{201C}\(Reactions.short(reaction.quote))\u{201D} · \(Stamp.exact(e.at))")
+                .font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: ours ? .trailing : .leading)
+        .padding(.horizontal, 4).padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }

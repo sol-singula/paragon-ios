@@ -12,15 +12,15 @@ struct InboxView: View {
     @State private var notice: String?
     @State private var busyHit: String?
     @State private var pickingLine: LinePickTarget?
+    @State private var personalInfo: PersonTarget?
 
     var body: some View {
         @Bindable var router = router
         NavigationStack(path: $router.inboxPath) {
             VStack(spacing: 0) {
+                // No New message button (founder, 2026-11-11): search a name
+                // or a number and Text it from the results.
                 TopBar(title: "Inbox") {
-                    Button { composing = NewMessagePrefill() } label: { Image(systemName: "square.and.pencil") }
-                        .accessibilityLabel("New message")
-                } trailing: {
                     filterMenu
                 }
                 SearchField(text: $model.search, prompt: "Search clients, people, numbers") { call in submitSearch(call: call) }
@@ -56,7 +56,8 @@ struct InboxView: View {
                 }
             }
             .sheet(item: $releasing) { r in
-                ReleaseSheet(name: r.name, threadId: r.threadId, onGone: { model.clear(personId: r.personId) },
+                ReleaseSheet(name: r.name, threadId: r.threadId,
+                             onGone: { if model.show == .personal { model.dropPersonal(thread: r.threadId) } else { model.clear(personId: r.personId) } },
                              onPromise: { what in
                                  // Once the release sheet is down, Add promise (WHO = me, WHAT = the reason).
                                  Task { @MainActor in
@@ -66,6 +67,7 @@ struct InboxView: View {
                              }) { Task { await model.load() } }
             }
             .sheet(item: $renaming) { r in RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) }
+            .sheet(item: $personalInfo) { t in ContactInfoSheet(personId: t.personId, threadId: t.threadId) { reload() } }
             .sheet(item: $promising) { t in
                 PromiseSheet(target: t) { owner in
                     // Given to someone else: off my inbox at once.
@@ -120,10 +122,13 @@ struct InboxView: View {
 
         }
 
+        if model.show == .personal {
+            personalSection
+        } else {
         Section {
             ForEach(model.shown) { q in
                 NavigationLink(value: Route.person(personId: q.personId, threadId: q.openThread)) {
-                    QueueRow(q: q)
+                    QueueRow(q: q, answered: model.answered(q))
                 }
                 .contextMenu { rowMenu(q) }
                 .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
@@ -132,9 +137,45 @@ struct InboxView: View {
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
             if model.loaded && model.shown.isEmpty {
-                EmptyNote(title: model.show == .waiting ? "Nobody is waiting" : "Nothing here",
+                EmptyNote(title: model.show == .waiting ? "Nothing urgent" : "Nothing here",
                           detail: model.show == .all ? nil : "You're caught up.",
                           symbol: "checkmark.circle")
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
+        }
+        }
+    }
+
+    /// Personal (founder, 2026-11-11): my own line's conversations, most
+    /// recent first, as Recent is; no Urgent / Recent / All inside it.
+    @ViewBuilder private var personalSection: some View {
+        Section {
+            ForEach(model.personalShown) { p in
+                NavigationLink(value: Route.personal(threadId: p.threadId, name: p.name)) { PersonalRow(p: p) }
+                    .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Theme.border)
+                    .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
+                    .contextMenu {
+                        Button { promising = PromiseTarget(threadId: p.threadId, personId: p.personId, name: p.name) } label: {
+                            Label("Add promise…", systemImage: "hand.raised")
+                        }
+                        Button {
+                            let n = Renames.shared.shown(p.personId, p.name)
+                            renaming = RenameTarget(personId: p.personId, name: n, hasName: n != p.name || !p.name.hasPrefix("+"))
+                        } label: {
+                            Label("Edit name", systemImage: "pencil")
+                        }
+                        Button { releasing = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
+                            Label("Release…", systemImage: "tray.and.arrow.up")
+                        }
+                        Button { personalInfo = PersonTarget(personId: p.personId, threadId: p.threadId, name: p.name) } label: {
+                            Label("Contact info", systemImage: "person.text.rectangle")
+                        }
+                    }
+            }
+            if model.loaded && model.personalShown.isEmpty {
+                EmptyNote(title: "No personal conversations", detail: "Texts and calls to your own line show here.", symbol: "person.crop.circle")
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
             }
         }
@@ -339,18 +380,27 @@ struct InboxView: View {
                 }
                 Text(summary(c)).font(.system(size: 13)).foregroundStyle(Theme.secondary)
             }
-            Segmented(options: [(InboxModel.Show.waiting, c.waiting > 0 ? "Waiting \(c.waiting)" : "Waiting"),
-                                (.all, "Recent")],
-                      selection: Binding(get: { model.show }, set: { model.choose(show: $0) }))
+            // Urgent, Recent, and Personal for a member with a personal line
+            // (founder, 2026-11-11). Urgent is the server's 'waiting'.
+            Segmented(options: filters(c), selection: Binding(get: { model.show }, set: { model.choose(show: $0) }))
         }
     }
 
-    /// "4 waiting · 1 late"; only what there is.
+    private func filters(_ c: (waiting: Int, late: Int)) -> [(InboxModel.Show, String)] {
+        var out: [(InboxModel.Show, String)] = [(.waiting, c.waiting > 0 ? "Urgent \(c.waiting)" : "Urgent"), (.all, "Recent")]
+        if model.hasPersonal {
+            let n = model.personalWaiting
+            out.append((.personal, n > 0 ? "Personal \(n)" : "Personal"))
+        }
+        return out
+    }
+
+    /// "4 urgent · 1 late"; only what there is.
     private func summary(_ c: (waiting: Int, late: Int)) -> String {
         guard model.loaded else { return " " }
-        var parts = ["\(c.waiting) waiting"]
+        var parts = ["\(c.waiting) urgent"]
         if c.late > 0 { parts.append("\(c.late) late") }
-        return c.waiting == 0 ? "Nobody is waiting" : parts.joined(separator: " · ")
+        return c.waiting == 0 ? "Nothing urgent" : parts.joined(separator: " · ")
     }
 
     private var filterMenu: some View {
@@ -387,6 +437,8 @@ struct InboxView: View {
 
 struct QueueRow: View {
     let q: QueueItem
+    /// Answered here a moment ago (a text or a reaction): no longer late.
+    var answered = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -471,6 +523,7 @@ struct QueueRow: View {
     /// customer still on time shows how long they have waited, never a time
     /// ahead (founder, 2026-11-09: "we shouldnt say tomorrow 9am").
     private var clock: String {
+        if answered && (q.dueAt == nil || q.dueSource == "clock") { return Stamp.when(q.lastActivityAt) }
         if q.dueAt != nil {
             if q.isOverdue { return DueTime.relative(q.dueAt) }
             // A promise or card ahead: no time or date, the last activity.
@@ -483,6 +536,7 @@ struct QueueRow: View {
     }
 
     private var clockColor: Color {
+        if answered && (q.dueAt == nil || q.dueSource == "clock") { return Theme.muted }
         if q.dueAt != nil, q.isOverdue { return Theme.rose }
         if q.dueAt != nil, q.dueSource != "clock" { return Theme.muted }
         switch q.tone {

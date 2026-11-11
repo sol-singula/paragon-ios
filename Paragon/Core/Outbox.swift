@@ -60,11 +60,15 @@ final class Outbox {
     func send(thread: String, body: String, files: [OutFile]) {
         let item = Item(id: UUID(), threadId: thread, body: body, files: files, createdAt: Date())
         byThread[thread, default: []].append(item)
+        // A reply or a reaction answers them: out of Urgent now, as the
+        // server will have it (founder, 2026-11-11).
+        InboxModel.shared.answered(thread: thread)
         kick(thread)
     }
 
     func retry(_ item: Item) {
         update(item.threadId, item.id) { $0.state = .queued }
+        InboxModel.shared.answered(thread: item.threadId)
         kick(item.threadId)
     }
 
@@ -138,8 +142,12 @@ final class Outbox {
             }
             update(t, item.id) { $0.state = .sent(messageId: mid, at: Date()) }
             settled[t, default: 0] += 1
+            // The server has it: read the queue now, not at the next poll.
+            Task { await InboxModel.shared.load() }
         } catch {
             update(t, item.id) { $0.state = .failed(error.localizedDescription) }
+            // Not sent: still theirs to answer.
+            InboxModel.shared.unanswered(thread: t)
         }
     }
 

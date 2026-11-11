@@ -9,8 +9,16 @@ import UniformTypeIdentifiers
 /// words and files go to the Outbox, which shows them in the thread at once
 /// and uploads (to paragon-shared, sent as links) and sends behind it; the
 /// box clears and stays open for the next one.
+///
+/// The words being typed live here, in the composer's own state (founder,
+/// 2026-11-11: "when I'm typing on mobile it seems glitchy"): a keystroke
+/// redraws this box only, never the conversation's timeline above it, and
+/// the conversation's 6-second read can never touch what is typed. What is
+/// typed is kept per conversation (`Drafts`), so leaving and coming back,
+/// or restarting the app, finds it again; Send clears it.
 struct Composer: View {
-    @Binding var draft: String
+    /// Which conversation's draft this box holds ("thread:<id>").
+    let draftKey: String
     let label: String?
     let blocked: String?
     /// "Text Rachel".
@@ -25,6 +33,9 @@ struct Composer: View {
     let send: (String, [OutFile]) -> Void
 
     @FocusState private var focused: Bool
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var draft = ""
+    @State private var restored = false
     @State private var files: [OutFile] = []
     @State private var picking = false
     @State private var picks: [PhotosPickerItem] = []
@@ -106,6 +117,14 @@ struct Composer: View {
             .background(Theme.panel.ignoresSafeArea(edges: .bottom))
             .overlay(alignment: .top) { Rectangle().fill(Theme.border).frame(height: 1) }
         }
+        // The draft: back as it was when the box appears, kept on every
+        // change (memory now, the disk a moment after the typing stops).
+        .onAppear {
+            if !restored { restored = true; draft = Drafts.shared.get(draftKey) }
+        }
+        .onChange(of: draft) { _, v in if restored { Drafts.shared.set(draftKey, v) } }
+        .onDisappear { Drafts.shared.flush() }
+        .onChange(of: scenePhase) { _, p in if p != .active { Drafts.shared.flush() } }
         .onChange(of: autoFocus, initial: true) { _, on in
             guard on else { return }
             Task { try? await Task.sleep(for: .milliseconds(450)); focused = true }
@@ -188,6 +207,7 @@ struct Composer: View {
         let body = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         let out = files
         draft = ""; files = []; error = nil; emoji = false
+        Drafts.shared.clear(draftKey)
         send(body, out)
     }
 
@@ -223,6 +243,68 @@ struct Composer: View {
         let preview = type.hasPrefix("image") ? UIImage(data: data) : nil
         files.append(OutFile(name: name, type: type, data: data, preview: preview))
         error = nil
+    }
+}
+
+/// What was typed and not sent, per conversation (founder, 2026-11-11: "if
+/// I leave the conversation and come back, what I typed is gone"). In
+/// memory at once, in UserDefaults half a second after the last change (and
+/// at once when the box goes away or the app leaves the front), so it
+/// survives a restart. Sending clears it. Thread-safe, so a view's init or
+/// body can read it from anywhere.
+final class Drafts: @unchecked Sendable {
+    static let shared = Drafts()
+    private static let storeKey = "paragon.drafts.v1"
+    private let lock = NSLock()
+    private var map: [String: String]
+    private var pending: DispatchWorkItem?
+
+    private init() {
+        map = (UserDefaults.standard.dictionary(forKey: Self.storeKey) as? [String: String]) ?? [:]
+    }
+
+    /// "thread:<id>", or "person:<id>" before the conversation has a thread.
+    static func key(thread: String?, person: String?) -> String {
+        if let thread { return "thread:\(thread)" }
+        return "person:\(person ?? "")"
+    }
+
+    func get(_ key: String) -> String {
+        lock.lock(); defer { lock.unlock() }
+        return map[key] ?? ""
+    }
+
+    func set(_ key: String, _ text: String) {
+        lock.lock()
+        let empty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let changed = empty ? map.removeValue(forKey: key) != nil : map.updateValue(text, forKey: key) != text
+        lock.unlock()
+        guard changed else { return }
+        schedule()
+    }
+
+    func clear(_ key: String) {
+        lock.lock()
+        let had = map.removeValue(forKey: key) != nil
+        lock.unlock()
+        if had { flush() }
+    }
+
+    /// Onto the disk now.
+    func flush() {
+        lock.lock()
+        pending?.cancel(); pending = nil
+        let snapshot = map
+        lock.unlock()
+        UserDefaults.standard.set(snapshot, forKey: Self.storeKey)
+    }
+
+    private func schedule() {
+        let work = DispatchWorkItem { [weak self] in self?.flush() }
+        lock.lock()
+        pending?.cancel(); pending = work
+        lock.unlock()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
     }
 }
 

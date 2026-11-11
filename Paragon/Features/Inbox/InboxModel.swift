@@ -7,8 +7,12 @@ final class InboxModel {
     /// One for the app, so the tab bar can show the waiting count.
     static let shared = InboxModel()
 
-    /// Waiting and All (founder, 2026-11-10: no Owed; everything is promises).
-    enum Show: Hashable { case waiting, all }
+    /// Urgent and Recent (founder, 2026-11-10: no Owed; everything is
+    /// promises), and Personal for a member with a personal line (founder,
+    /// 2026-11-11: "Urgent, Recent, Personal"; no Personal tab any more).
+    /// `waiting` and `all` are the server's values ('waiting' / 'all'); the
+    /// person reads Urgent and Recent.
+    enum Show: Hashable { case waiting, all, personal }
 
     var show: Show = .waiting
     /// The filter, one choice (founder, 2026-11-10: "All" "Homeowners only"
@@ -33,6 +37,12 @@ final class InboxModel {
     var search = ""
 
     private(set) var items: [QueueItem] = []
+    /// My personal line's conversations (`paragon_personal`, the old
+    /// Personal page's read), most recent first.
+    private(set) var personalItems: [PersonalItem] = []
+    /// I have a personal line (a 'personal' line of mine in `paragon_lines`,
+    /// or conversations on one): the Personal filter shows.
+    private(set) var hasPersonal = false
     /// Bumped when something is hidden or put back here (`GoneIDs`), so every
     /// list that reads rows redraws at once.
     var localTick = 0
@@ -59,12 +69,13 @@ final class InboxModel {
         let rows = visible
         let base: [QueueItem]
         switch show {
-        // Set for later here (a promise added or moved ahead): out of
-        // Waiting at once, until something new happens on it.
-        case .waiting: base = rows.filter { ($0.status == "waiting" && !LaterMarks.shared.hides($0)) || $0.isAtlas }
-        case .all: base = rows
+        // Set for later here (a promise added or moved ahead), or answered
+        // here (a text or a reaction sent): out of Urgent at once, until
+        // something new happens on it.
+        case .waiting: base = rows.filter { ($0.status == "waiting" && !LaterMarks.shared.hides($0) && !answered($0)) || $0.isAtlas }
+        case .all, .personal: base = rows
         }
-        if show == .all { return recent(base) }
+        if show != .waiting { return recent(base) }
         // Gold first (founder, 2026-11-10: "MOST PRIORITY"), whatever the keys say.
         let gold = base.filter(\.isGold), rest = base.filter { !$0.isGold }
         if rest.contains(where: { $0.sortKey != nil }) {
@@ -83,7 +94,8 @@ final class InboxModel {
     /// Who is waiting on a reply and how many of them are late ("4 waiting · 1 late").
     var counts: (waiting: Int, late: Int) {
         var waiting = 0, late = 0
-        for q in visible where q.status == "waiting" {
+        _ = localTick
+        for q in visible where q.status == "waiting" && !answered(q) {
             waiting += 1
             if q.tone == .late || (q.dueSource == "clock" && q.isOverdue) { late += 1 }
         }
@@ -96,6 +108,52 @@ final class InboxModel {
     /// every inbox load (`Badge.refresh`); until then the late count here.
     var lateBadge: Int?
     var badge: Int { lateBadge ?? counts.late }
+
+    // MARK: Answered here (founder, 2026-11-11: "when we react, it NEEDS to
+    // clear/release the conversation. it should work just like a response")
+    //
+    // Every text the Outbox sends, a reply or a reaction, marks its thread:
+    // the row leaves Urgent and stops reading late at once, before the
+    // server has it, and the queue is read again as soon as the send went.
+    // A new text from them (waiting since after the mark) brings it back;
+    // a send that fails takes the mark off.
+
+    private var answeredAt: [String: Date] = [:]
+
+    func answered(thread: String) {
+        answeredAt[thread] = Date()
+        // The server's late count still has this one until the send lands:
+        // the local count stands in until the next read.
+        lateBadge = nil
+        localTick += 1
+    }
+
+    func unanswered(thread: String) {
+        guard answeredAt.removeValue(forKey: thread) != nil else { return }
+        localTick += 1
+    }
+
+    /// Answered here, with nothing new from them since.
+    func answered(_ q: QueueItem) -> Bool {
+        guard !answeredAt.isEmpty else { return false }
+        let since = Stamp.date(q.waitingSince) ?? .distantPast
+        return (q.threads ?? []).contains { t in answeredAt[t.id].map { since <= $0 } ?? false }
+            || (q.threadId.flatMap { answeredAt[$0] }.map { since <= $0 } ?? false)
+    }
+
+    /// Personal, as Recent: every conversation on my line, newest first
+    /// (spam stays out). No Urgent / Recent / All inside it.
+    var personalShown: [PersonalItem] {
+        _ = localTick
+        return personalItems.filter { !$0.isSpam && !gonePersonal.contains($0.threadId) }
+    }
+
+    /// My personal conversations with a text I have not answered.
+    var personalWaiting: Int { personalShown.filter { $0.status == "waiting" }.count }
+
+    /// Released from Personal here: off the list at once.
+    private var gonePersonal: Set<String> = []
+    func dropPersonal(thread: String) { gonePersonal.insert(thread); localTick += 1 }
 
     var brands: [String] {
         let extra = Set(items.compactMap { $0.firstThread?.brand }).subtracting(Self.knownBrands).sorted()
@@ -137,9 +195,18 @@ final class InboxModel {
     func load() async {
         let started = Date()
         do {
+            async let personal = Self.readPersonal()
             let rows = try await API.queue(filter: self.filter, search: nil, promises: promises)
             items = rows
             cleared = cleared.filter { $0.value >= started }
+            // A mark the server has had ten minutes to agree with is done.
+            answeredAt = answeredAt.filter { started.timeIntervalSince($0.value) < 600 }
+            if let p = await personal {
+                personalItems = p.items.sorted { (Stamp.date($0.lastActivityAt) ?? .distantPast) > (Stamp.date($1.lastActivityAt) ?? .distantPast) }
+                gonePersonal = gonePersonal.intersection(Set(personalItems.map(\.threadId)))
+                hasPersonal = p.hasLine || !personalItems.isEmpty
+                if !hasPersonal && show == .personal { show = .waiting }
+            }
             // The open conversation is never swapped from under you by a
             // read (founder, 2026-11-10, as on the desktop): a reply, a type,
             // a call or a promise of mine takes the row off the list
@@ -301,9 +368,11 @@ final class InboxModel {
         if let p = try? await API.uiPrefs(), let i = p.inbox { apply(i); cache(i) }
     }
 
-    /// Waiting / All, picked by the person.
+    /// Urgent / Recent (saved, the desktop's 'waiting' / 'all'), or
+    /// Personal (this phone only: the desktop has its own Personal).
     func choose(show s: Show) {
         show = s
+        guard s != .personal else { return }
         cache(current)
         save(["tab": s == .all ? "all" : "waiting"])
     }
@@ -329,6 +398,32 @@ final class InboxModel {
         Task {
             do { try await API.uiPrefsSet(["inbox": inbox]) }
             catch { Toast.shared.show("Could not save that choice: \(error.localizedDescription)", error: true) }
+        }
+    }
+
+    /// My personal line: its conversations, and whether I have one. The
+    /// lines are read once (they rarely change); nil when the read failed,
+    /// so a blip never takes the filter away.
+    private static var lineKnown: (member: String, has: Bool)?
+    private static func readPersonal() async -> (items: [PersonalItem], hasLine: Bool)? {
+        guard let items = try? await API.personal() else { return nil }
+        let me = Session.shared.me?.id
+        if let me, lineKnown?.member != me, let lines = try? await API.lines() {
+            lineKnown = (me, lines.contains { $0.kind == "personal" && $0.ownerMemberId == me })
+        }
+        return (items, lineKnown?.member == me ? lineKnown?.has ?? false : false)
+    }
+
+    /// An event says the queue changed (a lead's push, a lead on the feed,
+    /// the app back at the front): read it now, once, however many events
+    /// come together. Signed out, nothing.
+    private var refreshing = false
+    func refreshSoon() {
+        guard Session.shared.me != nil, !refreshing else { return }
+        refreshing = true
+        Task {
+            await load()
+            refreshing = false
         }
     }
 

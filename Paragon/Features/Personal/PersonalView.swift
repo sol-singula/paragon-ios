@@ -44,8 +44,6 @@ struct PersonalView: View {
                                 Text("\(m.name)\u{2019}s line. What you send or call shows your face.")
                                     .font(.meta).foregroundStyle(Theme.muted).lineLimit(1).truncationMode(.tail)
                             }
-                            let waiting = items.filter { $0.status == "waiting" }.count
-                            Segmented(options: [(Show.waiting, waiting > 0 ? "Waiting \(waiting)" : "Waiting"), (.recent, "Recent"), (.all, "All")], selection: $show)
                         }
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 8, trailing: 16))
                         .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -129,22 +127,14 @@ struct PersonalView: View {
         .accessibilityLabel("Open a teammate's personal line")
     }
 
-    /// Recent is the last two weeks plus anything waiting; spam only in All.
-    private var shown: [PersonalItem] {
-        let cutoff = Date().addingTimeInterval(-14 * 86_400)
-        return items.filter { i in
-            switch show {
-            case .all: return true
-            case .waiting: return !i.isSpam && i.status == "waiting"
-            case .recent: return !i.isSpam && (i.status == "waiting" || (Stamp.date(i.lastActivityAt) ?? .distantPast) >= cutoff)
-            }
-        }
-    }
+    /// Every conversation on the line, most recent first, as the inbox's
+    /// Personal (founder, 2026-11-11: no Waiting / Recent / All inside it).
+    private var shown: [PersonalItem] { items.filter { !$0.isSpam } }
 
     private var first: String? { member.map { $0.name.split(separator: " ").first.map(String.init) ?? $0.name } }
     private var emptyTitle: String {
         if items.isEmpty { return member == nil ? "No personal conversations" : "Nothing on \(first ?? "")\u{2019}s line" }
-        return show == .waiting ? "Nothing waiting on \(member == nil ? "you" : first ?? "")." : "Nothing in the last two weeks."
+        return "Nothing on \(first ?? "this")\u{2019}s line yet."
     }
     private var emptyDetail: String {
         member == nil ? "Texts and calls to your own line show here." : "\(member!.name) has no personal line, or nothing on it yet."
@@ -219,7 +209,6 @@ struct PersonalThreadView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var thread: PersonalThread?
     @State private var error: String?
-    @State private var draft = ""
     @State private var outbox = Outbox.shared
     @State private var scrollKey = 0
     @State private var infoOpen = false
@@ -253,8 +242,11 @@ struct PersonalThreadView: View {
                 if let p = t.person, p.askType == true {
                     WhoIsThisBar(personId: p.id, name: p.name) { _ in Task { await load() } }
                 }
-                TimelineList(events: t.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(threadId))
-                Composer(draft: $draft, label: t.sendLabel,
+                TimelineList(events: t.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(threadId),
+                             react: t.person?.isStopped == true ? nil : { e, emoji in
+                                 send(Reactions.text(emoji, e.body ?? ""), [])
+                             })
+                Composer(draftKey: Drafts.key(thread: threadId, person: nil), label: t.sendLabel,
                          blocked: t.person?.isStopped == true ? "They replied STOP" : nil,
                          placeholder: Composer.placeholder(for: t.person?.name ?? name, named: t.person?.hasName != false),
                          promise: { promising = PromiseTarget(threadId: threadId, personId: t.person?.id, name: t.person?.name ?? name) },

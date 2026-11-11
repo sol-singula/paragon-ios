@@ -12,7 +12,6 @@ struct ConversationView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var view: PersonView?
     @State private var error: String?
-    @State private var draft = ""
     @State private var outbox = Outbox.shared
     @State private var scrollKey = 0
     @State private var house: URL?
@@ -48,13 +47,19 @@ struct ConversationView: View {
                     WhoIsThisBar(personId: v.person.id, name: v.person.name) { t in typed(t) }
                 }
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
-                TimelineList(events: v.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(v.threadId ?? currentThread))
-                Composer(draft: $draft, label: v.sendLabel,
+                TimelineList(events: v.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(v.threadId ?? currentThread),
+                             react: v.canSend == false || currentThread == nil ? nil : { e, emoji in
+                                 send(Reactions.text(emoji, e.body ?? ""), [])
+                             })
+                let draftKey = Drafts.key(thread: currentThread, person: personId)
+                Composer(draftKey: draftKey, label: v.sendLabel,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
                          promise: currentThread == nil ? nil : addPromise,
                          autoFocus: focusComposer,
                          send: send)
+                    // One box per conversation: a branch chip brings that thread's draft.
+                    .id(draftKey)
                     .onChange(of: v.person.name) { _, n in Presence.shared.focus(personId: personId, name: n) }
             } else if let e = error {
                 ErrorBanner(message: e) { Task { await load() } }.padding()

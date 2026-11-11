@@ -159,7 +159,10 @@ final class CallManager: NSObject {
         config.maximumCallGroups = 1
         config.maximumCallsPerCallGroup = 1
         config.supportedHandleTypes = [.generic, .phoneNumber]
-        config.includesCallsInRecents = true
+        // Ring through CallKit, but stay out of the iPhone's Recents
+        // (founder, 2026-11-11: "We want them to pop up but not show in our
+        // iPhone call history"). Paragon keeps its own call history.
+        config.includesCallsInRecents = false
         config.ringtoneSound = "ringtone-low-classic.caf"
         let p = CXProvider(configuration: config)
         p.setDelegate(self, queue: nil)

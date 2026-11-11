@@ -291,3 +291,46 @@ promise or gold's buttons re-read the inbox, and the inbox re-reads when you
 come back (`inboxPath` shrinks), so the row is already gone. A read never
 swaps the open conversation for the next one any more; Release and a promise
 given to someone else still do (`clear`). The desktop matches (`actedOn`).
+
+## Build 23, 2026-11-11 (founder)
+
+- **Typing is the composer's own.** `Composer` keeps the words in its own
+  `@State` (no binding up to the conversation), so a keystroke redraws the
+  box only, never the timeline, and the 6-second read can't touch the text.
+  Drafts are per conversation (`Drafts`, in Composer.swift: memory at once,
+  UserDefaults `paragon.drafts.v1` half a second after typing stops and when
+  the box goes or the app leaves the front), keyed `thread:<id>`; Send
+  clears it. The composer is `.id(draftKey)`, so a branch chip brings that
+  thread's draft.
+- **Opens at the very bottom.** `TimelineList`'s bottom mark sits under the
+  content's padding, outside the LazyVStack; open scrolls there unanimated
+  and again as the lazy rows settle (to 1.6 s). `pinned` (the mark within
+  90 pt of the viewport) keeps you at the bottom when something new comes,
+  the keyboard comes up or the composer grows; ours always scrolls.
+- **Urgent / Recent / Personal.** "Waiting" reads **Urgent** everywhere
+  (the server's value stays `waiting`). No Personal tab: a member with a
+  personal line (a `paragon_lines` row of kind `personal` whose
+  `owner_member_id` is me, or any `paragon_personal` rows) gets the inbox
+  filter **Personal**, every conversation on the line newest first, no
+  sub-filters; it is not saved to `paragon_ui_prefs` (the desktop knows
+  waiting / all only). A teammate's line (founders and managers, from Team)
+  still opens `PersonalView`, off the tab bar, with no sub-filters either.
+  A personal-line push opens its thread over the inbox.
+- **No New message button**: search a name or a number and Text it.
+- **Reactions** (the desktop's `lib/reactions.ts`, `Reactions` in
+  Timeline.swift): hold a text to react; it goes as a text through the
+  Outbox (the Android / Quo form). Reactions read as one quiet line.
+- **A reply or a reaction answers them at once**: `Outbox.send` marks the
+  thread (`InboxModel.answered(thread:)`): out of Urgent, off the late
+  count and the row's late clock until they write again (waiting since
+  after the mark) or the send fails; the queue is read as soon as the send
+  lands.
+- **Gold at once**: a `lead.*` push in the foreground or tapped, a new
+  `lead` card on the feed, and coming to the front each read the queue now
+  (`InboxModel.refreshSoon`, one read however many come together; no faster
+  poll). A gold card is due two minutes early (`RowItem.isDueNow`) for a
+  phone clock behind the server's.
+- **Calls stay out of Recents**: `includesCallsInRecents = false`; CallKit
+  still rings.
+- **The line picker offers Solara One**: `LinePick.offered` is kind
+  `customer` or brand `Solara One` (its line is kind `contractor`).

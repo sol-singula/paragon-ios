@@ -22,10 +22,19 @@ final class Router {
     /// Team channel ids.
     var teamPath: [String] = []
 
+    /// My own line is the inbox's Personal filter (founder, 2026-11-11: no
+    /// Personal tab); a teammate's line (founders and managers, from Team)
+    /// still opens on its own page, off the tab bar.
     func openPersonal(of member: LineOf?) {
         personalOf = member
         personalPath = []
-        tab = .personal
+        if member == nil {
+            InboxModel.shared.choose(show: .personal)
+            inboxPath = []
+            tab = .inbox
+        } else {
+            tab = .personal
+        }
     }
 
     func open(_ route: Route) {
@@ -34,9 +43,10 @@ final class Router {
             tab = .inbox
             inboxPath = [route]
         case .personal:
-            tab = .personal
+            // A text to my personal line: its conversation, over the inbox.
+            tab = .inbox
             personalOf = nil
-            personalPath = [route]
+            inboxPath = [route]
         }
     }
 

@@ -61,6 +61,8 @@ struct MainTabs: View {
             // ParagonTabBar below is the one people see.
             TabView(selection: $router.tab) {
                 InboxView().hidesSystemTabBar().tag(Router.Tab.inbox)
+                // Not on the tab bar any more (founder, 2026-11-11): my line is
+                // the inbox's Personal filter; this page is a teammate's line.
                 PersonalView().hidesSystemTabBar().tag(Router.Tab.personal)
                 TeamView().hidesSystemTabBar().tag(Router.Tab.team)
                 SettingsView().hidesSystemTabBar().tag(Router.Tab.settings)
@@ -100,7 +102,6 @@ struct MainTabs: View {
         let late = inbox.badge
         return [
             .init(tab: .inbox, title: "Inbox", symbol: "tray", badge: late > 0 ? count(late) : nil),
-            .init(tab: .personal, title: "Personal", symbol: "person", badge: nil),
             .init(tab: .team, title: "Team", symbol: "bubble.left.and.bubble.right", badge: nil),
             .init(tab: .settings, title: "Settings", symbol: "gearshape", badge: nil),
         ]

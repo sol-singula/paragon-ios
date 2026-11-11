@@ -41,6 +41,8 @@ struct ParagonApp: App {
                 PushManager.shared.refreshBadge()
                 Presence.shared.retrack()
                 Task { await TeamModel.shared.load() }
+                // Back to the front: the inbox now (a gold card filed while away).
+                InboxModel.shared.refreshSoon()
             }
         }
     }

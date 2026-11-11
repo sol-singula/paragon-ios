@@ -163,6 +163,9 @@ final class FeedModel {
             if let at = Stamp.date(e.at), at > (newest ?? .distantPast) { newest = at }
         }
         guard !fresh.isEmpty else { return }
+        // A new lead on the feed: its gold card is on the server already, so
+        // the inbox reads it now (founder, 2026-11-11: "it must pop up instantly").
+        if !first, fresh.contains(where: { $0.0.kind == "lead" }) { InboxModel.shared.refreshSoon() }
         var next = cards
         for (e, at) in fresh {
             // On open a card lives out what is left of its ten minutes; a new one gets all ten.

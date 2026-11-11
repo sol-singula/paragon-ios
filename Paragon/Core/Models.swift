@@ -169,7 +169,11 @@ struct RowItem: Decodable, Hashable, Identifiable {
     /// Due (or moved here to a later time: `LaterMarks`), so it belongs on the row now.
     var isDueNow: Bool {
         if let d = LaterMarks.shared.due(id) { return d <= Date() }
-        return (Stamp.date(dueAt) ?? .distantPast) <= Date()
+        // A new website form is due the moment the server files it (founder,
+        // 2026-11-11: "it must pop up instantly"): two minutes of slack for
+        // a phone clock a little behind the server's.
+        let slack: TimeInterval = isGold ? 120 : 0
+        return (Stamp.date(dueAt) ?? .distantPast) <= Date().addingTimeInterval(slack)
     }
     var what: String { (title?.isEmpty == false ? title : short) ?? (isPromise ? "Promise" : "Atlas card") }
 }
@@ -731,6 +735,8 @@ struct LineInfo: Decodable, Hashable, Identifiable {
     var messages: Int?
     /// I may not text or call from it (paragon.line_blocked); nil on an older server.
     var blocked: Bool?
+    /// A personal line's person (kind 'personal').
+    var ownerMemberId: String?
 }
 
 /// Who has a number in the business inbox (`paragon_phone_lookup`); nil when nobody does.

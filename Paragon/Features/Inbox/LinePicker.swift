@@ -24,16 +24,23 @@ enum LinePick {
     /// The lines I may start a customer conversation on, New message's rule:
     /// tagged customer Quo lines with a brand and a state that I am not
     /// blocked from, one per brand and state (the oldest, the one
-    /// `paragon_start_thread` uses).
+    /// `paragon_start_thread` uses). The Solara One line is tagged
+    /// 'contractor' and is offered too (founder, 2026-11-11); no other
+    /// contractor line is.
     static func usable(_ lines: [LineInfo]) -> [LineInfo] {
         var best: [String: LineInfo] = [:]
-        for l in lines where l.kind == "customer" && l.provider == "quo" && l.inQuo == true && l.blocked != true {
+        for l in lines where offered(l) && l.provider == "quo" && l.inQuo == true && l.blocked != true {
             guard let b = l.brand, let s = l.state else { continue }
             let k = "\(b)|\(s)"
             if let cur = best[k], (cur.firstSeenAt ?? "") <= (l.firstSeenAt ?? "") { continue }
             best[k] = l
         }
         return Array(best.values)
+    }
+
+    /// A customer line, or Solara One's (kind 'contractor', brand 'Solara One').
+    static func offered(_ l: LineInfo) -> Bool {
+        l.kind == "customer" || l.brand?.caseInsensitiveCompare("Solara One") == .orderedSame
     }
 
     struct Choice: Identifiable {
