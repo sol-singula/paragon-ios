@@ -173,6 +173,16 @@ enum API {
         return Int(try await rpc("paragon_set_contact_type", ["p_person": person, "p_type": type], as: R.self).released?.value ?? 0)
     }
 
+    /// My pins on Recent (founder, 2026-11-11), oldest first. Only mine, on every device.
+    struct Pin: Decodable { let person_id: String }
+    static func pins() async throws -> [String] {
+        try await rpc("paragon_pins", as: [Pin].self).map(\.person_id)
+    }
+    @discardableResult
+    static func pin(_ person: String, on: Bool) async throws -> [String] {
+        try await rpc("paragon_pin", ["p_person": person, "p_on": on], as: [Pin].self).map(\.person_id)
+    }
+
     static func personDetails(_ person: String) async throws -> PersonDetails? {
         try await rpc("paragon_person_details", ["p_person": person], as: PersonDetails?.self)
     }

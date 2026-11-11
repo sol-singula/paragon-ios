@@ -128,7 +128,7 @@ struct InboxView: View {
         Section {
             ForEach(model.shown) { q in
                 NavigationLink(value: Route.person(personId: q.personId, threadId: q.openThread)) {
-                    QueueRow(q: q, answered: model.answered(q))
+                    QueueRow(q: q, answered: model.answered(q), pinned: model.show == .all && model.isPinned(q.personId))
                 }
                 .contextMenu { rowMenu(q) }
                 .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
@@ -181,8 +181,14 @@ struct InboxView: View {
         }
     }
 
-    /// Hold a row: Add promise…, the card or promise's own actions, Release….
+    /// Hold a row: Add promise…, the card or promise's own actions, Release… (Urgent) or Pin (Recent).
     @ViewBuilder private func rowMenu(_ q: QueueItem) -> some View {
+        if model.show == .all {
+            let on = model.isPinned(q.personId)
+            Button { model.togglePin(q.personId) } label: {
+                Label(on ? "Unpin" : "Pin", systemImage: on ? "pin.slash" : "pin")
+            }
+        }
         if let g = q.goldItem {
             // A gold card is not a promise: its own two actions.
             Section("New website lead") {
@@ -442,10 +448,25 @@ struct QueueRow: View {
     let q: QueueItem
     /// Answered here a moment ago (a text or a reaction): no longer late.
     var answered = false
+    /// One of my pins on Recent: a small pin on the avatar (design E).
+    var pinned = false
 
     var body: some View {
         HStack(spacing: 10) {
             BranchMark(brand: q.firstThread?.brand, size: 34)
+                .overlay(alignment: .bottomTrailing) {
+                    if pinned {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 7.5, weight: .bold))
+                            .rotationEffect(.degrees(45))
+                            .foregroundStyle(Theme.muted)
+                            .frame(width: 16, height: 16)
+                            .background(Circle().fill(Theme.hover))
+                            .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 2))
+                            .offset(x: 3, y: 3)
+                            .accessibilityLabel("Pinned")
+                    }
+                }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(Renames.shared.shown(q.personId, q.name))

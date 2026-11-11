@@ -37,6 +37,8 @@ final class InboxModel {
     var search = ""
 
     private(set) var items: [QueueItem] = []
+    /// My pins on Recent (design E, founder 2026-11-11), in the order pinned.
+    private(set) var pins: [String] = []
     /// My personal line's conversations (`paragon_personal`, the old
     /// Personal page's read), most recent first.
     private(set) var personalItems: [PersonalItem] = []
@@ -180,7 +182,24 @@ final class InboxModel {
     }
 
     private func recent(_ xs: [QueueItem]) -> [QueueItem] {
-        xs.sorted { (Stamp.date($0.lastActivityAt) ?? .distantPast) > (Stamp.date($1.lastActivityAt) ?? .distantPast) }
+        let byLatest = xs.sorted { (Stamp.date($0.lastActivityAt) ?? .distantPast) > (Stamp.date($1.lastActivityAt) ?? .distantPast) }
+        // Recent: my pins first, in the order I pinned them.
+        guard show == .all, !pins.isEmpty else { return byLatest }
+        let at = Dictionary(pins.enumerated().map { ($1, $0) }, uniquingKeysWith: { a, _ in a })
+        return byLatest.filter { at[$0.personId] != nil }.sorted { at[$0.personId]! < at[$1.personId]! }
+            + byLatest.filter { at[$0.personId] == nil }
+    }
+
+    func isPinned(_ personId: String) -> Bool { pins.contains(personId) }
+
+    /// Pin or unpin someone on my Recent: shown at once, the server's list after.
+    func togglePin(_ personId: String) {
+        let on = !pins.contains(personId)
+        pins = on ? pins + [personId] : pins.filter { $0 != personId }
+        Task {
+            do { pins = try await API.pin(personId, on: on) }
+            catch { if let p = try? await API.pins() { pins = p } }
+        }
     }
 
     /// A promise just went to someone else: the conversation leaves my
@@ -197,6 +216,7 @@ final class InboxModel {
         do {
             async let personal = Self.readPersonal()
             let rows = try await API.queue(filter: self.filter, search: nil, promises: promises)
+            if let p = try? await API.pins() { pins = p }
             items = rows
             cleared = cleared.filter { $0.value >= started }
             // A mark the server has had ten minutes to agree with is done.
