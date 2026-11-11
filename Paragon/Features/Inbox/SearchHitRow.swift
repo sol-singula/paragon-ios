@@ -31,14 +31,19 @@ struct SearchHitRow: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(hit.name).font(.name).foregroundStyle(Theme.text).lineLimit(1)
-                        HStack(spacing: 5) {
-                            let sub = neverTexted ? "No texts yet" : hit.secondary
-                            if let sub, !sub.isEmpty {
-                                Text(sub).font(.system(size: 14)).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+                        // The status beside the number when it fits, under it when
+                        // it doesn't; never cut (founder, 2026-11-11).
+                        let sub = neverTexted ? "No texts yet" : hit.secondary
+                        let hasSub = !(sub ?? "").isEmpty
+                        let status = (hit.status ?? "").isEmpty ? nil : hit.status
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                if hasSub { subText(sub!) }
+                                if let status { StatusChip(name: status, color: StatusChip.color(hit.statusColor)).fixedSize() }
                             }
-                            if let s = hit.status, !s.isEmpty {
-                                if let sub, !sub.isEmpty { Text("·").font(.system(size: 14)).foregroundStyle(Theme.muted) }
-                                StatusChip(name: s, color: StatusChip.color(hit.statusColor)).layoutPriority(1)
+                            VStack(alignment: .leading, spacing: 3) {
+                                if hasSub { subText(sub!, fixed: false) }
+                                if let status { StatusChip(name: status, color: StatusChip.color(hit.statusColor)) }
                             }
                         }
                     }
@@ -63,6 +68,11 @@ struct SearchHitRow: View {
             }
         }
         .disabled(busy)
+    }
+
+    private func subText(_ s: String, fixed: Bool = true) -> some View {
+        Text(s).font(.system(size: 14)).monospacedDigit().foregroundStyle(Theme.secondary).lineLimit(1)
+            .truncationMode(.tail).fixedSize(horizontal: fixed, vertical: false)
     }
 }
 
