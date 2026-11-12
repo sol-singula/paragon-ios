@@ -11,8 +11,17 @@ import Supabase
 final class Presence {
     static let shared = Presence()
 
-    /// Member ids with Paragon open somewhere right now (you included).
-    private(set) var online: Set<String> = []
+    /// Member ids with Paragon open somewhere right now (you included):
+    /// Realtime presence, or a server ping in the last 90 s. Realtime drops a
+    /// client that goes over its presence rate limit, which left each person
+    /// seeing a different team (owner, 2026-11-12); the ping covers that.
+    var online: Set<String> { live.union(pinged) }
+    /// From the Realtime channel.
+    private(set) var live: Set<String> = []
+    /// From paragon_team (`online`), refreshed with the team every 30 s.
+    private(set) var pinged: Set<String> = []
+
+    func setPinged(_ ids: Set<String>) { if ids != pinged { pinged = ids } }
 
     @ObservationIgnored private var channel: RealtimeChannelV2?
     @ObservationIgnored private var listen: Task<Void, Never>?
@@ -32,8 +41,8 @@ final class Presence {
     func start(_ me: Me) {
         guard channel == nil else { return }
         self.me = me
-        online.insert(me.id)
-        if Demo.on { online = Demo.online; return }
+        live.insert(me.id)
+        if Demo.on { live = Demo.online; return }
         let ch = Supa.client.channel("paragon-presence") { $0.presence.key = me.id }
         channel = ch
         let changes = ch.presenceChange()
@@ -42,11 +51,11 @@ final class Presence {
                 guard let self else { return }
                 for (key, p) in action.leaves where self.refs[key] == p.ref {
                     self.refs[key] = nil
-                    if key != me.id { self.online.remove(key) }
+                    if key != me.id { self.live.remove(key) }
                 }
                 for (key, p) in action.joins {
                     self.refs[key] = p.ref
-                    self.online.insert(key)
+                    self.live.insert(key)
                 }
             }
         }
@@ -61,7 +70,8 @@ final class Presence {
         if let ch = channel { Task { await ch.unsubscribe() } }
         channel = nil
         refs = [:]
-        online = []
+        live = []
+        pinged = []
         me = nil
     }
 
@@ -104,10 +114,18 @@ final class TeamStore {
     }
 
     func load() async {
-        if let m = try? await API.team() { members = m }
+        if let m = try? await API.team() {
+            members = m
+            Presence.shared.setPinged(Set(m.filter { $0.online == true && $0.isMe != true }.map(\.id)))
+        }
     }
 
+    /// Every 30 s: say I'm here (the server's half of presence), then re-read.
     func poll() async {
-        while !Task.isCancelled { await load(); try? await Task.sleep(for: .seconds(30)) }
+        while !Task.isCancelled {
+            if !Demo.on { try? await API.presencePing() }
+            await load()
+            try? await Task.sleep(for: .seconds(30))
+        }
     }
 }

@@ -331,6 +331,11 @@ enum API {
         try await rpc("paragon_team", as: [TeamMember]?.self) ?? []
     }
 
+    /// I am here (every 30 s while Paragon is open): paragon_team's `online`.
+    static func presencePing() async throws {
+        try await call("paragon_presence_ping")
+    }
+
     static func costs(days: Int, grain: String = "day") async throws -> Costs {
         try await rpc("paragon_costs", ["p_days": days, "p_grain": grain], as: Costs.self)
     }

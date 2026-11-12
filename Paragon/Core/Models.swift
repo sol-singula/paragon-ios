@@ -535,6 +535,9 @@ struct TeamMember: Decodable, Hashable, Identifiable {
     let callWith: String?
     let callPersonId: String?
     let callStartedAt: String?
+    /// Pinged in the last 90 s (paragon_presence_ping), so online even when
+    /// Realtime dropped them.
+    var online: Bool? = nil
 }
 
 // MARK: Team chat (paragon_team_*)
