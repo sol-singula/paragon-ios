@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
         // PushKit has to be listening before the app finishes launching, or a
         // call that woke the app is lost.
-        CallManager.shared.start()
+        if !Demo.on { CallManager.shared.start() }
         return true
     }
 

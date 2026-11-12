@@ -1,0 +1,90 @@
+name: Screenshots
+
+# App Store screenshots from the real app on the simulator, with made-up data
+# (Paragon/Core/Demo.swift, launch argument -PARAGONDEMO). Run by hand only.
+# The PNGs are committed to the `screenshots` branch and kept as an artifact.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: XcodeGen
+        run: brew install xcodegen && xcodegen generate
+      - name: Packages
+        run: |
+          for i in 1 2 3 4; do
+            rm -rf ~/Library/Caches/org.swift.swiftpm "$RUNNER_TEMP/spm" "$RUNNER_TEMP/spm-src"
+            if xcodebuild -resolvePackageDependencies -project Paragon.xcodeproj -scheme Paragon \
+                 -packageCachePath "$RUNNER_TEMP/spm" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-src" \
+                 -skipPackagePluginValidation -skipMacroValidation; then exit 0; fi
+            sleep 30
+          done
+          exit 1
+      - name: Build for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project Paragon.xcodeproj -scheme Paragon -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/dd" \
+            -packageCachePath "$RUNNER_TEMP/spm" -clonedSourcePackagesDirPath "$RUNNER_TEMP/spm-src" \
+            -disableAutomaticPackageResolution -skipPackagePluginValidation -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build.log
+      - name: Errors
+        if: failure()
+        run: grep -n -B2 -A12 -E "error:" build.log | head -150 || true
+      - name: Screenshots
+        run: |
+          APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Debug-iphonesimulator/Paragon.app)
+          mkdir -p shots
+          xcrun simctl list devicetypes | grep -E "iPhone (16|15|11|XS)" || true
+          RT=$(xcrun simctl list runtimes | grep -E "^iOS" | tail -1 | sed -E 's/.* - (com\.apple[^ ]+).*/\1/')
+          echo "runtime $RT"
+          shoot() {
+            local type="$1" dir="$2"
+            local id
+            id=$(xcrun simctl create "shot-$dir" "com.apple.CoreSimulator.SimDeviceType.$type" "$RT") || { echo "no $type"; return 0; }
+            xcrun simctl boot "$id"
+            xcrun simctl bootstatus "$id" -b
+            xcrun simctl ui "$id" appearance dark
+            xcrun simctl status_bar "$id" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 \
+              --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+            xcrun simctl install "$id" "$APP"
+            mkdir -p "shots/$dir"
+            for s in inbox search conversation team channel personal; do
+              xcrun simctl terminate "$id" net.solbuild.paragon 2>/dev/null || true
+              xcrun simctl launch "$id" net.solbuild.paragon -PARAGONDEMO -DEMOSCREEN "$s"
+              sleep 9
+              xcrun simctl io "$id" screenshot "shots/$dir/$s.png"
+            done
+            xcrun simctl shutdown "$id" || true
+          }
+          shoot iPhone-16-Pro-Max 6.9
+          shoot iPhone-11-Pro-Max 6.5
+          find shots -name "*.png" | sort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots
+      - name: Commit to the screenshots branch
+        run: |
+          cp -R shots "$RUNNER_TEMP/shots"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan screenshots-tmp
+          git rm -rf -q . || true
+          git clean -fdxq
+          cp -R "$RUNNER_TEMP/shots" shots
+          git add shots
+          git commit -q -m "Screenshots from ${GITHUB_SHA::7} [skip ci]"
+          git push origin "screenshots-tmp:screenshots-${GITHUB_RUN_NUMBER}"

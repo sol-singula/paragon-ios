@@ -31,6 +31,13 @@ final class Session {
     /// not found or revoked) does; the SDK then drops the stored session.
     /// A network error, a timeout or a 5xx keeps it and we retry with backoff.
     func restore() async {
+        // App Store screenshots (-PARAGONDEMO): made-up data, never signed in.
+        if Demo.on {
+            if let me = try? await API.me() { state = .ready(me) }
+            try? await Task.sleep(for: .seconds(1.5))
+            Demo.open()
+            return
+        }
         watchSignOut()
         var attempt = 0
         while true {
@@ -53,6 +60,7 @@ final class Session {
     /// Back in front (or woken for a call): refresh now rather than on the
     /// SDK's next tick, and renew if the session was time-boxed meanwhile.
     func wake() async {
+        if Demo.on { return }
         guard !signingOut, !renewing else { return }
         switch state {
         case .ready, .notMember, .loading: break

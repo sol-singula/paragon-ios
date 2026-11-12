@@ -33,6 +33,7 @@ final class Presence {
         guard channel == nil else { return }
         self.me = me
         online.insert(me.id)
+        if Demo.on { online = Demo.online; return }
         let ch = Supa.client.channel("paragon-presence") { $0.presence.key = me.id }
         channel = ch
         let changes = ch.presenceChange()

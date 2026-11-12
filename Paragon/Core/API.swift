@@ -25,6 +25,8 @@ enum API {
     // MARK: Raw requests
 
     private static func request(_ url: URL, body: [String: Any?]) async throws -> Data {
+        // App Store screenshots only (launch argument -PARAGONDEMO): made-up data, no network.
+        if Demo.on { return Demo.data(url.lastPathComponent, body) }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.timeoutInterval = 30
