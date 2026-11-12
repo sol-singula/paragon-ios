@@ -50,6 +50,10 @@ jobs:
           xcrun simctl list devicetypes | grep -E "iPhone (16|15|11|XS)" || true
           RT=$(xcrun simctl list runtimes | grep -E "^iOS" | tail -1 | sed -E 's/.* - (com\.apple[^ ]+).*/\1/')
           echo "runtime $RT"
+          # Morning where the app thinks it is, whatever hour the runner starts.
+          H=$(date -u +%H); OFF=$(( (10 - 10#$H + 24) % 24 )); [ $OFF -gt 14 ] && OFF=$((OFF - 24))
+          if [ $OFF -ge 0 ]; then ZONE="Etc/GMT-$OFF"; else ZONE="Etc/GMT+$((-OFF))"; fi
+          echo "zone $ZONE"
           shoot() {
             local type="$1" dir="$2"
             local id
@@ -63,7 +67,7 @@ jobs:
             mkdir -p "shots/$dir"
             for s in inbox search conversation team channel personal; do
               xcrun simctl terminate "$id" net.solbuild.paragon 2>/dev/null || true
-              xcrun simctl launch "$id" net.solbuild.paragon -PARAGONDEMO -DEMOSCREEN "$s"
+              SIMCTL_CHILD_TZ="$ZONE" xcrun simctl launch "$id" net.solbuild.paragon -PARAGONDEMO -DEMOSCREEN "$s"
               sleep 9
               xcrun simctl io "$id" screenshot "shots/$dir/$s.png"
             done

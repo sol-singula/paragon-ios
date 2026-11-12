@@ -182,6 +182,7 @@ enum Demo {
             waiting(5, "Dan Whitaker", "Draper", "Solara", "UT", pct: 0.1, preview: "Thanks! What's the warranty on the black frames?", last: -1, due: 9),
             closed(6, "Amanda Reed", "Gilbert", "Just Glass", "AZ", preview: "Perfect, see you Saturday morning", last: -180),
             closed(8, "Megan O'Brien", "Meridian", "Solara", "ID", preview: "Call out", last: -240),
+            closed(10, "Sarah Jensen", "Provo", "Solara One", "UT", preview: "Got it, thank you!", last: -1500),
             closed(9, "Tom Sullivan", "Orem", "Solara", "UT", preview: "We signed! Thanks for all your help", last: -320),
         ]
         return "[" + rows.joined(separator: ",") + "]"
@@ -191,6 +192,8 @@ enum Demo {
     [{"id":"e1000000-0000-4000-8000-000000000001","result_type":"lead","primary_name":"Sarah Mitchell","secondary_info":"(801) 555-0142","extra_info":"1428 E Maple Ridge Dr, Sandy, UT","relevance_score":95,"status_name":"Quoted","status_color":"#6366F1"},
      {"id":"e1000000-0000-4000-8000-000000000002","result_type":"lead","primary_name":"Sarah Bennett","secondary_info":"(208) 555-0119","extra_info":"77 N Cedar Ln, Boise, ID","relevance_score":95,"status_name":"Sold","status_color":"#22C55E"},
      {"id":"e1000000-0000-4000-8000-000000000003","result_type":"lead","primary_name":"Sara Lindquist","secondary_info":"(480) 555-0163","extra_info":"905 E Juniper Ave, Gilbert, AZ","relevance_score":90,"status_name":"New lead","status_color":"#F59E0B"},
+     {"id":"e1000000-0000-4000-8000-000000000005","result_type":"lead","primary_name":"Sarah Peterson","secondary_info":"(801) 555-0128","extra_info":"412 W 900 N, Lehi, UT","relevance_score":88,"status_name":"Installed","status_color":"#14B8A6"},
+     {"id":"e1000000-0000-4000-8000-000000000006","result_type":"lead","primary_name":"Sarah Collins","secondary_info":"(602) 555-0171","extra_info":"18 E Palo Verde Dr, Tempe, AZ","relevance_score":86,"status_name":"Measured","status_color":"#3B82F6"},
      {"id":"e1000000-0000-4000-8000-000000000004","result_type":"contractor","primary_name":"Sarratt Glass & Glazing","secondary_info":"Installer","extra_info":"Mesa, AZ","relevance_score":70,"status_name":null,"status_color":null}]
     """#
 
@@ -203,6 +206,9 @@ enum Demo {
      "lead":{"id":"e1000000-0000-4000-8000-000000000001","address":"1428 E Maple Ridge Dr, Sandy, UT","email":"sarah.mitchell@example.com","description":null},
      "appointment":null,"history":[],
      "timeline":[
+      {"kind":"text","id":"aa000000-0000-4000-8000-000000000011","at":"@T-4380","direction":"in","body":"Hi, is this Solara? A neighbor on Maple Ridge gave me your number.","media":[],"status":"received","automated":false,"by":null,"atlas":false},
+      {"kind":"text","id":"aa000000-0000-4000-8000-000000000012","at":"@T-4374","direction":"out","body":"It is! This is Jake. What can we help you with?","media":[],"status":"delivered","automated":false,"by":"Jake Thompson","atlas":false},
+      {"kind":"text","id":"aa000000-0000-4000-8000-000000000013","at":"@T-4370","direction":"in","body":"Our windows fog up every winter. Do you do replacements?","media":[],"status":"received","automated":false,"by":null,"atlas":false},
       {"kind":"text","id":"aa000000-0000-4000-8000-000000000001","at":"@T-1560","direction":"in","body":"Hi! We got your flyer. We're thinking about replacing the sliding door and a few windows in the back.","media":[],"status":"received","automated":false,"by":null,"atlas":false},
       {"kind":"text","id":"aa000000-0000-4000-8000-000000000002","at":"@T-1554","direction":"out","body":"Hi Sarah, this is Jake with Solara. Happy to help! How many windows, roughly?","media":[],"status":"delivered","automated":false,"by":"Jake Thompson","atlas":false},
       {"kind":"text","id":"aa000000-0000-4000-8000-000000000003","at":"@T-1545","direction":"in","body":"Four windows plus the slider. The slider sticks every time it rains.","media":[],"status":"received","automated":false,"by":null,"atlas":false},
@@ -248,19 +254,34 @@ enum Demo {
                {"id":"d0000000-0000-4000-8000-000000000004","name":"Megan Taylor","role":"rep","is_active":true,"photo_url":null},
                {"id":"d0000000-0000-4000-8000-000000000005","name":"Tyler Jensen","role":"rep","is_active":true,"photo_url":null}],
      "channels":[
-      {"id":"c0000000-0000-4000-8000-000000000001","name":"Leadership","about":"Jake, Ryan and Emily","atlas_in":true,"unread":2,"mentions":1,"last_at":"@T-4","last_read_at":"@T-20",
-       "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000002","d0000000-0000-4000-8000-000000000003"],
+      {"id":"c0000000-0000-4000-8000-000000000001","name":"Leadership","about":"Jake, Ryan, Emily and Megan","atlas_in":true,"unread":2,"mentions":1,"last_at":"@T-4","last_read_at":"@T-20",
+       "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000002","d0000000-0000-4000-8000-000000000003","d0000000-0000-4000-8000-000000000004"],
        "prefs":{"notify":"all","muted_until":null,"always":false,"quiet":null}},
       {"id":"c0000000-0000-4000-8000-000000000002","name":"Everyone","about":"The whole team","atlas_in":true,"unread":5,"mentions":0,"last_at":"@T-12","last_read_at":"@T-90",
        "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000002","d0000000-0000-4000-8000-000000000003","d0000000-0000-4000-8000-000000000004","d0000000-0000-4000-8000-000000000005"],
        "prefs":{"notify":"all","muted_until":null,"always":false,"quiet":null}},
       {"id":"c0000000-0000-4000-8000-000000000003","name":"Installs","about":"Crews and scheduling","atlas_in":true,"unread":0,"mentions":0,"last_at":"@T-45","last_read_at":"@T-40",
        "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000004","d0000000-0000-4000-8000-000000000005"],
+       "prefs":{"notify":"all","muted_until":null,"always":false,"quiet":null}},
+      {"id":"c0000000-0000-4000-8000-000000000004","name":"Sales","about":"Leads, quotes and closes","atlas_in":true,"unread":0,"mentions":0,"last_at":"@T-70","last_read_at":"@T-60",
+       "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000003","d0000000-0000-4000-8000-000000000004"],
+       "prefs":{"notify":"mentions","muted_until":null,"always":false,"quiet":null}},
+      {"id":"c0000000-0000-4000-8000-000000000005","name":"Arizona crew","about":"Phoenix and Mesa","atlas_in":false,"unread":0,"mentions":0,"last_at":"@T-200","last_read_at":"@T-190",
+       "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000005"],
+       "prefs":{"notify":"all","muted_until":null,"always":false,"quiet":null}},
+      {"id":"c0000000-0000-4000-8000-000000000006","name":"Wins","about":"Every sale, every five-star review","atlas_in":true,"unread":0,"mentions":0,"last_at":"@T-300","last_read_at":"@T-290",
+       "members":["d0000000-0000-4000-8000-000000000001","d0000000-0000-4000-8000-000000000002","d0000000-0000-4000-8000-000000000003","d0000000-0000-4000-8000-000000000004","d0000000-0000-4000-8000-000000000005"],
        "prefs":{"notify":"all","muted_until":null,"always":false,"quiet":null}}]}
     """#
 
     private static let teamRead = #"""
     {"more":false,"messages":[
+     {"id":"ab000000-0000-4000-8000-000000000011","channel_id":"c0000000-0000-4000-8000-000000000001","author":"d0000000-0000-4000-8000-000000000001",
+      "body":"Great week everyone. Arizona is up 30% on last month","mentions":[],"mention_all":false,"mention_atlas":false,"attachments":[],
+      "created_at":"@T-1500","edited_at":null,"deleted":false,"reply_to":null,"reactions":[{"emoji":"🙌","by":["d0000000-0000-4000-8000-000000000002","d0000000-0000-4000-8000-000000000003","d0000000-0000-4000-8000-000000000004"]}]},
+     {"id":"ab000000-0000-4000-8000-000000000012","channel_id":"c0000000-0000-4000-8000-000000000001","author":"d0000000-0000-4000-8000-000000000004",
+      "body":"Booked three measures in Lehi tomorrow 👍","mentions":[],"mention_all":false,"mention_atlas":false,"attachments":[],
+      "created_at":"@T-1440","edited_at":null,"deleted":false,"reply_to":null,"reactions":[]},
      {"id":"ab000000-0000-4000-8000-000000000001","channel_id":"c0000000-0000-4000-8000-000000000001","author":"d0000000-0000-4000-8000-000000000003",
       "body":"Morning! 14 appointments on the board today, Utah is slammed 💪","mentions":[],"mention_all":false,"mention_atlas":false,"attachments":[],
       "created_at":"@T-95","edited_at":null,"deleted":false,"reply_to":null,
