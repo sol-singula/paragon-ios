@@ -10,6 +10,7 @@
 		02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */; };
 		02E9621B78DACBC1D2CFF6C8 /* Composer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8AA41283D6004E9AAA4F251 /* Composer.swift */; };
 		0A03A896C3C7B27842E1C3AC /* TeamMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A116009D8FF074AF1E4FCE3E /* TeamMessageRow.swift */; };
+		0B4F0AF935E86F4C5BBE97B5 /* Demo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD98B4B8451F4AB768A5FD5 /* Demo.swift */; };
 		132382C6904C555AC128E180 /* DeviceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */; };
 		163777340452D02C27B7BCE9 /* Router.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33203CA6ABF49F46B6E591 /* Router.swift */; };
 		184C7726C4A0AF6E6D0375C4 /* FeedBand.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3CB6E37F0CEF7FF191C87DC /* FeedBand.swift */; };
@@ -75,6 +76,7 @@
 		1C59A3A5DF250F5979DB5D4E /* Gold.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gold.swift; sourceTree = "<group>"; };
 		20144B329707F8307DAAA282 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
 		24B083394A6A4A5A74F03710 /* Presence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presence.swift; sourceTree = "<group>"; };
+		2AD98B4B8451F4AB768A5FD5 /* Demo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Demo.swift; sourceTree = "<group>"; };
 		2F7E2269DD6A673CFBC56F24 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2FF93659363F43D9F38EA81F /* CostsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CostsView.swift; sourceTree = "<group>"; };
 		316EFFA4EEC076F5332AA9A5 /* ringback-pulse.caf */ = {isa = PBXFileReference; path = "ringback-pulse.caf"; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 			children = (
 				20144B329707F8307DAAA282 /* API.swift */,
 				9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */,
+				2AD98B4B8451F4AB768A5FD5 /* Demo.swift */,
 				5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */,
 				C820DE09D57DC0C01BAE888B /* Models.swift */,
 				C2D1915B383F0486B0556152 /* Outbox.swift */,
@@ -441,6 +444,7 @@
 				2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */,
 				D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */,
 				8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */,
+				0B4F0AF935E86F4C5BBE97B5 /* Demo.swift in Sources */,
 				132382C6904C555AC128E180 /* DeviceKey.swift in Sources */,
 				D681B194A9EB0B03661C762F /* Face.swift in Sources */,
 				184C7726C4A0AF6E6D0375C4 /* FeedBand.swift in Sources */,
