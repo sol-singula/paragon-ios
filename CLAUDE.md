@@ -371,3 +371,22 @@ given to someone else still do (`clear`). The desktop matches (`actedOn`).
   row.
 - My promises already sends `p_promises` and filters nothing here, so the server's new rule (only
   mine for every card kind but gold web forms) needed no change.
+
+## Build 25, 2026-11-16 (founder: "iOS users aren't really able to see who's on the phone live like you would on desktop")
+
+- **The team is live** (`TeamStore`, the desktop's `lib/team.ts`): `paragon_team` re-read every
+  10 s while the app is in the front, at once when it comes back, and 800 ms after a call here
+  connects or ends (2.5 s after one is placed; `TeamStore.refreshSoon`, hooked in `CallManager`).
+  The presence ping stays every 30 s. `onCallWith` is person id → the teammate on the phone with
+  them (me included, calls with no person left out); `othersOnCall` is everyone but me.
+- **On the phone strip** (`Features/Inbox/OnThePhone.swift`, the desktop's team rail): under the
+  Urgent / Recent row, only while a teammate other than me is on a call. "N on the phone", then a
+  chip each: face with the red phone, first name, "with <call_with> · 4:07" ticking (`CallClock`,
+  the desktop's). A tap opens `call_person_id`'s conversation (`Router.open(.person)`); no person,
+  no tap. No line or brand on it for anyone; `call_with` is the server's.
+- **Inbox rows**: a person on the phone with one of us reads "Ryan on the phone · <last message>"
+  (red phone; "You are on the phone" for mine) on the second line (gold keeps its own), and is out
+  of Urgent and its count while the call lasts (the desktop's `isWaiting`); Recent still shows it.
+- **Conversation**: "Ryan is on the phone with them · 4:07" under the name while someone else is on
+  with them; Call carries a phone and the first press reads "Call anyway?" (6 s), the second calls.
+- No sitting in or listening on iPhone; no server change.

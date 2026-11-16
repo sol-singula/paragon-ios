@@ -239,6 +239,8 @@ final class CallManager: NSObject {
         outgoingThread[uuid] = thread
         active = Active(uuid: uuid, direction: .outgoing, name: name, brand: brand, thread: thread, phase: .connecting)
         showScreen = true
+        // Who's on the phone (Build 25): the team re-reads once the server has this call.
+        TeamStore.shared.refreshSoon(after: 2500)
         let action = CXStartCallAction(call: uuid, handle: CXHandle(type: .generic, value: name))
         controller.request(CXTransaction(action: action)) { error in
             Task { @MainActor in
@@ -349,6 +351,8 @@ final class CallManager: NSObject {
         if active?.uuid == uuid {
             active = nil
             showScreen = false
+            // Off the phone: the team (and every "on the phone" mark) re-reads.
+            TeamStore.shared.refreshSoon()
             peopleTask?.cancel()
             people = []
             conference = false
@@ -500,6 +504,7 @@ extension CallManager: CallDelegate {
                 if a.direction == .outgoing, a.parent.isEmpty { a.parent = sid }
             }
             self.watchPeople()
+            TeamStore.shared.refreshSoon()
         }
     }
 

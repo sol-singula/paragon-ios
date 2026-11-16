@@ -22,6 +22,10 @@ struct ConversationView: View {
     @State private var renaming: RenameTarget?
     @State private var renames = Renames.shared
     @State private var focusComposer = false
+    /// Someone else is on the phone with them: the first press of Call asks
+    /// "Call anyway?", the second calls (the desktop's, founder 2026-11-11).
+    @State private var callArmed = false
+    @State private var armedAt = Date.distantPast
     @Environment(Session.self) private var session
 
     var body: some View {
@@ -196,6 +200,8 @@ struct ConversationView: View {
             // A branch member never sees a brand (founder, 2026-11-16): the city alone.
             subtitle: view == nil ? nil : [BranchMember.on ? nil : Branch.of(t?.brand).name, view?.person.city].compactMap { $0 }.joined(separator: " · "),
             twins: view == nil ? [] : SameAddress.shared.twins(personId),
+            onPhone: busyWith,
+            callArmed: callArmed && busyWith != nil,
             openTwin: { id in Router.shared.inboxPath.append(.person(personId: id, threadId: nil)) },
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
@@ -272,8 +278,26 @@ struct ConversationView: View {
         calls.place(thread: t, name: v.person.name, brand: th?.brand)
     }
 
+    /// A teammate (not me) on the phone with this person right now.
+    private var busyWith: TeamMember? {
+        guard let m = TeamStore.shared.onCallWith[personId], m.isMe != true else { return nil }
+        return m
+    }
+
     private func call() {
         guard let t = currentThread, let v = view else { return }
+        if busyWith != nil && !callArmed {
+            callArmed = true
+            let at = Date()
+            armedAt = at
+            // The ask goes away after 6 s, as on the desktop.
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(6))
+                if armedAt == at { callArmed = false }
+            }
+            return
+        }
+        callArmed = false
         let th = v.threads.first { $0.id == t }
         calls.place(thread: t, name: v.person.name, brand: th?.brand)
     }
@@ -291,6 +315,10 @@ struct ConversationHeader: View {
     /// Same address as … (founder, 2026-11-16): likely the same household; a name opens them.
     var twins: [Twin] = []
     var openTwin: ((String) -> Void)? = nil
+    /// Someone else on the phone with them (Build 25): "Ryan is on the phone with them · 4:07".
+    var onPhone: TeamMember? = nil
+    /// Call was pressed once while they are on the phone: it reads "Call anyway?".
+    var callArmed = false
     let back: () -> Void
     var callDisabled = false
     var infoDisabled = false
@@ -331,6 +359,12 @@ struct ConversationHeader: View {
         .accessibilityLabel("Same address as \(twins.map(\.name).joined(separator: ", ")): likely the same household")
     }
 
+    private var callA11y: String {
+        if callArmed { return "Call anyway? They are on the phone. Press again to call" }
+        if let m = onPhone { return "Call. \(m.name) is on the phone with them" }
+        return "Call"
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             Button(action: back) {
@@ -351,6 +385,7 @@ struct ConversationHeader: View {
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                 }
+                if let onPhone { OnThePhoneLine(member: onPhone) }
                 if !twins.isEmpty { sameAddress }
             }
             .contentShape(Rectangle())
@@ -358,9 +393,9 @@ struct ConversationHeader: View {
             .accessibilityAddTraits(editName != nil ? .isButton : [])
             .accessibilityHint(editName != nil ? "Tap to change their name" : "")
             Spacer(minLength: 4)
-            PillButton(label: "Call", action: call)
+            PillButton(label: callArmed ? "Call anyway?" : "Call", symbol: onPhone == nil ? nil : "phone.fill", action: call)
                 .disabled(callDisabled).opacity(callDisabled ? 0.45 : 1)
-                .accessibilityLabel("Call")
+                .accessibilityLabel(callA11y)
             PillButton(label: "", symbol: "info.circle", action: info)
                 .disabled(infoDisabled).opacity(infoDisabled ? 0.45 : 1)
                 .accessibilityLabel("Contact info")

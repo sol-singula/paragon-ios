@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Supabase
+import UIKit
 
 /// Who is online, live, the same way the desktop knows (lib/presence.ts):
 /// every open Paragon tracks itself on the one Realtime presence channel
@@ -94,7 +95,10 @@ final class Presence {
 }
 
 /// Everyone on the team (paragon_team): photo and whether they're on a call,
-/// re-read every 30 seconds while signed in, like the desktop's lib/team.ts.
+/// like the desktop's lib/team.ts: re-read every 10 s while the app is in
+/// the front, at once when it comes back, and just after a call here starts
+/// or ends (Build 25, founder 2026-11-16: "iOS users aren't really able to
+/// see who's on the phone live"). The presence ping stays every 30 s.
 @Observable
 @MainActor
 final class TeamStore {
@@ -103,6 +107,20 @@ final class TeamStore {
     private(set) var members: [TeamMember] = []
 
     var byId: [String: TeamMember] { Dictionary(members.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a }) }
+    /// Person id → the teammate on the phone with them (me included), the
+    /// desktop's `onCallWith`. A call with no person is left out.
+    var onCallWith: [String: TeamMember] {
+        var out: [String: TeamMember] = [:]
+        for m in members where m.onCall == true {
+            if let p = m.callPersonId, !p.isEmpty, out[p] == nil { out[p] = m }
+        }
+        return out
+    }
+    /// Teammates other than me on a call right now, longest call first.
+    var othersOnCall: [TeamMember] {
+        members.filter { $0.onCall == true && $0.isMe != true }
+            .sorted { (Stamp.date($0.callStartedAt) ?? .distantFuture) < (Stamp.date($1.callStartedAt) ?? .distantFuture) }
+    }
     /// A text's `by` is a member's name: their photo by name.
     func photo(named name: String?) -> String? {
         guard let name, !name.isEmpty else { return nil }
@@ -115,17 +133,50 @@ final class TeamStore {
 
     func load() async {
         if let m = try? await API.team() {
-            members = m
+            if m != members { members = m }
             Presence.shared.setPinged(Set(m.filter { $0.online == true && $0.isMe != true }.map(\.id)))
         }
     }
 
-    /// Every 30 s: say I'm here (the server's half of presence), then re-read.
+    @ObservationIgnored private var soon: Task<Void, Never>?
+
+    /// One read shortly (a call here started or ended; the server needs a
+    /// moment to have it), however many ask together.
+    func refreshSoon(after ms: Int = 800) {
+        soon?.cancel()
+        soon = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(ms))
+            guard !Task.isCancelled else { return }
+            await self?.load()
+        }
+    }
+
+    @ObservationIgnored private var lastPing: Date = .distantPast
+
+    /// Every 10 s while in the front: re-read the team. Every 30 s, as
+    /// before: say I'm here (the server's half of presence).
     func poll() async {
         while !Task.isCancelled {
-            if !Demo.on { try? await API.presencePing() }
-            await load()
-            try? await Task.sleep(for: .seconds(30))
+            let front = UIApplication.shared.applicationState != .background
+            if Date().timeIntervalSince(lastPing) >= 29 {
+                lastPing = Date()
+                if !Demo.on { try? await API.presencePing() }
+                await load()
+            } else if front {
+                await load()
+            }
+            try? await Task.sleep(for: .seconds(10))
         }
+    }
+}
+
+/// How long a call has run, the desktop's CallClock: "4:07", "1:02:03";
+/// "live" when the start is unknown.
+enum CallClock {
+    static func text(since: String?, now: Date = Date()) -> String {
+        guard let d = Stamp.date(since) else { return "live" }
+        let s = max(0, Int(now.timeIntervalSince(d)))
+        let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, sec) : String(format: "%d:%02d", m, sec)
     }
 }

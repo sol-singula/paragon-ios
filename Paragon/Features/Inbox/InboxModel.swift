@@ -74,7 +74,11 @@ final class InboxModel {
         // Set for later here (a promise added or moved ahead), or answered
         // here (a text or a reaction sent): out of Urgent at once, until
         // something new happens on it.
-        case .waiting: base = rows.filter { ($0.status == "waiting" && !LaterMarks.shared.hides($0) && !answered($0)) || $0.isAtlas }
+        // On the phone with a teammate (the desktop's isWaiting, founder
+        // 2026-11-11): out of Urgent while the call lasts; Recent still shows it.
+        case .waiting:
+            let onCall = TeamStore.shared.onCallWith
+            base = rows.filter { (($0.status == "waiting" && !LaterMarks.shared.hides($0) && !answered($0)) || $0.isAtlas) && onCall[$0.personId] == nil }
         case .all, .personal: base = rows
         }
         if show != .waiting { return recent(base) }
@@ -97,7 +101,8 @@ final class InboxModel {
     var counts: (waiting: Int, late: Int) {
         var waiting = 0, late = 0
         _ = localTick
-        for q in visible where q.status == "waiting" && !answered(q) {
+        let onCall = TeamStore.shared.onCallWith
+        for q in visible where q.status == "waiting" && !answered(q) && onCall[q.personId] == nil {
             waiting += 1
             if q.tone == .late || (q.dueSource == "clock" && q.isOverdue) { late += 1 }
         }

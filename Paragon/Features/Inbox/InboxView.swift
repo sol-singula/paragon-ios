@@ -115,6 +115,14 @@ struct InboxView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
+            // Who's on the phone, live (Build 25): only while a teammate is on a call.
+            if !TeamStore.shared.othersOnCall.isEmpty {
+                OnThePhoneStrip()
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 8, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+
             if let e = model.error {
                 ErrorBanner(message: e) { Task { await model.load() } }
                     .listRowBackground(Color.clear).listRowSeparator(.hidden)
@@ -509,7 +517,10 @@ struct QueueRow: View {
                 }
                 // Always two lines (founder, 2026-11-10): the promise (WHO · WHAT)
                 // or the last message, never both.
-                if let g = q.goldItem { goldLine(g) } else if let i = q.leadItem { itemLine(i) } else {
+                // On the phone with one of us comes before a promise's line, so it always shows.
+                if let g = q.goldItem { goldLine(g) } else if let m = TeamStore.shared.onCallWith[q.personId] {
+                    onCallLine(m)
+                } else if let i = q.leadItem { itemLine(i) } else {
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     // A missed call (or a voicemail, which is one) reads in rose (founder, 2026-11-09).
                     .font(.system(size: 14)).foregroundStyle(
@@ -536,6 +547,25 @@ struct QueueRow: View {
         }
         .font(.system(size: 14))
         .foregroundStyle(Theme.violet)
+        .lineLimit(1)
+        .accessibilityElement(children: .combine)
+    }
+
+    /// On the phone with one of us (the desktop's row): "Ryan on the phone ·
+    /// the last message", the red phone first.
+    private func onCallLine(_ m: TeamMember) -> some View {
+        let first = m.name.split(separator: " ").first.map(String.init) ?? m.name
+        return HStack(spacing: 4) {
+            Image(systemName: "phone.fill").font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color(hex: 0xE5484D))
+            Text(m.isMe == true ? "You are on the phone" : "\(first) on the phone")
+                .fontWeight(.medium).foregroundStyle(Color(hex: 0xE5484D)).layoutPriority(1)
+            if let p = q.preview, !p.isEmpty {
+                Text("·").foregroundStyle(Theme.muted)
+                Text(Preview.line(p)).foregroundStyle(Theme.secondary).lineLimit(1).truncationMode(.tail)
+            }
+        }
+        .font(.system(size: 14))
         .lineLimit(1)
         .accessibilityElement(children: .combine)
     }
