@@ -65,6 +65,7 @@
 		E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E78795BAA9AF32A2FD833812 /* LinePicker.swift */; };
 		EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1739E30D8C200ECEC6A334BF /* Assets.xcassets */; };
 		EEAAC2BF074C7DB6DB165F66 /* Renames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33CA4E9E51345423FCA975 /* Renames.swift */; };
+		EF026B78E9F95A4CF2AC82A4 /* OnThePhone.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A0481D7CC270629B07AF7D /* OnThePhone.swift */; };
 		F386EC7886941174AB685752 /* PushKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7276CD9082C2F3BEE56C13BC /* PushKit.framework */; };
 		FAEA38567C4730D4645271DF /* ContactPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75E2FB2C59D7C203E6F2A1C /* ContactPlan.swift */; };
 /* End PBXBuildFile section */
@@ -95,6 +96,7 @@
 		4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxModel.swift; sourceTree = "<group>"; };
 		4DFAC2046693956AFC3F5427 /* Face.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Face.swift; sourceTree = "<group>"; };
 		4F49338858521F025132FABB /* TeamComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamComposer.swift; sourceTree = "<group>"; };
+		51A0481D7CC270629B07AF7D /* OnThePhone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnThePhone.swift; sourceTree = "<group>"; };
 		5365F897E8EDAE5FC80D97F2 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceKey.swift; sourceTree = "<group>"; };
 		5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -192,6 +194,7 @@
 				6035F3E49FE86048CAD2C599 /* InboxView.swift */,
 				E78795BAA9AF32A2FD833812 /* LinePicker.swift */,
 				95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */,
+				51A0481D7CC270629B07AF7D /* OnThePhone.swift */,
 				9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */,
 			);
 			path = Inbox;
@@ -467,6 +470,7 @@
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
 				D27A9A23666ACE52AAC4C7DA /* NotificationsView.swift in Sources */,
+				EF026B78E9F95A4CF2AC82A4 /* OnThePhone.swift in Sources */,
 				729CBEFA52FD43A5739B0765 /* Outbox.swift in Sources */,
 				02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */,
 				72D198FDF9CCF0D7382E7207 /* PersonTools.swift in Sources */,
@@ -508,7 +512,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -590,7 +594,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
