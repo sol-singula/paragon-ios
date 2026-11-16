@@ -200,9 +200,9 @@ struct ConversationView: View {
             // A branch member never sees a brand (founder, 2026-11-16): the city alone.
             subtitle: view == nil ? nil : [BranchMember.on ? nil : Branch.of(t?.brand).name, view?.person.city].compactMap { $0 }.joined(separator: " · "),
             twins: view == nil ? [] : SameAddress.shared.twins(personId),
+            openTwin: { id in Router.shared.inboxPath.append(.person(personId: id, threadId: nil)) },
             onPhone: busyWith,
             callArmed: callArmed && busyWith != nil,
-            openTwin: { id in Router.shared.inboxPath.append(.person(personId: id, threadId: nil)) },
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
             infoDisabled: view == nil,
