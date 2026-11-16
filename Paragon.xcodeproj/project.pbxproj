@@ -48,6 +48,7 @@
 		9EDDB15FB858C7822E8AA2F9 /* CallScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34909A603EEA24631BDE1E52 /* CallScreen.swift */; };
 		A02E970E093BD8528FDF76F6 /* RemoteImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 333DD5D9632078211CA6CBF3 /* RemoteImage.swift */; };
 		A8ABB55652D5235046C4C245 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E63BDE30AE4FD0C8423FB09 /* SignInView.swift */; };
+		AAF6E876BD491695D755FE66 /* IntakeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD205201A96367CA411F889F /* IntakeCard.swift */; };
 		AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB0A146F4C8DC266B99D9A4 /* InboxModel.swift */; };
 		AE1ECAAB55050FEC0CA592F0 /* ringtone-low-classic.caf in Resources */ = {isa = PBXBuildFile; fileRef = 96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */; };
 		BB5818DFD1EC89FED7F94AB7 /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1E7E2FEBECA52D7136550E /* PersonalView.swift */; };
@@ -60,15 +61,18 @@
 		D681B194A9EB0B03661C762F /* Face.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DFAC2046693956AFC3F5427 /* Face.swift */; };
 		D76249C70737E72DCA74615C /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB96A42A1AC076D41BC5631B /* Session.swift */; };
 		D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FF93659363F43D9F38EA81F /* CostsView.swift */; };
+		E082D9638A2E7BA0C11FF703 /* BranchMember.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07E6AEA6FA8F40E3B148413F /* BranchMember.swift */; };
 		E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E78795BAA9AF32A2FD833812 /* LinePicker.swift */; };
 		EAB2D3845596EB48A780C385 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1739E30D8C200ECEC6A334BF /* Assets.xcassets */; };
 		EEAAC2BF074C7DB6DB165F66 /* Renames.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C33CA4E9E51345423FCA975 /* Renames.swift */; };
 		F386EC7886941174AB685752 /* PushKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7276CD9082C2F3BEE56C13BC /* PushKit.framework */; };
+		FAEA38567C4730D4645271DF /* ContactPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C75E2FB2C59D7C203E6F2A1C /* ContactPlan.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		05E0D1B1ACEBA2F08E7F8FD5 /* Promises.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Promises.swift; sourceTree = "<group>"; };
 		05E9690B8AF59BF579D0ED05 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		07E6AEA6FA8F40E3B148413F /* BranchMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMember.swift; sourceTree = "<group>"; };
 		0C33CA4E9E51345423FCA975 /* Renames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renames.swift; sourceTree = "<group>"; };
 		1111AC1D38C9D489F3F967BC /* BranchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMark.swift; sourceTree = "<group>"; };
 		1739E30D8C200ECEC6A334BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -113,6 +117,7 @@
 		B901470181B630BFD257C0AB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C10B543C93DF6B0C75432E5F /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		C2D1915B383F0486B0556152 /* Outbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Outbox.swift; sourceTree = "<group>"; };
+		C75E2FB2C59D7C203E6F2A1C /* ContactPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactPlan.swift; sourceTree = "<group>"; };
 		C820DE09D57DC0C01BAE888B /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		CA13F8DD0B6ACA08E4B4A1BD /* AtlasRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasRing.swift; sourceTree = "<group>"; };
 		CC33203CA6ABF49F46B6E591 /* Router.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Router.swift; sourceTree = "<group>"; };
@@ -126,6 +131,7 @@
 		F79E3ED26B00A6706D54F3CC /* Timeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timeline.swift; sourceTree = "<group>"; };
 		FA5B1771D340E15C64FA9A10 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
 		FB96A42A1AC076D41BC5631B /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		FD205201A96367CA411F889F /* IntakeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntakeCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,7 +201,9 @@
 			isa = PBXGroup;
 			children = (
 				D8AA41283D6004E9AAA4F251 /* Composer.swift */,
+				C75E2FB2C59D7C203E6F2A1C /* ContactPlan.swift */,
 				FA5B1771D340E15C64FA9A10 /* ConversationView.swift */,
+				FD205201A96367CA411F889F /* IntakeCard.swift */,
 				386E0F473B7D7AE55DC2693A /* PersonTools.swift */,
 				F79E3ED26B00A6706D54F3CC /* Timeline.swift */,
 			);
@@ -248,6 +256,7 @@
 			children = (
 				20144B329707F8307DAAA282 /* API.swift */,
 				9F13EAD0E23CC6F12EE5F121 /* AppConfig.swift */,
+				07E6AEA6FA8F40E3B148413F /* BranchMember.swift */,
 				2AD98B4B8451F4AB768A5FD5 /* Demo.swift */,
 				5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */,
 				C820DE09D57DC0C01BAE888B /* Models.swift */,
@@ -436,11 +445,13 @@
 				644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */,
 				3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */,
 				7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */,
+				E082D9638A2E7BA0C11FF703 /* BranchMember.swift in Sources */,
 				50A6F05F8664F68CA8360510 /* CallManager.swift in Sources */,
 				9EDDB15FB858C7822E8AA2F9 /* CallScreen.swift in Sources */,
 				22E92CC89AB0155645347F1B /* ChannelView.swift in Sources */,
 				88AC897340C19FE201B896E3 /* Components.swift in Sources */,
 				02E9621B78DACBC1D2CFF6C8 /* Composer.swift in Sources */,
+				FAEA38567C4730D4645271DF /* ContactPlan.swift in Sources */,
 				2D31BF962AC01ABEA1ACD602 /* ConversationView.swift in Sources */,
 				D7C13E41F62CD97D9E4CE17C /* CostsView.swift in Sources */,
 				8D419CD52A5EC3A4B24523D7 /* DayGlow.swift in Sources */,
@@ -451,6 +462,7 @@
 				BE447ECA47FE07A95E6FAFB8 /* Gold.swift in Sources */,
 				AB1028A529E651A662EBB124 /* InboxModel.swift in Sources */,
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
+				AAF6E876BD491695D755FE66 /* IntakeCard.swift in Sources */,
 				E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
@@ -496,7 +508,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -504,7 +516,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.10.15;
+				MARKETING_VERSION = 0.10.32;
 				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -578,7 +590,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -586,7 +598,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.10.15;
+				MARKETING_VERSION = 0.10.32;
 				PRODUCT_BUNDLE_IDENTIFIER = net.solbuild.paragon;
 				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
