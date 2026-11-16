@@ -452,8 +452,10 @@ extension CallManager: NotificationDelegate {
                 Task { @MainActor in
                     let me = CallManager.shared
                     if let error {
+                        // Focus / Do Not Disturb, or iOS already busy: step aside, never decline. A decline
+                        // on one device stops the ring on every device of this person (founder,
+                        // 2026-11-16: a call passed to Ryan rang once on his desktop).
                         NSLog("Paragon: incoming call refused by iOS: \(error.localizedDescription)")
-                        callInvite.reject()
                         me.cleanup(uuid)
                     } else {
                         await me.nameIncoming(uuid, thread: thread)
