@@ -88,6 +88,50 @@ enum API {
         return try decode(T.self, data)
     }
 
+    /// PostgREST on one of Nexus's own tables, as the desktop's booking does
+    /// (web/src/screens/inbox/IntakeCard.tsx: `appointment_types`, `users`,
+    /// `appointments`, `activity_main`, ...). Only the after-call card books
+    /// this way, as the member's own Nexus login, so Nexus's RLS and triggers
+    /// (confirmation texts, branch shares, status) are exactly the console's.
+    /// `query` is PostgREST's own (`["is_active": "eq.true", "order": "sort_order"]`).
+    static func table<T: Decodable>(_ method: String, _ table: String, query: [String: String] = [:], returning: Bool = true,
+                                    body: Any? = nil, as type: T.Type = T.self) async throws -> T {
+        var comps = URLComponents(url: AppConfig.supabaseURL.appendingPathComponent("rest/v1/\(table)"), resolvingAgainstBaseURL: false)!
+        if !query.isEmpty {
+            comps.queryItems = query.keys.sorted().map { URLQueryItem(name: $0, value: query[$0]) }
+            // A "+" in a value (an email) is a space to the server unless encoded.
+            comps.percentEncodedQuery = comps.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        }
+        if Demo.on { return try decode(T.self, Data("[]".utf8)) }
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = method
+        req.timeoutInterval = 30
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(AppConfig.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        if method != "GET" { req.setValue(returning ? "return=representation" : "return=minimal", forHTTPHeaderField: "Prefer") }
+        let token: String
+        do { token = try await Supa.accessToken() } catch {
+            if !Session.isDefinitiveAuthFailure(error) { await Session.shared.noteConnectionTrouble() }
+            throw error
+        }
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        if let body { req.httpBody = try JSONSerialization.data(withJSONObject: body) }
+        let data: Data, response: URLResponse
+        do { (data, response) = try await URLSession.shared.data(for: req) } catch {
+            if error is URLError { await Session.shared.noteConnectionTrouble() }
+            throw error
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(status) else {
+            let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            let msg = (obj?["message"] as? String) ?? (obj?["error"] as? String)
+                ?? String(data: data, encoding: .utf8).flatMap { $0.isEmpty ? nil : String($0.prefix(200)) }
+                ?? "Nexus didn't answer (\(status))."
+            throw APIError.server(msg)
+        }
+        return try decode(T.self, data.isEmpty ? Data("[]".utf8) : data)
+    }
+
     // MARK: Paragon
 
     static func me() async throws -> Me? { try await rpc("paragon_me", as: Me?.self) }

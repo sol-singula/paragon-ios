@@ -88,8 +88,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: net.solbuild.paragon
-        MARKETING_VERSION: "0.10.15"
-        CURRENT_PROJECT_VERSION: "23"
+        MARKETING_VERSION: "0.10.32"
+        CURRENT_PROJECT_VERSION: "24"
         SWIFT_VERSION: "5.10"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic

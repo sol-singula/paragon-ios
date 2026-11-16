@@ -392,6 +392,9 @@ struct CallRow: View {
                         .card()
                 }
             }
+            // After a customer call (owner, 2026-11-13; "Popup 2", 2026-11-16):
+            // Atlas's card that adds them to Nexus and books what was agreed.
+            if e.answered == true { IntakeCard(callId: e.id, at: e.at) }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)

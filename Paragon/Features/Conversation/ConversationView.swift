@@ -51,7 +51,7 @@ struct ConversationView: View {
                                  send(Reactions.text(emoji, e.body ?? ""), [])
                              })
                 let draftKey = Drafts.key(thread: currentThread, person: personId)
-                Composer(draftKey: draftKey, label: v.sendLabel,
+                Composer(draftKey: draftKey, label: BranchMember.on ? nil : v.sendLabel,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
                          promise: currentThread == nil ? nil : addPromise,
@@ -193,7 +193,10 @@ struct ConversationView: View {
             brand: t?.brand,
             name: view.map { renames.shown($0.person.id, $0.person.name) } ?? " ",
             // The branch, not its state (founder, 2026-11-11): a branch texts from any state.
-            subtitle: view == nil ? nil : [Branch.of(t?.brand).name, view?.person.city].compactMap { $0 }.joined(separator: " · "),
+            // A branch member never sees a brand (founder, 2026-11-16): the city alone.
+            subtitle: view == nil ? nil : [BranchMember.on ? nil : Branch.of(t?.brand).name, view?.person.city].compactMap { $0 }.joined(separator: " · "),
+            twins: view == nil ? [] : SameAddress.shared.twins(personId),
+            openTwin: { id in Router.shared.inboxPath.append(.person(personId: id, threadId: nil)) },
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
             infoDisabled: view == nil,
@@ -285,6 +288,9 @@ struct ConversationHeader: View {
     var initialsOnly = false
     let name: String
     var subtitle: String?
+    /// Same address as … (founder, 2026-11-16): likely the same household; a name opens them.
+    var twins: [Twin] = []
+    var openTwin: ((String) -> Void)? = nil
     let back: () -> Void
     var callDisabled = false
     var infoDisabled = false
@@ -303,6 +309,27 @@ struct ConversationHeader: View {
     var threads: [PersonThread] = []
     var openThread: String? = nil
     var pickThread: ((String) -> Void)? = nil
+
+    /// "Same address as Trent, Jarvi +2" in amber; each name opens that person.
+    private var sameAddress: some View {
+        let shown = Array(twins.prefix(3))
+        return HStack(spacing: 3) {
+            Text("Same address as").layoutPriority(1)
+            ForEach(Array(shown.enumerated()), id: \.element.id) { i, x in
+                Button { openTwin?(x.id) } label: {
+                    Text(x.name + (i < shown.count - 1 ? "," : "")).fontWeight(.medium).lineLimit(1)
+                }
+                .buttonStyle(.plain)
+                .disabled(openTwin == nil)
+            }
+            if twins.count > 3 { Text("+\(twins.count - 3)").layoutPriority(1) }
+        }
+        .font(.system(size: 12))
+        .foregroundStyle(Theme.amber)
+        .lineLimit(1)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Same address as \(twins.map(\.name).joined(separator: ", ")): likely the same household")
+    }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -324,6 +351,7 @@ struct ConversationHeader: View {
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                 }
+                if !twins.isEmpty { sameAddress }
             }
             .contentShape(Rectangle())
             .onTapGesture { editName?() }
@@ -372,9 +400,15 @@ struct BranchStackMenu: View {
     let pick: (String) -> Void
 
     private func label(_ t: PersonThread) -> String {
+        // A branch member never sees a brand or line: plain numbers.
+        if BranchMember.on { return "Conversation \((threads.firstIndex(of: t) ?? 0) + 1)" }
         let name = t.brand.map { Branch.of($0).name } ?? (t.space == "personal" ? "Personal" : (t.space ?? ""))
         let twin = threads.contains { $0.id != t.id && $0.brand == t.brand }
         return twin ? [name, t.state].compactMap { $0 }.joined(separator: " ") : name
+    }
+
+    private func number(_ t: PersonThread) -> Int? {
+        threads.firstIndex(of: t).map { $0 + 1 }
     }
 
     var body: some View {
@@ -391,11 +425,11 @@ struct BranchStackMenu: View {
         } label: {
             ZStack(alignment: .leading) {
                 ForEach(Array(others.prefix(2).enumerated().reversed()), id: \.element.id) { i, t in
-                    BranchMark(brand: t.brand, size: 24)
+                    BranchMark(brand: t.brand, size: 24, n: number(t))
                         .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 2))
                         .offset(x: CGFloat(i + 1) * 11)
                 }
-                BranchMark(brand: open.brand, size: 28)
+                BranchMark(brand: open.brand, size: 28, n: number(open))
                     .overlay(Circle().strokeBorder(Theme.bg, lineWidth: 2))
             }
             .frame(width: 28 + CGFloat(min(others.count, 2)) * 11, alignment: .leading)

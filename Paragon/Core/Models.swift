@@ -12,6 +12,11 @@ struct Me: Decodable, Equatable {
     let name: String
     let email: String?
     let role: String
+    /// A branch member (founder, 2026-11-16: Alyssa in Solara UT2): only the
+    /// branch's clients (the server's rule) and never a line. Nil for everyone else.
+    let branch: MeBranch?
+
+    struct MeBranch: Decodable, Equatable { let id: String; let name: String? }
 
     var isOwner: Bool { role == "owner" }
     var isFounder: Bool { isOwner }

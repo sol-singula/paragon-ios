@@ -62,7 +62,8 @@ final class CallManager: NSObject {
     /// The branch's abbreviation first (founder, 2026-11-10: "WE MUST SHOW THE
     /// BRANCH ABBREVIATION SO WE KNOW HOW TO ANSWER"): "SH · Sonya Russell".
     static func callerName(_ name: String, brand: String?) -> String {
-        guard let brand else { return name }
+        // A branch member never sees a brand or line (founder, 2026-11-16).
+        guard let brand, !BranchMember.on else { return name }
         return "\(Branch.of(brand).code) · \(name)"
     }
 

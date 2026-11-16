@@ -334,3 +334,40 @@ given to someone else still do (`clear`). The desktop matches (`actedOn`).
   still rings.
 - **The line picker offers Solara One**: `LinePick.offered` is kind
   `customer` or brand `Solara One` (its line is kind `contractor`).
+
+## Build 24, 2026-11-16 (desktop 0.10.32)
+
+- **Same address** (`Core/BranchMember.swift`, `SameAddress`, the desktop's `lib/sameAddress.ts`):
+  `paragon_same_address(p_people)` asked in one batch for the rows on screen (30 ms window, up to
+  200 ids, kept 3 minutes). An amber "Same address" chip after the conversation count on an inbox
+  row; "Same address as Trent, Jarvi +N" (up to 3) under the name in the conversation header, a
+  name opens that person.
+- **Branch members** (`paragon_me().branch`, `Me.branch`, `BranchMember.on`): plain grey marks,
+  numbered when there are several ("Conversation 1 / 2" in the stack menu), no brand in the header,
+  search lines, call screen or CallKit name, no "Sends as", no branch filters, no "Also" row, no
+  line picker, no New message, no Number row in search and no Text / Call on a client nobody has
+  talked to ("You can reply only where they already talk with us"). The server enforces all of it.
+  There are no Atlas, Crew or dashboard entries on iPhone to hide.
+- **After-call card** (`Features/Conversation/IntakeCard.swift`, the desktop's
+  `screens/inbox/IntakeCard.tsx`, "Popup 2"): under every answered call in the timeline.
+  `paragon_call_intake` (with `held_until`, `claimed_by`, `draft`, `geo`), read every 4 s while busy
+  and 15 s while ready, stopping once settled. Hidden while held for the rep who took the call;
+  "X is adding this to Nexus…" while someone else's press runs; Try again on a failed read; Already
+  booked with a hide. The form: client (name, address, email, what they want, branch), then the
+  appointment (type chips, day, time in the customer's zone, who goes from
+  `paragon_call_intake_assignee` with the desktop's notes and "Use <name>", notes, the confirmation
+  text switches or "this type sends no confirmation"). Who goes must be picked before it books.
+  Edits saved with `paragon_call_intake_draft` (700 ms after typing), a changed address re-placed
+  through `paragon-intake` `geocode`. The button claims (`paragon_call_intake_claim`), creates the
+  lead (`paragon_nexus_lead_create`, linking a duplicate), books as the member's own Nexus login
+  the way the desktop does (`NexusBooking`: `users` / `enterprise_users`, the calendar's roster,
+  `appointment_types`, `resolve_appointment_timezone`, `appointments`, `activity_main`,
+  `activity_log`, `paragon_booking_link`, through `API.table`, plain PostgREST), then
+  `paragon_call_intake_set('done')`; a failure releases the claim.
+- **Contact plan** (`Features/Conversation/ContactPlan.swift`, design "Plan 1"): new on iPhone, at
+  the bottom of Contact info. `paragon_contact_plan` every minute (4 s while updating): the label,
+  its state and "+ Follow-up" on one line, one row per item with a single quiet line under it, the
+  next one highlighted, Atlas's last change for a day, and no "Booked: …" note under an appointment
+  row.
+- My promises already sends `p_promises` and filters nothing here, so the server's new rule (only
+  mine for every card kind but gold web forms) needed no change.

@@ -265,6 +265,8 @@ struct ContactInfoSheet: View {
     @State private var renames = Renames.shared
     @State private var error: String?
     @State private var saved: String?
+    @State private var plan: ContactPlanData?
+    @State private var promising: PromiseTarget?
 
     var body: some View {
         NavigationStack {
@@ -382,12 +384,21 @@ struct ContactInfoSheet: View {
                         if let w = v.lead?.description, !w.isEmpty { row("Wants", w) }
                         if let s = v.person.source, !s.isEmpty { row("Came in on", s) }
                         row("Appointment", appointment(v), muted: v.appointment == nil)
-                        if let h = v.history, !h.isEmpty {
+                        if let h = v.history, !h.isEmpty, !BranchMember.on {
                             // Never who holds them: only where else they have talked to us.
                             row("Also", h.map { $0.brand.map { Branch.of($0).name } ?? "another line" }.joined(separator: " · "))
                         }
                     }
                     .listRowBackground(Theme.card)
+
+                    // The contact plan, under the contact info (design "Plan 1", 2026-11-16).
+                    if let plan {
+                        Section {
+                            ContactPlanSection(plan: plan, onAdd: callThread == nil ? nil : addFollowUp)
+                                .listRowInsets(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                        }
+                        .listRowBackground(Theme.card)
+                    }
 
                     if let saved { Text(saved).font(.meta).foregroundStyle(Theme.green).listRowBackground(Theme.bg) }
                     if let error { Text(error).font(.meta).foregroundStyle(Theme.rose).listRowBackground(Theme.bg) }
@@ -406,8 +417,28 @@ struct ContactInfoSheet: View {
             .sheet(item: $renaming) { r in
                 RenameSheet(personId: r.personId, name: r.name, hasName: r.hasName) { Task { await load(); onChanged() } }
             }
+            .sheet(item: $promising) { t in
+                PromiseSheet(target: t) { _ in
+                    Task { if let p = try? await API.contactPlan(personId) { plan = p }; onChanged() }
+                }
+            }
         }
         .task { await load() }
+        .task(id: personId) { await pollPlan() }
+    }
+
+    private func pollPlan() async {
+        while !Task.isCancelled {
+            if let p = try? await API.contactPlan(personId) { plan = p }
+            try? await Task.sleep(for: ContactPlanSection.pollDelay(plan))
+        }
+    }
+
+    /// "+ Follow-up": Add promise with WHAT "Follow up with <name>", as the conversation's menu does.
+    private func addFollowUp() {
+        guard let t = callThread else { return }
+        let n = view.map { renames.shown($0.person.id, $0.person.name) } ?? ""
+        promising = PromiseTarget(threadId: t, personId: personId, name: view?.person.name ?? "", prefill: "Follow up with \(n)")
     }
 
     private var callThread: String? { threadId ?? view?.threadId }

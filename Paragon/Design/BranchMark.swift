@@ -35,10 +35,27 @@ struct Branch: Equatable {
 struct BranchMark: View {
     let brand: String?
     var size: CGFloat = 34
+    /// A branch member's plain mark is numbered when there are several conversations.
+    var n: Int? = nil
 
     var body: some View {
+        // A branch member never sees a brand or line (founder, 2026-11-16):
+        // a plain grey mark, numbered when there are several.
+        if BranchMember.on {
+            Text(n.map { String($0) } ?? "")
+                .font(.system(size: size * 0.38, weight: .semibold))
+                .foregroundStyle(Theme.secondary)
+                .frame(width: size, height: size)
+                .background(Circle().fill(Theme.hover))
+                .accessibilityLabel(n.map { "Conversation \($0)" } ?? "Conversation")
+        } else {
+            mark
+        }
+    }
+
+    private var mark: some View {
         let b = Branch.of(brand)
-        Text(b.code)
+        return Text(b.code)
             .font(.system(size: size * (b.code.count > 2 ? 0.3 : 0.35), weight: .bold))
             .foregroundStyle(b.ink)
             .frame(width: size, height: size)

@@ -288,13 +288,14 @@ final class InboxModel {
             if talked, let pid = found?.personId, !out.contains(where: { $0.type == "conversation" && $0.id == pid }),
                !leadNames.contains((found?.name ?? "").lowercased()) {
                 let t = threads.first
-                let sub = [t?.brand.map { Branch.of($0).name }, t?.line].compactMap { $0 }.joined(separator: " · ")
+                let sub = BranchMember.on ? "" : [t?.brand.map { Branch.of($0).name }, t?.line].compactMap { $0 }.joined(separator: " · ")
                 out.append(SearchHit(id: pid, type: "conversation", name: found?.name ?? LinePick.format(digits),
                                      secondary: sub.isEmpty ? nil : sub, status: nil, statusColor: nil, brand: t?.brand))
             }
             // Nobody has it: one row for the number itself, with Text and Call.
             let client = rows.contains { $0.type == "lead" && ($0.score ?? 0) >= 100 }
-            if !talked && !client {
+            // A branch member never texts or calls a number nobody has (founder, 2026-11-16).
+            if !talked && !client && !BranchMember.on {
                 out.insert(SearchHit(id: digits, type: "number", name: LinePick.format(digits),
                                      secondary: found?.name.map { "\($0) · no conversation yet" } ?? "No conversation yet",
                                      status: nil, statusColor: nil, brand: nil), at: 0)
@@ -347,7 +348,7 @@ final class InboxModel {
         let rows = (try? await API.queue(filter: "all", search: q)) ?? []
         return rows.map { m in
             let brand = m.firstThread?.brand
-            let sub = [brand.map { Branch.of($0).name }, m.preview.map(Preview.line)].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · ")
+            let sub = [BranchMember.on ? nil : brand.map { Branch.of($0).name }, m.preview.map(Preview.line)].compactMap { $0?.isEmpty == false ? $0 : nil }.joined(separator: " · ")
             return SearchHit(id: m.personId, type: "conversation", name: m.name, secondary: sub.isEmpty ? nil : sub,
                              status: nil, statusColor: nil, brand: brand)
         }

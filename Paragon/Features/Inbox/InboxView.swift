@@ -307,6 +307,9 @@ struct InboxView: View {
         do {
             if let person = try await personFor(h) {
                 router.inboxPath.append(.person(personId: person, threadId: nil))
+            } else if BranchMember.on {
+                // A branch member never starts a conversation (founder, 2026-11-16).
+                notice = BranchMember.noLinesReason
             } else {
                 composing = await prefill(h, then: then)
             }
@@ -321,7 +324,10 @@ struct InboxView: View {
         busyHit = h.key
         defer { busyHit = nil }
         do {
-            guard let person = try await personFor(h) else { composing = await prefill(h, then: .call); return }
+            guard let person = try await personFor(h) else {
+                if BranchMember.on { notice = BranchMember.noLinesReason } else { composing = await prefill(h, then: .call) }
+                return
+            }
             guard let v = try await API.person(person, thread: nil) else { notice = "This conversation isn't yours to see."; return }
             let t = v.threads.first(where: { $0.id == v.threadId && $0.locked != true }) ?? v.threads.first(where: { $0.locked != true })
             router.inboxPath.append(.person(personId: person, threadId: t?.id ?? v.threadId))
@@ -348,6 +354,8 @@ struct InboxView: View {
                 if then == .call { await callHit(h) } else { await openHit(h) }
                 return
             }
+            // A branch member never picks a line (founder, 2026-11-16).
+            if BranchMember.on { notice = BranchMember.noLinesReason; return }
             pickingLine = LinePickTarget(phone: digits, name: who?.name, then: then)
         } catch {
             busyHit = nil
@@ -422,11 +430,14 @@ struct InboxView: View {
                     if model.filter == f.0 { Label(f.1, systemImage: "checkmark") } else { Text(f.1) }
                 }
             }
-            Divider()
-            ForEach(model.brands, id: \.self) { b in
-                Button { model.choose(filter: "brand:\(b)") } label: {
-                    let name = "\(Branch.of(b).code) · \(Branch.of(b).name)"
-                    if model.brand == b { Label(name, systemImage: "checkmark") } else { Text(name) }
+            // A branch member never sees a brand or line (founder, 2026-11-16).
+            if !BranchMember.on {
+                Divider()
+                ForEach(model.brands, id: \.self) { b in
+                    Button { model.choose(filter: "brand:\(b)") } label: {
+                        let name = "\(Branch.of(b).code) · \(Branch.of(b).name)"
+                        if model.brand == b { Label(name, systemImage: "checkmark") } else { Text(name) }
+                    }
                 }
             }
             Divider()
@@ -476,6 +487,15 @@ struct QueueRow: View {
                     if (q.threads?.count ?? 0) > 1 {
                         Text("\(q.threads!.count)").font(.tag).foregroundStyle(Theme.muted)
                             .padding(.horizontal, 4).overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.border))
+                    }
+                    // Likely the same household (founder, 2026-11-16): someone else at this address.
+                    let twins = SameAddress.shared.twins(q.personId)
+                    if !twins.isEmpty {
+                        Text("Same address").font(.tag).foregroundStyle(Theme.amber)
+                            .padding(.horizontal, 4)
+                            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.amber.opacity(0.5)))
+                            .fixedSize()
+                            .accessibilityLabel("Same address as \(twins.map(\.name).joined(separator: ", ")): likely the same household")
                     }
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
                     Spacer(minLength: 4)
