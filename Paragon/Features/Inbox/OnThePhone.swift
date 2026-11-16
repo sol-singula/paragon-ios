@@ -42,7 +42,7 @@ struct OnThePhoneChip: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(first).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text).lineLimit(1)
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                    let clock = CallClock.text(since: member.callStartedAt, now: ctx.date)
+                    let clock = CallSpan.text(since: member.callStartedAt, now: ctx.date)
                     Text(member.callWith.map { "with \($0) · \(clock)" } ?? clock)
                         .font(.system(size: 12)).monospacedDigit()
                         .foregroundStyle(Theme.secondary).lineLimit(1)
@@ -74,7 +74,7 @@ struct OnThePhoneLine: View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
             HStack(spacing: 4) {
                 Image(systemName: "phone.fill").font(.system(size: 9, weight: .bold))
-                Text("\(member.name) is on the phone with them · \(CallClock.text(since: member.callStartedAt, now: ctx.date))")
+                Text("\(member.name) is on the phone with them · \(CallSpan.text(since: member.callStartedAt, now: ctx.date))")
                     .monospacedDigit().lineLimit(1)
             }
             .font(.system(size: 12, weight: .medium))

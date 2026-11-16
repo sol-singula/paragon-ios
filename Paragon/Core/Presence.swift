@@ -172,7 +172,7 @@ final class TeamStore {
 
 /// How long a call has run, the desktop's CallClock: "4:07", "1:02:03";
 /// "live" when the start is unknown.
-enum CallClock {
+enum CallSpan {
     static func text(since: String?, now: Date = Date()) -> String {
         guard let d = Stamp.date(since) else { return "live" }
         let s = max(0, Int(now.timeIntervalSince(d)))

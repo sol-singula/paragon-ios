@@ -381,7 +381,7 @@ given to someone else still do (`clear`). The desktop matches (`actedOn`).
   them (me included, calls with no person left out); `othersOnCall` is everyone but me.
 - **On the phone strip** (`Features/Inbox/OnThePhone.swift`, the desktop's team rail): under the
   Urgent / Recent row, only while a teammate other than me is on a call. "N on the phone", then a
-  chip each: face with the red phone, first name, "with <call_with> · 4:07" ticking (`CallClock`,
+  chip each: face with the red phone, first name, "with <call_with> · 4:07" ticking (`CallSpan`,
   the desktop's). A tap opens `call_person_id`'s conversation (`Router.open(.person)`); no person,
   no tap. No line or brand on it for anyone; `call_with` is the server's.
 - **Inbox rows**: a person on the phone with one of us reads "Ryan on the phone · <last message>"
