@@ -223,7 +223,16 @@ final class InboxModel {
             let rows = try await API.queue(filter: self.filter, search: nil, promises: promises)
             if let p = try? await API.pins() { pins = p }
             items = rows
-            cleared = cleared.filter { $0.value >= started }
+            // Cleared stays cleared (founder, 2026-11-17: "they kind of pulse in and out ... they need
+            // to appear instantly cleared"): a row I released, handed on or promised for later stays
+            // off while the server catches up. It lets go once the server no longer lists it as
+            // waiting, when they write again (a newer waiting_since), or after two minutes.
+            let now = Date()
+            cleared = cleared.filter { pid, at in
+                guard now.timeIntervalSince(at) < 120, let r = rows.first(where: { $0.personId == pid }) else { return false }
+                if let w = Stamp.date(r.waitingSince), w > at { return false }
+                return r.status == "waiting" || r.isAtlas
+            }
             // A mark the server has had ten minutes to agree with is done.
             answeredAt = answeredAt.filter { started.timeIntervalSince($0.value) < 600 }
             if let p = await personal {

@@ -52,7 +52,7 @@ struct ConversationView: View {
                 if let e = error { ErrorBanner(message: e).padding(.horizontal, 12).padding(.top, 6) }
                 TimelineList(events: v.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(v.threadId ?? currentThread),
                              react: v.canSend == false || currentThread == nil ? nil : { e, emoji in
-                                 send(Reactions.text(emoji, e.body ?? ""), [])
+                                 send(Reactions.text(emoji, (e.body?.isEmpty == false ? e.body! : "an image")), [])
                              })
                 let draftKey = Drafts.key(thread: currentThread, person: personId)
                 Composer(draftKey: draftKey, label: BranchMember.on ? nil : v.sendLabel,

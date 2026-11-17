@@ -185,7 +185,8 @@ struct TextBubble: View {
                 .scaleEffect(bar ? 1.03 : 1)
                 .onTapGesture { if bar { withAnimation(.spring(duration: 0.25)) { bar = false } } }
                 .onLongPressGesture(minimumDuration: 0.35) {
-                    guard hasText else { return }
+                    // A photo with no words can be reacted to as well (founder, 2026-11-17).
+                    guard hasText || media.contains(where: { $0.isImage }) else { return }
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { bar = true }
                 }

@@ -244,7 +244,7 @@ struct PersonalThreadView: View {
                 }
                 TimelineList(events: t.timeline ?? [], scrollKey: scrollKey, pending: outbox.items(threadId),
                              react: t.person?.isStopped == true ? nil : { e, emoji in
-                                 send(Reactions.text(emoji, e.body ?? ""), [])
+                                 send(Reactions.text(emoji, (e.body?.isEmpty == false ? e.body! : "an image")), [])
                              })
                 Composer(draftKey: Drafts.key(thread: threadId, person: nil), label: t.sendLabel,
                          blocked: t.person?.isStopped == true ? "They replied STOP" : nil,

@@ -634,6 +634,7 @@ struct PromiseSheet: View {
             if toOther, let p = target.personId { InboxModel.shared.clear(personId: p) }
             // Later: out of Waiting at once, back when it is due.
             if vague == nil { LaterMarks.shared.mark(thread: target.threadId, due: due) }
+            else if !toOther, let p = target.personId { InboxModel.shared.clear(personId: p, follow: false) }
             work = {
                 do {
                     if let q = quick { try await API.promiseAddVague(thread: target.threadId, owner: to, hint: q.hint, text: text) }
