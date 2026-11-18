@@ -4,6 +4,7 @@ struct RootView: View {
     @Environment(Session.self) private var session
     @Environment(Router.self) private var router
     @Environment(CallManager.self) private var calls
+    @State private var reconnectingShown = false
 
     var body: some View {
         ZStack {
@@ -20,7 +21,7 @@ struct RootView: View {
             }
         }
         .overlay(alignment: .top) {
-            if session.reconnecting {
+            if reconnectingShown {
                 HStack(spacing: 6) {
                     Circle().fill(Theme.amber).frame(width: 6, height: 6)
                     Text("Reconnecting…").font(.meta).foregroundStyle(Theme.secondary)
@@ -34,7 +35,13 @@ struct RootView: View {
                 .accessibilityLabel("Reconnecting")
             }
         }
-        .animation(.easeOut(duration: 0.2), value: session.reconnecting)
+        .animation(.easeOut(duration: 0.2), value: reconnectingShown)
+        // Only trouble that lasts three seconds shows: one slow request the next one answers is not news.
+        .task(id: session.reconnecting) {
+            guard session.reconnecting else { reconnectingShown = false; return }
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled, session.reconnecting { reconnectingShown = true }
+        }
         .task { await session.restore() }
         .fullScreenCover(isPresented: Binding(get: { calls.active != nil && calls.showScreen }, set: { calls.showScreen = $0 })) {
             CallScreen()

@@ -44,7 +44,9 @@ enum API {
         req.httpBody = try JSONSerialization.data(withJSONObject: clean)
         let data: Data, response: URLResponse
         do { (data, response) = try await URLSession.shared.data(for: req) } catch {
-            if error is URLError { await Session.shared.noteConnectionTrouble() }
+            // A request iOS cancelled (the screen that asked went away, a newer search) says nothing
+            // about the server (founder, 2026-11-18: "randomly say disconnected or reconnecting").
+            if let u = error as? URLError, u.code != .cancelled { await Session.shared.noteConnectionTrouble() }
             throw error
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
@@ -118,7 +120,9 @@ enum API {
         if let body { req.httpBody = try JSONSerialization.data(withJSONObject: body) }
         let data: Data, response: URLResponse
         do { (data, response) = try await URLSession.shared.data(for: req) } catch {
-            if error is URLError { await Session.shared.noteConnectionTrouble() }
+            // A request iOS cancelled (the screen that asked went away, a newer search) says nothing
+            // about the server (founder, 2026-11-18: "randomly say disconnected or reconnecting").
+            if let u = error as? URLError, u.code != .cancelled { await Session.shared.noteConnectionTrouble() }
             throw error
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
