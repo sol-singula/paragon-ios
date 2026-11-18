@@ -80,8 +80,8 @@ struct MainTabs: View {
         .task { await inbox.poll() }
         .task { await team.poll() }
         .task { await TeamStore.shared.poll() }
-        .onAppear { if let me = session.me { Presence.shared.start(me) } }
-        .onDisappear { Presence.shared.stop() }
+        .onAppear { if let me = session.me { Presence.shared.start(me); Typing.shared.start(me) } }
+        .onDisappear { Presence.shared.stop(); Typing.shared.stop() }
     }
 
     /// The bar steps aside for the keyboard, and inside a conversation with

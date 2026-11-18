@@ -29,6 +29,9 @@ struct Composer: View {
     /// Focus the box when it appears (a conversation just started from the
     /// search's line picker, founder 2026-11-10).
     var autoFocus = false
+    /// Words I typed are in the box (true) or it was sent or cleared (false):
+    /// teammates see "Mason is typing" (the desktop's onTyping).
+    var onTyping: ((Bool) -> Void)? = nil
     /// Hands over the words and the picked files; it returns at once.
     let send: (String, [OutFile]) -> Void
 
@@ -36,6 +39,8 @@ struct Composer: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var draft = ""
     @State private var restored = false
+    /// The draft as it came back: bringing it back is not typing.
+    @State private var restoredDraft: String?
     @State private var files: [OutFile] = []
     @State private var picking = false
     @State private var picks: [PhotosPickerItem] = []
@@ -120,10 +125,15 @@ struct Composer: View {
         // The draft: back as it was when the box appears, kept on every
         // change (memory now, the disk a moment after the typing stops).
         .onAppear {
-            if !restored { restored = true; draft = Drafts.shared.get(draftKey) }
+            if !restored { restored = true; let d = Drafts.shared.get(draftKey); restoredDraft = d; draft = d }
         }
-        .onChange(of: draft) { _, v in if restored { Drafts.shared.set(draftKey, v) } }
-        .onDisappear { Drafts.shared.flush() }
+        .onChange(of: draft) { _, v in
+            if restored { Drafts.shared.set(draftKey, v) }
+            if let r = restoredDraft, v == r { restoredDraft = nil; return }
+            restoredDraft = nil
+            onTyping?(!v.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .onDisappear { Drafts.shared.flush(); onTyping?(false) }
         .onChange(of: scenePhase) { _, p in if p != .active { Drafts.shared.flush() } }
         .onChange(of: autoFocus, initial: true) { _, on in
             guard on else { return }

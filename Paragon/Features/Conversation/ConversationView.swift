@@ -60,6 +60,7 @@ struct ConversationView: View {
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),
                          promise: currentThread == nil ? nil : addPromise,
                          autoFocus: focusComposer,
+                         onTyping: { on in Typing.shared.say(personId: personId, threadId: currentThread, on: on) },
                          send: send)
                     // One box per conversation: a branch chip brings that thread's draft.
                     .id(draftKey)
@@ -202,6 +203,7 @@ struct ConversationView: View {
             twins: view == nil ? [] : SameAddress.shared.twins(personId),
             openTwin: { id in Router.shared.inboxPath.append(.person(personId: id, threadId: nil)) },
             onPhone: busyWith,
+            typing: { let t = Typing.shared.on(personId); return t.isEmpty ? nil : Typing.label(t.map(\.name)) }(),
             callArmed: callArmed && busyWith != nil,
             back: { dismiss() },
             callDisabled: currentThread == nil || calls.active != nil,
@@ -317,6 +319,8 @@ struct ConversationHeader: View {
     var openTwin: ((String) -> Void)? = nil
     /// Someone else on the phone with them (Build 25): "Ryan is on the phone with them · 4:07".
     var onPhone: TeamMember? = nil
+    /// "Ryan is typing": a teammate is writing to them right now.
+    var typing: String? = nil
     /// Call was pressed once while they are on the phone: it reads "Call anyway?".
     var callArmed = false
     let back: () -> Void
@@ -386,6 +390,7 @@ struct ConversationHeader: View {
                     Text(subtitle).font(.system(size: 12)).foregroundStyle(Theme.muted).lineLimit(1)
                 }
                 if let onPhone { OnThePhoneLine(member: onPhone) }
+                if let typing { TypingLine(text: typing) }
                 if !twins.isEmpty { sameAddress }
             }
             .contentShape(Rectangle())

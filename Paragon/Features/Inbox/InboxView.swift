@@ -520,6 +520,8 @@ struct QueueRow: View {
                 // On the phone with one of us comes before a promise's line, so it always shows.
                 if let g = q.goldItem { goldLine(g) } else if let m = TeamStore.shared.onCallWith[q.personId] {
                     onCallLine(m)
+                } else if let t = Optional(Typing.shared.on(q.personId)), !t.isEmpty {
+                    TypingLine(text: Typing.label(t.map(\.name)), size: 14)
                 } else if let i = q.leadItem { itemLine(i) } else {
                 Text(q.preview?.isEmpty == false ? Preview.line(q.preview!) : " ")
                     // A missed call (or a voicemail, which is one) reads in rose (founder, 2026-11-09).

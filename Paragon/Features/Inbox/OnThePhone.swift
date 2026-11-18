@@ -83,3 +83,28 @@ struct OnThePhoneLine: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// "Ryan is typing" with three dots, one after another (the desktop's TypingDots).
+struct TypingLine: View {
+    let text: String
+    var size: CGFloat = 12
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.35)) { ctx in
+            let step = Int(ctx.date.timeIntervalSinceReferenceDate / 0.35) % 3
+            HStack(spacing: 4) {
+                Text(text).fontWeight(.medium).lineLimit(1)
+                HStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Circle().frame(width: 4, height: 4).opacity(i == step ? 1 : 0.35)
+                    }
+                }
+                .accessibilityHidden(true)
+            }
+            .font(.system(size: size))
+            .foregroundStyle(Theme.cyan)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(text)
+    }
+}
