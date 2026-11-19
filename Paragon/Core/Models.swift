@@ -282,7 +282,7 @@ struct WebForm: Decodable, Hashable {
         let submittedAt: String?
         let site: String?
     }
-    /// This try, 1-based, and the most there will be.
+    /// This try, 1-based. Gold never runs out of tries (owner, 2026-11-19); maxTries is sent for older builds and not read.
     let `try`: Int?
     let tries: Int?
     let maxTries: Int?
@@ -292,8 +292,8 @@ struct WebForm: Decodable, Hashable {
     let formName: String?
     let form: Form?
 
-    /// "Try 2 of 3".
-    var label: String { "Try \(min(`try` ?? 1, maxTries ?? 3)) of \(maxTries ?? 3)" }
+    /// "Try 4".
+    var label: String { "Try \(`try` ?? 1)" }
 }
 
 /// A list where an element this version can't read is skipped.

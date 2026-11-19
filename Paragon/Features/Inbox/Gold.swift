@@ -21,7 +21,7 @@ enum Gold {
             do {
                 let r = try await API.webFormLater(item.id)
                 if r.ended == true {
-                    Toast.shared.show("\(first(name)): tried \(r.maxTries ?? 3) times. A normal conversation now.")
+                    Toast.shared.show("\(first(name)): gold is off. A normal conversation now.")
                 } else if let d = Stamp.date(r.dueAt) {
                     Toast.shared.show("\(first(name)) comes back \(DueTime.label(d))")
                 }
