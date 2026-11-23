@@ -23,6 +23,7 @@ struct ContactPlanChange: Decodable, Hashable {
         let nextContact: String?
         let closed: [Cleared]?
         let skippedSteps: Int?
+        let settled: Bool?
     }
     let at: String
     let summary: String
@@ -35,9 +36,20 @@ struct ContactPlanData: Decodable {
     let state: String?
     let endedAfter: Int?
     let items: [ContactPlanItem]?
-    /// Being worked out now: 'call', 'after_call' or 'read'.
+    /// Being worked out now: 'call', 'after_call', 'read', 'talking' (a text conversation still going) or
+    /// 'settling' (Atlas reading where the texts ended, owner 2026-11-23).
     let updating: String?
     let changes: [ContactPlanChange]?
+    let settle: Settle?
+
+    /// paragon.thread_settle: a text conversation counts as ended 20 quiet minutes after the last text; Atlas then
+    /// reads it once and moves the plan. `ended` is what it made of it.
+    struct Settle: Decodable, Hashable {
+        struct Ended: Decodable, Hashable { let at: String; let summary: String }
+        let state: String?
+        let settleAt: String?
+        let ended: Ended?
+    }
 }
 
 extension API {
@@ -64,7 +76,9 @@ struct ContactPlanSection: View {
     var body: some View { content(plan) }
 
     /// Read every minute, every few seconds while Atlas is working it out.
-    static func pollDelay(_ p: ContactPlanData?) -> Duration { p?.updating != nil ? .seconds(4) : .seconds(60) }
+    static func pollDelay(_ p: ContactPlanData?) -> Duration {
+        p?.updating == "talking" ? .seconds(20) : p?.updating != nil ? .seconds(4) : .seconds(60)
+    }
 
     @ViewBuilder private func content(_ p: ContactPlanData) -> some View {
         let items = p.items ?? []
@@ -93,6 +107,19 @@ struct ContactPlanSection: View {
             if p.updating == nil, let c = p.changes?.first, let d = Stamp.date(c.at), Date().timeIntervalSince(d) < 86_400 {
                 lastChange(c, age: Date().timeIntervalSince(d))
             }
+            if p.updating == nil, let e = p.settle?.ended, let d = Stamp.date(e.at),
+               !(p.changes?.first.flatMap { Stamp.date($0.at) }.map { abs($0.timeIntervalSince(d)) < 120 } ?? false) {
+                HStack(alignment: .top, spacing: 6) {
+                    AtlasFace(size: 13).padding(.top, 1)
+                    (Text("After the texts (\(Self.ago(Date().timeIntervalSince(d))) ago). ").fontWeight(.medium).foregroundStyle(Theme.text)
+                     + Text(e.summary + ".").foregroundStyle(Theme.secondary))
+                        .font(.system(size: 11.5)).multilineTextAlignment(.leading)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.violet.opacity(0.07)))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.violet.opacity(0.3)))
+            }
             if items.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     if end.warn { Image(systemName: "exclamationmark.triangle").font(.system(size: 11, weight: .semibold)).padding(.top, 2) }
@@ -118,8 +145,24 @@ struct ContactPlanSection: View {
         }
     }
 
-    private func updating(_ why: String) -> some View {
-        let words = why == "call" ? "Waiting for call notes" : why == "after_call" ? "Updating" : "Atlas is reading"
+    @ViewBuilder private func updating(_ why: String) -> some View {
+        if why == "talking" {
+            // The texts are still going: Atlas re-plans once, when they stop (owner, 2026-11-23).
+            let t = plan.settle?.settleAt.flatMap { Stamp.date($0) }.map { $0.formatted(date: .omitted, time: .shortened) }
+            let words = "Texting" + (t.map { " · plan updates ~\($0)" } ?? "")
+            HStack(spacing: 4) {
+                Image(systemName: "text.bubble").font(.system(size: 10, weight: .semibold))
+                Text(words).font(.system(size: 11, weight: .medium)).lineLimit(1)
+            }
+            .foregroundStyle(Theme.muted)
+            .accessibilityLabel(words)
+        } else {
+            updatingSpinner(why)
+        }
+    }
+
+    private func updatingSpinner(_ why: String) -> some View {
+        let words = why == "call" ? "Waiting for call notes" : why == "after_call" ? "Updating" : why == "settling" ? "Reading where the texts ended" : "Atlas is reading"
         return HStack(spacing: 4) {
             ProgressView().controlSize(.mini).tint(Theme.violet)
             Text(words).font(.system(size: 11, weight: .medium)).foregroundStyle(Theme.violet).lineLimit(1)
@@ -131,6 +174,7 @@ struct ContactPlanSection: View {
     private func lastChange(_ c: ContactPlanChange, age: TimeInterval) -> some View {
         let cleared = c.detail?.closed ?? []
         let summary = c.summary.replacingOccurrences(of: "After the call: ", with: "After the call, ")
+            .replacingOccurrences(of: "After the texts: ", with: "After the texts, ")
         return Button { withAnimation(.snappy) { changeOpen.toggle() } } label: {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .top, spacing: 6) {
@@ -146,7 +190,8 @@ struct ContactPlanSection: View {
                 if changeOpen {
                     VStack(alignment: .leading, spacing: 2) {
                         if let q = c.detail?.quote, !q.isEmpty {
-                            Text("On the call: \u{201C}\(q)\u{201D}\(c.detail?.why.map { " (\($0))" } ?? "")")
+                            Text(c.detail?.settled == true ? "Next: \(q)\(c.detail?.why.map { " (\($0))" } ?? "")"
+                                 : "On the call: \u{201C}\(q)\u{201D}\(c.detail?.why.map { " (\($0))" } ?? "")")
                         }
                         ForEach(Array(cleared.enumerated()), id: \.offset) { _, x in Text(x.title).strikethrough() }
                         if let n = c.detail?.skippedSteps, n > 0 {

@@ -436,3 +436,10 @@ dialog offers Call anyway (ten minutes), Call, never ask again for them, and Can
 `paragon_wall_override` and then dials (`dial`). A server without the check falls through to the voice menu.
 Transfers on the Solara One logistics line now list someone who talked to the person for another brand
 (`paragon_call_targets`, server only).
+
+## Build 34, 2026-11-23: the contact plan shows Atlas re-planning after texts (owner)
+
+Twenty quiet minutes after the last text Atlas reads the conversation once and moves the plan (paragon
+`20261123280000_conversation_settled.sql`). `ContactPlanSection` shows it from `paragon_contact_plan`'s `settle`:
+"Texting · plan updates ~3:22" while the texts go on, "Reading where the texts ended", then "After the texts" with
+what Atlas decided ("Ended with the quote sent, waiting on them. Next: follow up on the $2,140.52 quote, Wed 10 AM").
