@@ -80,6 +80,19 @@ struct SettingsView: View {
                     }
                     .listRowBackground(Theme.card)
 
+                    if session.me?.missionEditor == true {
+                        Section(label: "Atlas") {
+                            NavigationLink { MissionsView().hidesSystemTabBar() } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Missions").font(.ui).foregroundStyle(Theme.text)
+                                    Text("What Atlas follows when it texts a prospect.")
+                                        .font(.meta).foregroundStyle(Theme.muted)
+                                }
+                            }
+                        }
+                        .listRowBackground(Theme.card)
+                    }
+
                     if session.me?.isFounder == true {
                         Section(label: "Founders") {
                             NavigationLink { CostsView().hidesSystemTabBar() } label: {

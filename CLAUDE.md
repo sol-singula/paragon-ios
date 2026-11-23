@@ -400,3 +400,17 @@ the system route picker for where sound plays. The choice is this phone's (`Audi
 `paragon.audio.input`); `CallManager`'s audio block applies it on every call (`AudioPrefs.applyInput()`), and a headset
 that is not connected falls back to the default. Not offered during a call.
 
+
+## Build 30, 2026-11-23: Atlas missions (owner)
+
+Singula's prospecting agents run in Paragon as Atlas following **Missions** (desktop and web: the Atlas bar, the
+Atlas card, the ring in Urgent, Settings → Missions; database in the paragon repo,
+`20261123200000_paragon_atlas_missions.sql`). On the iPhone:
+
+- `Me.atlasControl` / `missionEditor` (Mason, Ryan, Aaron, Taylor / Mason, Ryan) and `QueueItem.atlasThread`.
+- Inbox rows: an Atlas hand-off wears the violet ring with Atlas's orbit on the face's corner (tag 2).
+- `AtlasMissionBar` above the message box on a `prospecting` thread, for Atlas control only: what Atlas is doing,
+  Interrupt, Back to Atlas, and the mission menu (`paragon_thread_atlas` / `_set`, read every 20 s while open).
+  A reply from the phone pauses Atlas by itself (the server writes it to the engine as a human send).
+- Settings → Atlas → Missions (`MissionsView`) for mission editors: edit and save as a new version.
+- People & access switches stay on the desktop, like the rest of People.

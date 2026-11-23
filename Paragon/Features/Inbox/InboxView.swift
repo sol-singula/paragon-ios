@@ -473,6 +473,21 @@ struct QueueRow: View {
     var body: some View {
         HStack(spacing: 10) {
             BranchMark(brand: q.firstThread?.brand, size: 34)
+                // Atlas's prospecting conversation (tag 2, owner 2026-11-23): a violet ring on the face,
+                // Atlas's orbit on its corner.
+                .overlay {
+                    if q.atlasThread == true {
+                        Circle().strokeBorder(Theme.violet, lineWidth: 1.5).padding(-3.5)
+                    }
+                }
+                .overlay(alignment: pinned ? .topTrailing : .bottomTrailing) {
+                    if q.atlasThread == true {
+                        AtlasRing(size: 9)
+                            .frame(width: 14, height: 14)
+                            .background(Circle().fill(Theme.bg))
+                            .offset(x: 4, y: pinned ? -4 : 4)
+                    }
+                }
                 .overlay(alignment: .bottomTrailing) {
                     if pinned {
                         Image(systemName: "pin.fill")

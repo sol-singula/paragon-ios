@@ -55,6 +55,11 @@ struct ConversationView: View {
                                  send(Reactions.text(emoji, (e.body?.isEmpty == false ? e.body! : "an image")), [])
                              })
                 let draftKey = Drafts.key(thread: currentThread, person: personId)
+                // Atlas missions (owner, 2026-11-23): the bar above the box on Atlas's prospecting conversations.
+                if session.me?.atlasControl == true, let t = currentThread,
+                   v.threads.first(where: { $0.id == t })?.space == "prospecting" {
+                    AtlasMissionBar(threadId: t)
+                }
                 Composer(draftKey: draftKey, label: BranchMember.on ? nil : v.sendLabel,
                          blocked: v.canSend == false ? (v.lockedReason ?? "You can't text from this conversation.") : nil,
                          placeholder: Composer.placeholder(for: v.person.name, named: v.person.hasName != false),

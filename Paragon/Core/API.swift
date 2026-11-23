@@ -200,6 +200,21 @@ enum API {
         try await rpc("paragon_start_thread", ["p_phone": phone, "p_name": name, "p_brand": brand, "p_state": state, "p_state_guessed": guessed], as: StartedThread.self)
     }
 
+    // Atlas missions (owner, 2026-11-23): nil when the thread is not Atlas's or Atlas control is off for me.
+    static func threadAtlas(_ thread: String) async throws -> ThreadAtlas? {
+        try await rpc("paragon_thread_atlas", ["p_thread": thread], as: ThreadAtlas?.self)
+    }
+    /// interrupt | resume | mission
+    static func threadAtlasSet(_ thread: String, action: String, mission: String? = nil) async throws -> ThreadAtlas? {
+        try await rpc("paragon_thread_atlas_set", ["p_thread": thread, "p_action": action, "p_mission": mission], as: ThreadAtlas?.self)
+    }
+    static func missions() async throws -> [Mission] {
+        try await rpc("paragon_missions", as: [Mission]?.self) ?? []
+    }
+    static func missionSave(_ id: String, _ p: [String: Any]) async throws -> MissionSaved {
+        try await rpc("paragon_mission_save", ["p_mission": id, "p": p], as: MissionSaved.self)
+    }
+
     static func person(_ person: String, thread: String?) async throws -> PersonView? {
         try await rpc("paragon_person", ["p_person": person, "p_thread": thread], as: PersonView?.self)
     }

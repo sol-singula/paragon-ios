@@ -15,6 +15,10 @@ struct Me: Decodable, Equatable {
     /// A branch member (founder, 2026-11-16: Alyssa in Solara UT2): only the
     /// branch's clients (the server's rule) and never a line. Nil for everyone else.
     let branch: MeBranch?
+    /// Atlas control (owner, 2026-11-23): sees Atlas's prospecting conversations and the Atlas bar.
+    let atlasControl: Bool?
+    /// May edit Atlas's missions (Settings → Missions).
+    let missionEditor: Bool?
 
     struct MeBranch: Decodable, Equatable { let id: String; let name: String? }
 
@@ -89,6 +93,8 @@ struct QueueItem: Decodable, Hashable, Identifiable {
     let threadId: String?
     /// A card or promise is merged into this row: a slight violet tint.
     let atlas: Bool?
+    /// Atlas's prospecting conversation, handed to a person: the violet ring on the face (tag 2, 2026-11-23).
+    let atlasThread: Bool?
     let card: Lenient<RowItem>?
     let cardId: String?
     let title: String?
@@ -761,3 +767,39 @@ struct StartedThread: Decodable {
     let personId: String
     let sendLabel: String?
 }
+
+/// What Atlas is doing on one prospecting conversation (paragon_thread_atlas, owner 2026-11-23).
+struct ThreadAtlas: Decodable, Equatable {
+    struct MissionRef: Decodable, Equatable, Identifiable { let id: String; let name: String; let kind: String? }
+    struct Next: Decodable, Equatable { let body: String; let at: String }
+    let conversationId: String
+    let status: String
+    /// running | handed_off | paused | done
+    let state: String
+    let mission: MissionRef?
+    let reason: String?
+    let next: Next?
+    let theirTurn: Bool?
+    let messages: Int?
+    let followups: Int?
+    let missions: [MissionRef]?
+}
+
+/// A mission (Singula's prospecting agent), paragon_missions. The texts only come for mission editors.
+struct Mission: Decodable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let kind: String?
+    let isActive: Bool?
+    let description: String?
+    let version: String?
+    let live: Int?
+    let handedOff: Int?
+    let characterName: String?
+    let personaBody: String?
+    let missionBody: String?
+    let opener: String?
+    let followupBody: String?
+}
+
+struct MissionSaved: Decodable { let ok: Bool?; let changed: Bool?; let version: String? }
