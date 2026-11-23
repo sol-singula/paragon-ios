@@ -49,6 +49,17 @@ enum Gold {
     private static func first(_ name: String) -> String { name.split(separator: " ").first.map(String.init) ?? name }
 }
 
+/// A gold card nobody has called yet (Try 1) is orange (owner, 2026-11-19, the desktop's goldTone()), so the untouched
+/// leads stand out; from the second try on it is gold. One palette for the row and the panel.
+struct GoldTone {
+    let main: Color, text: Color, first: Bool
+    static func of(_ w: WebForm?) -> GoldTone {
+        let first = w != nil && (w?.try ?? 1) <= 1
+        return first ? GoldTone(main: Color(hex: 0xFF8A3D), text: Color(hex: 0xFFB27A), first: true)
+                     : GoldTone(main: Theme.gold, text: Theme.goldText, first: false)
+    }
+}
+
 /// The top of a gold conversation: the form and a big Call.
 struct GoldPanel: View {
     let item: RowItem
@@ -66,13 +77,14 @@ struct GoldPanel: View {
     }
 
     var body: some View {
+        let tone = GoldTone.of(form)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Text("NEW WEBSITE LEAD").font(.tag).tracking(0.6).foregroundStyle(Theme.goldText)
+                Text(tone.first ? "NEW WEBSITE LEAD · NOT CALLED YET" : "NEW WEBSITE LEAD").font(.tag).tracking(0.6).foregroundStyle(tone.text)
                 if let w = form {
-                    Text(w.label).font(.tag).foregroundStyle(Theme.goldText)
+                    Text(w.label).font(.tag).foregroundStyle(tone.text)
                         .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(Capsule().fill(Theme.gold.opacity(0.22)))
+                        .background(Capsule().fill(tone.main.opacity(0.22)))
                 }
                 Spacer(minLength: 4)
                 if let s = f?.submittedAt { Text("\(Stamp.span(s)) ago").font(.meta).foregroundStyle(Theme.muted) }
@@ -104,7 +116,7 @@ struct GoldPanel: View {
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity, minHeight: 50)
                     .foregroundStyle(.black)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Theme.gold))
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(tone.main))
             }
             .buttonStyle(.plain)
             .disabled(!canCall).opacity(canCall ? 1 : 0.45)
@@ -119,9 +131,9 @@ struct GoldPanel: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(LinearGradient(colors: [Theme.gold.opacity(0.22), Theme.gold.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [tone.main.opacity(tone.first ? 0.26 : 0.22), tone.main.opacity(0.08)], startPoint: .topLeading, endPoint: .bottomTrailing))
         )
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.gold.opacity(0.45)))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(tone.main.opacity(0.45)))
         .padding(.horizontal, 12).padding(.top, 8)
     }
 

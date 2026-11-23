@@ -421,3 +421,9 @@ The owner picked the proposed Urgent order (canvas "Urgent order: 20 cases"): em
 calls and voicemails, texts, website Try 2-3, promises once due, Atlas hand-offs, follow-ups Try 1-2-3, website Try
 4+ (`paragon.queue_core`, paragon repo `20261123240000_urgent_order.sql`). `InboxModel.visible` no longer lifts gold
 above the keys; it does so only for a server that sends none.
+
+## Build 32, 2026-11-23: first-try website leads in orange (owner)
+
+A gold card nobody has called yet (Try 1) is orange #FF8A3D (text #FFB27A) with "Not called yet"; from Try 2 it is
+gold (`GoldTone.of(webForm)` in `Gold.swift`, the desktop's `goldTone()`): the Urgent row's fill and edge, its Try
+chip and second line, and the conversation's gold panel and Call button.

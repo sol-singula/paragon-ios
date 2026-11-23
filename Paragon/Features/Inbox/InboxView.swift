@@ -140,7 +140,7 @@ struct InboxView: View {
                 }
                 .contextMenu { rowMenu(q) }
                 .listRowInsets(EdgeInsets(top: 9, leading: 16, bottom: 9, trailing: 16))
-                .listRowBackground(QueueRowBackground(atlas: q.isAtlas, gold: q.isGold))
+                .listRowBackground(QueueRowBackground(atlas: q.isAtlas, gold: q.isGold, tone: GoldTone.of(q.goldForm)))
                 .listRowSeparatorTint(Theme.border)
                 .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
             }
@@ -523,9 +523,10 @@ struct QueueRow: View {
                     if q.firstThread?.locked == true { Image(systemName: "lock.fill").font(.system(size: 10)).foregroundStyle(Theme.muted) }
                     Spacer(minLength: 4)
                     if let w = q.goldForm, q.isGold {
-                        Text(w.label).font(.tag).foregroundStyle(Theme.goldText)
+                        let tone = GoldTone.of(w)
+                        Text(w.label).font(.tag).foregroundStyle(tone.text)
                             .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Capsule().fill(Theme.gold.opacity(0.22)))
+                            .background(Capsule().fill(tone.main.opacity(0.22)))
                     } else {
                         Text(clock).font(.system(size: 13)).monospacedDigit().foregroundStyle(clockColor).lineLimit(1)
                     }
@@ -591,12 +592,12 @@ struct QueueRow: View {
     private func goldLine(_ g: RowItem) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "phone.fill").font(.system(size: 10))
-            Text("Website form").fontWeight(.semibold)
+            Text(GoldTone.of(q.goldForm).first ? "Not called yet" : "Website form").fontWeight(.semibold)
             Text("·")
             Text(q.goldForm?.form?.wants ?? g.why ?? "Ready to call").foregroundStyle(Theme.text).lineLimit(1).truncationMode(.tail)
         }
         .font(.system(size: 14))
-        .foregroundStyle(Theme.goldText)
+        .foregroundStyle(GoldTone.of(q.goldForm).text)
         .lineLimit(1)
         .accessibilityElement(children: .combine)
     }
@@ -643,11 +644,13 @@ struct QueueRow: View {
 struct QueueRowBackground: View {
     let atlas: Bool
     var gold: Bool = false
+    var tone: GoldTone? = nil
     var body: some View {
         if gold {
-            // Gold (2026-11-10): a website form, ready to call.
-            Theme.gold.opacity(0.18)
-                .overlay(alignment: .leading) { Rectangle().fill(Theme.gold).frame(width: 3) }
+            // Gold (2026-11-10): a website form, ready to call. Orange while nobody has called (Try 1).
+            let c = tone?.main ?? Theme.gold
+            c.opacity(tone?.first == true ? 0.22 : 0.18)
+                .overlay(alignment: .leading) { Rectangle().fill(c).frame(width: 3) }
         } else if atlas {
             Theme.violet.opacity(0.07)
                 .overlay(alignment: .leading) { Rectangle().fill(Theme.violet.opacity(0.85)).frame(width: 2) }
