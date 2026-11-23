@@ -390,3 +390,13 @@ given to someone else still do (`clear`). The desktop matches (`actedOn`).
 - **Conversation**: "Ryan is on the phone with them · 4:07" under the name while someone else is on
   with them; Call carries a phone and the first press reads "Call anyway?" (6 s), the second calls.
 - No sitting in or listening on iPhone; no server change.
+
+## Build 29, 2026-11-23: Microphone & speaker (owner)
+
+"Click something in our personal settings to adjust/test mic. or even adjust the source." Settings → **Microphone &
+speaker** (`Features/Settings/AudioTestView.swift`), the desktop's page on the phone: pick the microphone (the iPhone's,
+a wired or Bluetooth headset: `AVAudioSession.availableInputs`), a live level, record five seconds and hear it back, and
+the system route picker for where sound plays. The choice is this phone's (`AudioPrefs`, UserDefaults
+`paragon.audio.input`); `CallManager`'s audio block applies it on every call (`AudioPrefs.applyInput()`), and a headset
+that is not connected falls back to the default. Not offered during a call.
+

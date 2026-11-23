@@ -156,6 +156,8 @@ final class CallManager: NSObject {
     func start() {
         guard provider == nil else { return }
         TwilioVoiceSDK.audioDevice = audioDevice
+        // The microphone chosen in Settings → Microphone & speaker, on every call.
+        audioDevice.block = { DefaultAudioDevice.DefaultAVAudioSessionConfigurationBlock(); AudioPrefs.applyInput() }
 
         let config = CXProviderConfiguration()
         config.supportsVideo = false
@@ -288,6 +290,7 @@ final class CallManager: NSObject {
         let on = a.speaker
         audioDevice.block = {
             DefaultAudioDevice.DefaultAVAudioSessionConfigurationBlock()
+            AudioPrefs.applyInput()
             try? AVAudioSession.sharedInstance().overrideOutputAudioPort(on ? .speaker : .none)
         }
         audioDevice.block()
@@ -358,7 +361,7 @@ final class CallManager: NSObject {
             conference = false
         }
         if calls.isEmpty {
-            audioDevice.block = { DefaultAudioDevice.DefaultAVAudioSessionConfigurationBlock() }
+            audioDevice.block = { DefaultAudioDevice.DefaultAVAudioSessionConfigurationBlock(); AudioPrefs.applyInput() }
         }
     }
 

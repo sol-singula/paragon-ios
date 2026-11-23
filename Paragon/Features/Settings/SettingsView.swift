@@ -70,6 +70,13 @@ struct SettingsView: View {
                                     .font(.meta).foregroundStyle(Theme.muted)
                             }
                         }
+                        NavigationLink { AudioTestView().hidesSystemTabBar() } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Microphone & speaker").font(.ui).foregroundStyle(Theme.text)
+                                Text("Pick and test the microphone calls use.")
+                                    .font(.meta).foregroundStyle(Theme.muted)
+                            }
+                        }
                     }
                     .listRowBackground(Theme.card)
 
