@@ -478,6 +478,17 @@ enum API {
     static func callRemove(parent: String, key: String) async throws -> CallPeople {
         try await function("paragon-voice", query: ["op": "control"], body: ["action": "remove", "parent": parent, "key": key], as: CallPeople.self)
     }
+    /// Before a call dials: is this person walled off for me (owner, 2026-11-23)? The keypad's 1 / 2 on the voice
+    /// menu never reached the server, so the app asks on screen first.
+    static func callWalled(_ thread: String) async throws -> CallWall {
+        try await rpc("paragon_call_walled", ["p_thread": thread], as: CallWall.self)
+    }
+
+    /// Call anyway (ten minutes) or never ask again for this contact.
+    static func wallOverride(person: String, forever: Bool) async throws {
+        try await call("paragon_wall_override", ["p_person": person, "p_forever": forever])
+    }
+
     static func callTargets(thread: String) async throws -> [CallTarget] {
         try await rpc("paragon_call_targets", ["p_thread": thread], as: [CallTarget]?.self) ?? []
     }

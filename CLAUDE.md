@@ -427,3 +427,12 @@ above the keys; it does so only for a server that sends none.
 A gold card nobody has called yet (Try 1) is orange #FF8A3D (text #FFB27A) with "Not called yet"; from Try 2 it is
 gold (`GoldTone.of(webForm)` in `Gold.swift`, the desktop's `goldTone()`): the Urgent row's fill and edge, its Try
 chip and second line, and the conversation's gold panel and Call button.
+
+## Build 33, 2026-11-23: the wall on a call is asked on screen (owner)
+
+"It does the audio thing, but it doesn't let me push 2 or push any button to override it." The voice menu's 1 / 2
+never reached paragon-voice. `CallManager.place` now asks `paragon_call_walled(thread)` first; when walled, RootView's
+dialog offers Call anyway (ten minutes), Call, never ask again for them, and Cancel, records it with
+`paragon_wall_override` and then dials (`dial`). A server without the check falls through to the voice menu.
+Transfers on the Solara One logistics line now list someone who talked to the person for another brand
+(`paragon_call_targets`, server only).

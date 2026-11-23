@@ -803,3 +803,11 @@ struct Mission: Decodable, Identifiable, Equatable {
 }
 
 struct MissionSaved: Decodable { let ok: Bool?; let changed: Bool?; let version: String? }
+
+/// paragon_call_walled: the wall, asked before a call dials.
+struct CallWall: Decodable, Equatable {
+    let walled: Bool
+    let personId: String?
+    let brand: String?
+    let spokeFor: [String]?
+}

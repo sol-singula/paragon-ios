@@ -6,6 +6,15 @@ struct RootView: View {
     @Environment(CallManager.self) private var calls
     @State private var reconnectingShown = false
 
+    private var wallTitle: String { "Call \(calls.wallAsk?.name ?? "them") anyway?" }
+    private var wallMessage: String {
+        guard let w = calls.wallAsk else { return "" }
+        let first = w.name.split(separator: " ").first.map(String.init) ?? "this person"
+        let other = w.spokeFor.filter { $0 != w.brand }
+        let spoke = other.isEmpty ? "for another branch" : "for \(other.joined(separator: ", "))"
+        return "You have already talked with \(first) \(spoke)" + (w.brand.map { ", so \($0) is walled off for you." } ?? ".")
+    }
+
     var body: some View {
         ZStack {
             Theme.bg.ignoresSafeArea()
@@ -45,6 +54,16 @@ struct RootView: View {
         .task { await session.restore() }
         .fullScreenCover(isPresented: Binding(get: { calls.active != nil && calls.showScreen }, set: { calls.showScreen = $0 })) {
             CallScreen()
+        }
+        // The wall, asked before a call dials (owner, 2026-11-23).
+        .confirmationDialog(wallTitle, isPresented: Binding(get: { calls.wallAsk != nil }, set: { shown in
+                                if !shown { DispatchQueue.main.async { if calls.wallAsk != nil { calls.answerWall(forever: nil) } } } }),
+                            titleVisibility: .visible) {
+            Button("Call anyway") { calls.answerWall(forever: false) }
+            Button("Call, never ask again for them") { calls.answerWall(forever: true) }
+            Button("Cancel", role: .cancel) { calls.answerWall(forever: nil) }
+        } message: {
+            Text(wallMessage)
         }
     }
 }

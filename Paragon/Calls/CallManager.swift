@@ -233,7 +233,38 @@ final class CallManager: NSObject {
 
     // MARK: What the screens call
 
+    /// A call to a person walled off for me, waiting for Call anyway / Never ask again (owner, 2026-11-23).
+    struct WallAsk: Identifiable, Equatable {
+        let thread: String, name: String, brand: String?, person: String, spokeFor: [String]
+        var id: String { thread }
+    }
+    var wallAsk: WallAsk?
+
+    /// The wall is asked on screen before anything dials: the voice menu's keypad never reached the server.
+    /// An older server without the check falls through to that menu as before.
     func place(thread: String, name: String, brand: String?) {
+        guard active == nil else { return }
+        Task { @MainActor in
+            if let w = try? await API.callWalled(thread), w.walled, let person = w.personId {
+                wallAsk = WallAsk(thread: thread, name: name, brand: w.brand ?? brand, person: person, spokeFor: w.spokeFor ?? [])
+                return
+            }
+            dial(thread: thread, name: name, brand: brand)
+        }
+    }
+
+    func answerWall(forever: Bool?) {
+        guard let ask = wallAsk else { return }
+        wallAsk = nil
+        guard let forever else { return }
+        Task { @MainActor in
+            do { try await API.wallOverride(person: ask.person, forever: forever) }
+            catch { Toast.shared.show("Could not lift the wall: \(error.localizedDescription)", error: true); return }
+            dial(thread: ask.thread, name: ask.name, brand: ask.brand)
+        }
+    }
+
+    private func dial(thread: String, name: String, brand: String?) {
         guard active == nil else { return }
         ended = nil
         if AVAudioApplication.shared.recordPermission == .undetermined { askMic() }
