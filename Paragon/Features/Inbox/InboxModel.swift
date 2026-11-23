@@ -82,9 +82,12 @@ final class InboxModel {
         case .all, .personal: base = rows
         }
         if show != .waiting { return recent(base) }
-        // Gold first (founder, 2026-11-10: "MOST PRIORITY"), whatever the keys say.
-        let gold = base.filter(\.isGold), rest = base.filter { !$0.isGold }
-        if rest.contains(where: { $0.sortKey != nil }) {
+        // The server's keys are the one order (owner, 2026-11-23, paragon.queue_core): emergencies, a new website
+        // form, missed calls, texts, website Try 2-3, promises, Atlas hand-offs, follow-ups, website Try 4+.
+        // Gold is lifted to the top only for a server that sends no keys.
+        let keyed = base.contains(where: { $0.sortKey != nil })
+        let gold = keyed ? [] : base.filter(\.isGold), rest = keyed ? base : base.filter { !$0.isGold }
+        if keyed {
             // Stable: equal or missing keys keep the server's order.
             return gold + rest.enumerated().sorted { a, b in
                 let ka = a.element.sortKey, kb = b.element.sortKey

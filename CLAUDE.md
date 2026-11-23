@@ -414,3 +414,10 @@ Atlas card, the ring in Urgent, Settings → Missions; database in the paragon r
   A reply from the phone pauses Atlas by itself (the server writes it to the engine as a human send).
 - Settings → Atlas → Missions (`MissionsView`) for mission editors: edit and save as a new version.
 - People & access switches stay on the desktop, like the rest of People.
+
+## Build 31, 2026-11-23: the Urgent order is the server's (owner)
+
+The owner picked the proposed Urgent order (canvas "Urgent order: 20 cases"): emergencies, a new website form, missed
+calls and voicemails, texts, website Try 2-3, promises once due, Atlas hand-offs, follow-ups Try 1-2-3, website Try
+4+ (`paragon.queue_core`, paragon repo `20261123240000_urgent_order.sql`). `InboxModel.visible` no longer lifts gold
+above the keys; it does so only for a server that sends none.
