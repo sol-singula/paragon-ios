@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		02E7A4031F26DACEDBBDE470 /* ParagonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FD712D49F37D525CC8A2F58 /* ParagonApp.swift */; };
 		02E9621B78DACBC1D2CFF6C8 /* Composer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8AA41283D6004E9AAA4F251 /* Composer.swift */; };
+		03E0FC1BEC8AC018A74484CB /* AtlasMissionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 929E5F332D41CDC956BE40C0 /* AtlasMissionBar.swift */; };
+		0960059456B3A60D18E60DBD /* MissionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B91C632481AEE67FEAF19CB /* MissionsView.swift */; };
 		0A03A896C3C7B27842E1C3AC /* TeamMessageRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A116009D8FF074AF1E4FCE3E /* TeamMessageRow.swift */; };
 		0B4F0AF935E86F4C5BBE97B5 /* Demo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AD98B4B8451F4AB768A5FD5 /* Demo.swift */; };
 		132382C6904C555AC128E180 /* DeviceKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5CB9EFCEB0CB2E98E64080 /* DeviceKey.swift */; };
@@ -76,6 +78,7 @@
 		05E0D1B1ACEBA2F08E7F8FD5 /* Promises.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Promises.swift; sourceTree = "<group>"; };
 		05E9690B8AF59BF579D0ED05 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		07E6AEA6FA8F40E3B148413F /* BranchMember.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMember.swift; sourceTree = "<group>"; };
+		0B91C632481AEE67FEAF19CB /* MissionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissionsView.swift; sourceTree = "<group>"; };
 		0C33CA4E9E51345423FCA975 /* Renames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renames.swift; sourceTree = "<group>"; };
 		1111AC1D38C9D489F3F967BC /* BranchMark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchMark.swift; sourceTree = "<group>"; };
 		1739E30D8C200ECEC6A334BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -113,6 +116,7 @@
 		7276CD9082C2F3BEE56C13BC /* PushKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PushKit.framework; path = System/Library/Frameworks/PushKit.framework; sourceTree = SDKROOT; };
 		7A1E7E2FEBECA52D7136550E /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
 		9137BB5DD4441C4AE4874D1F /* SearchHitRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchHitRow.swift; sourceTree = "<group>"; };
+		929E5F332D41CDC956BE40C0 /* AtlasMissionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasMissionBar.swift; sourceTree = "<group>"; };
 		95C0B5F5F4D14525DD263769 /* NewMessageSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewMessageSheet.swift; sourceTree = "<group>"; };
 		96A698AD4E742B0E081A471D /* ringtone-low-classic.caf */ = {isa = PBXFileReference; path = "ringtone-low-classic.caf"; sourceTree = "<group>"; };
 		970D6E9A22AF8FEB274CBFBD /* TabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBar.swift; sourceTree = "<group>"; };
@@ -207,6 +211,7 @@
 		4CA336E644ADF1B12D61502D /* Conversation */ = {
 			isa = PBXGroup;
 			children = (
+				929E5F332D41CDC956BE40C0 /* AtlasMissionBar.swift */,
 				D8AA41283D6004E9AAA4F251 /* Composer.swift */,
 				C75E2FB2C59D7C203E6F2A1C /* ContactPlan.swift */,
 				FA5B1771D340E15C64FA9A10 /* ConversationView.swift */,
@@ -328,6 +333,7 @@
 			children = (
 				72165AF360AB617C01721FE5 /* AudioTestView.swift */,
 				2FF93659363F43D9F38EA81F /* CostsView.swift */,
+				0B91C632481AEE67FEAF19CB /* MissionsView.swift */,
 				CD1D2CECDBCEFAA975602601 /* NotificationsView.swift */,
 				B901470181B630BFD257C0AB /* SettingsView.swift */,
 			);
@@ -452,6 +458,7 @@
 				CA4417210661B52D92B1A27F /* API.swift in Sources */,
 				9A0F82C7EFCCDFF6D8298832 /* AppConfig.swift in Sources */,
 				644C958A201ADB306EABC78E /* AppDelegate.swift in Sources */,
+				03E0FC1BEC8AC018A74484CB /* AtlasMissionBar.swift in Sources */,
 				3618D995357F6DE57E8168A1 /* AtlasRing.swift in Sources */,
 				C3C595AE1EB03F59EF1C8B25 /* AudioTestView.swift in Sources */,
 				7BEB6BA2BA7726770DAE4E21 /* BranchMark.swift in Sources */,
@@ -474,6 +481,7 @@
 				CDA376FE842D089D31702075 /* InboxView.swift in Sources */,
 				AAF6E876BD491695D755FE66 /* IntakeCard.swift in Sources */,
 				E1A5AE1204FBDDA84D6CB867 /* LinePicker.swift in Sources */,
+				0960059456B3A60D18E60DBD /* MissionsView.swift in Sources */,
 				383061299D8F34E2E8C5D27B /* Models.swift in Sources */,
 				38960698D10FE24E4C72E707 /* NewMessageSheet.swift in Sources */,
 				D27A9A23666ACE52AAC4C7DA /* NotificationsView.swift in Sources */,
@@ -520,7 +528,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
@@ -602,7 +610,7 @@
 				CODE_SIGN_ENTITLEMENTS = Paragon/Paragon.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 29;
+				CURRENT_PROJECT_VERSION = 30;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = x86_64;
 				INFOPLIST_FILE = Paragon/Info.plist;
