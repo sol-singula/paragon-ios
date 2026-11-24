@@ -14,6 +14,11 @@ struct TimelineList: View {
     @State private var viewing: ViewedImage?
     /// At (or within a thumb of) the bottom: new things keep us there.
     @State private var pinned = true
+    /// Just opened (owner, 2026-11-24: "still makes me scroll up sometimes to see messages when i open a
+    /// conversation"): until then, or until a finger touches the list, anything that grows the content (a photo
+    /// loading, older texts arriving, a banner above) keeps the last message in view.
+    @State private var stickUntil = Date.distantPast
+    @State private var contentHeight: CGFloat = 0
 
     private static let bottomID = "timeline-bottom"
     private static let space = "timeline"
@@ -47,20 +52,36 @@ struct TimelineList: View {
                                 Color.clear.preference(key: TimelineBottomY.self, value: g.frame(in: .named(Self.space)).maxY)
                             })
                     }
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: TimelineContentHeight.self, value: g.size.height)
+                    })
                 }
                 .coordinateSpace(name: Self.space)
                 .defaultScrollAnchor(.bottom)
                 .scrollDismissesKeyboard(.interactively)
                 .onPreferenceChange(TimelineBottomY.self) { y in
-                    // How far below the viewport the last message ends.
+                    // How far below the viewport the last message ends. While the content is still growing after an
+                    // open, a far bottom is the growth, not the reader scrolling up: stay pinned.
                     let near = y - outer.size.height < 90
+                    if Date() < stickUntil { if !pinned { pinned = true }; return }
                     if near != pinned { pinned = near }
                 }
-                .onAppear { settle(proxy) }
+                // The content grew (a photo loaded, history arrived, a row found its real height): whoever was at
+                // the bottom, or just opened the conversation, stays there.
+                .onPreferenceChange(TimelineContentHeight.self) { h in
+                    let grew = h > contentHeight + 0.5
+                    contentHeight = h
+                    if grew && (pinned || Date() < stickUntil) { proxy.scrollTo(Self.bottomID, anchor: .bottom) }
+                }
+                // A finger on the list ends the after-open stick, so reading back is never yanked down.
+                .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { _ in
+                    if Date() < stickUntil { stickUntil = .distantPast }
+                })
+                .onAppear { stickUntil = Date().addingTimeInterval(3); settle(proxy) }
                 // Always at the bottom (founder, 2026-11-09 and 2026-11-11:
                 // "sometimes it's even hiding a message"): on open, and again
                 // as the lazy rows find their heights.
-                .onChange(of: events.first?.id) { _, _ in settle(proxy) }
+                .onChange(of: events.first?.id) { _, _ in stickUntil = Date().addingTimeInterval(3); settle(proxy) }
                 // Something new: stay at the bottom if we were there, or if
                 // it is ours.
                 .onChange(of: events.last?.id) { _, _ in
@@ -71,7 +92,7 @@ struct TimelineList: View {
                 // The keyboard coming up, or the composer growing a line: the
                 // view gets shorter; whoever was at the bottom stays there.
                 .onChange(of: outer.size.height) { old, new in
-                    if pinned && new != old { settle(proxy, quick: true) }
+                    if (pinned || Date() < stickUntil) && new != old { settle(proxy, quick: true) }
                 }
                 .onChange(of: KeyboardWatcher.shared.visible) { _, up in
                     if up && pinned { settle(proxy, quick: true) }
@@ -418,6 +439,11 @@ struct CallRow: View {
 }
 
 private struct TimelineBottomY: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+private struct TimelineContentHeight: PreferenceKey {
     static let defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }

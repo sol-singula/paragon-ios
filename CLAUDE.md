@@ -307,6 +307,10 @@ given to someone else still do (`clear`). The desktop matches (`actedOn`).
   and again as the lazy rows settle (to 1.6 s). `pinned` (the mark within
   90 pt of the viewport) keeps you at the bottom when something new comes,
   the keyboard comes up or the composer grows; ours always scrolls.
+  Build 35 (owner, 2026-11-24: still had to scroll up sometimes): the list also watches its content height. For 3 s
+  after opening (`stickUntil`, ended by any drag), and whenever pinned, content that grows (a photo loading, history
+  arriving, a banner above) scrolls back to the bottom, and growth no longer counts as scrolling up, which used to
+  turn `pinned` off and leave later rows below the fold.
 - **Urgent / Recent / Personal.** "Waiting" reads **Urgent** everywhere
   (the server's value stays `waiting`). No Personal tab: a member with a
   personal line (a `paragon_lines` row of kind `personal` whose
