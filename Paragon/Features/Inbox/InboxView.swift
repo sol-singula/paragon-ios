@@ -79,6 +79,7 @@ struct InboxView: View {
             .sheet(item: $composing) { p in
                 NewMessageSheet(prefill: p) { person, thread, name, brand in
                     composing = nil
+                    if p.focus { ComposerFocus.request(thread); model.search = "" }
                     router.inboxPath.append(.person(personId: person, threadId: thread))
                     // After the sheet is gone, so the call screen can come up.
                     if p.then == .call {
@@ -315,8 +316,9 @@ struct InboxView: View {
         do {
             if let person = try await personFor(h) {
                 router.inboxPath.append(.person(personId: person, threadId: nil))
-            } else if BranchMember.on {
-                // A branch member never starts a conversation (founder, 2026-11-16).
+            } else if !BranchMember.canStart {
+                // A branch member never starts a conversation (founder, 2026-11-16),
+                // unless they start as a brand (owner, 2026-11-25).
                 notice = BranchMember.noLinesReason
             } else {
                 composing = await prefill(h, then: then)
@@ -333,7 +335,7 @@ struct InboxView: View {
         defer { busyHit = nil }
         do {
             guard let person = try await personFor(h) else {
-                if BranchMember.on { notice = BranchMember.noLinesReason } else { composing = await prefill(h, then: .call) }
+                if !BranchMember.canStart { notice = BranchMember.noLinesReason } else { composing = await prefill(h, then: .call) }
                 return
             }
             guard let v = try await API.person(person, thread: nil) else { notice = "This conversation isn't yours to see."; return }
@@ -362,8 +364,16 @@ struct InboxView: View {
                 if then == .call { await callHit(h) } else { await openHit(h) }
                 return
             }
-            // A branch member never picks a line (founder, 2026-11-16).
-            if BranchMember.on { notice = BranchMember.noLinesReason; return }
+            // A branch member never picks a line (founder, 2026-11-16). One who starts as a
+            // brand (owner, 2026-11-25) gets New message with the brand fixed and no line.
+            if BranchMember.on {
+                if BranchMember.canStart {
+                    composing = NewMessagePrefill(fromSearch: true, name: who?.name ?? "", phone: digits, then: then, focus: then == .text)
+                } else {
+                    notice = BranchMember.noLinesReason
+                }
+                return
+            }
             pickingLine = LinePickTarget(phone: digits, name: who?.name, then: then)
         } catch {
             busyHit = nil

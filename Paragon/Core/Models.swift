@@ -15,6 +15,9 @@ struct Me: Decodable, Equatable {
     /// A branch member (founder, 2026-11-16: Alyssa in Solara UT2): only the
     /// branch's clients (the server's rule) and never a line. Nil for everyone else.
     let branch: MeBranch?
+    /// A branch member who may start conversations, always as this brand (owner, 2026-11-25:
+    /// Troy, Solara AZ1, "Just Glass"). The server picks the brand's line; nil for everyone else.
+    let startBrand: String?
     /// Atlas control (owner, 2026-11-23): sees Atlas's prospecting conversations and the Atlas bar.
     let atlasControl: Bool?
     /// May edit Atlas's missions (Settings → Missions).

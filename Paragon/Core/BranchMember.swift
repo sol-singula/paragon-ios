@@ -8,9 +8,20 @@ import Observation
 /// nobody has. They reply where the customer already talks with us. The
 /// desktop's `lib/branchMember.ts`, read from `paragon_me().branch`. The
 /// server enforces all of it; this only keeps the screens honest.
+///
+/// A branch member with `start_brand` (owner, 2026-11-25: Troy, Solara AZ1,
+/// "Just Glass") may start a conversation: New message with the brand fixed
+/// and no line shown; `paragon_start_thread` always uses their brand.
 @MainActor
 enum BranchMember {
     static var on: Bool { Session.shared.me?.branch != nil }
+    /// The brand a branch member starts conversations as; nil when they may not start one.
+    static var startBrand: String? {
+        guard on, let b = Session.shared.me?.startBrand?.trimmingCharacters(in: .whitespaces), !b.isEmpty else { return nil }
+        return b
+    }
+    /// Anyone not a branch member, or a branch member with a start brand.
+    static var canStart: Bool { !on || startBrand != nil }
     static let noLinesReason = "You can reply only where they already talk with us"
 }
 

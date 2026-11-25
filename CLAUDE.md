@@ -447,3 +447,13 @@ Twenty quiet minutes after the last text Atlas reads the conversation once and m
 `20261123280000_conversation_settled.sql`). `ContactPlanSection` shows it from `paragon_contact_plan`'s `settle`:
 "Texting · plan updates ~3:22" while the texts go on, "Reading where the texts ended", then "After the texts" with
 what Atlas decided ("Ended with the quote sent, waiting on them. Next: follow up on the $2,140.52 quote, Wed 10 AM").
+
+## Build 36, 2026-11-25: a branch member can start as their brand (owner)
+
+`paragon_me().start_brand` (`Me.startBrand`, `BranchMember.startBrand` / `.canStart`; paragon
+`20261125110000_branch_member_starts_on_brand.sql`): a branch member with one (Troy, Solara AZ1, "Just Glass") may
+start a conversation. Text / Call on a lead nobody has, and on a typed number (the Number row is back for them), open
+New message with the brand fixed: no brand, line or state picker, footer "Sends as Just Glass". The state is the
+place's, else the area code's (`p_state_guessed` true), else empty; `paragon_start_thread` always uses their brand and
+falls back to their own state's line. Its errors show as they come ("They already talk with us in another
+conversation…"). A branch member with no start_brand (Alyssa) is unchanged.

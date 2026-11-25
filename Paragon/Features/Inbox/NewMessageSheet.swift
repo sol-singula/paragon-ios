@@ -12,6 +12,8 @@ struct NewMessagePrefill: Identifiable {
     var brand: String?
     var state: String?
     var then: Then = .text
+    /// Open the new conversation with the composer focused (a typed number's Text).
+    var focus = false
 }
 
 /// Starting a conversation, the desktop's `NewMessage.tsx`: staff pick the
@@ -19,6 +21,11 @@ struct NewMessagePrefill: Identifiable {
 /// in that state (`paragon_start_thread`); the place is read for a state and
 /// the area code is the last resort, marked as a guess. Someone this brand
 /// already texts keeps their own line. Nothing is sent from here.
+///
+/// A branch member with a start brand (owner, 2026-11-25: Troy, "Just Glass")
+/// sees no brand picker, no line and no state picker: the brand is theirs, the
+/// state comes from the place or the area code (marked as a guess), else is
+/// left empty and the server falls back to their own state's line.
 struct NewMessageSheet: View {
     let prefill: NewMessagePrefill
     /// person, thread, name, brand
@@ -46,6 +53,8 @@ struct NewMessageSheet: View {
         }
         return m
     }
+    /// A branch member's fixed brand; nil for staff, who pick one.
+    private var fixedBrand: String? { BranchMember.startBrand }
     private var brands: [String] { Self.brandOrder.filter { !(statesFor[$0]?.isEmpty ?? true) } }
     private var states: [String] { brand.isEmpty ? [] : statesFor[brand] ?? [] }
 
@@ -53,10 +62,15 @@ struct NewMessageSheet: View {
         Places.state(in: place) ?? (place == prefill.place ? prefill.state.map { $0.uppercased() } : nil)
     }
     private var fromArea: String? { Places.state(forPhone: phone) }
-    private var guessed: Bool { !state.isEmpty && fromPlace == nil && state == fromArea }
+    private var guessed: Bool {
+        if fixedBrand != nil { return fromPlace == nil && fromArea != nil }
+        return !state.isEmpty && fromPlace == nil && state == fromArea
+    }
     private var valid: Bool {
         let d = phone.filter(\.isNumber)
-        return (d.count == 10 || (d.count == 11 && d.first == "1")) && !brand.isEmpty && !state.isEmpty
+        let number = d.count == 10 || (d.count == 11 && d.first == "1")
+        if fixedBrand != nil { return number }
+        return number && !brand.isEmpty && !state.isEmpty
     }
     private var calling: Bool { prefill.then == .call }
 
@@ -76,29 +90,39 @@ struct NewMessageSheet: View {
                 } footer: { Text("The number is only used to send. It is never shown in the inbox.").font(.meta) }
                 .listRowBackground(Theme.card)
 
-                Section {
-                    Picker("Brand", selection: $brand) {
-                        Text("Choose").tag("")
-                        ForEach(brands, id: \.self) { Text($0).tag($0) }
+                if let fixed = fixedBrand {
+                    Section {
+                        TextField("Address or city", text: $place)
+                    } footer: {
+                        Text(guessed ? "Sends as \(fixed). Where they are is guessed from the area code." : "Sends as \(fixed).")
+                            .font(.meta)
                     }
-                    TextField("Address or city", text: $place)
-                    if !brand.isEmpty {
-                        Picker("State", selection: $state) {
+                    .listRowBackground(Theme.card)
+                } else {
+                    Section {
+                        Picker("Brand", selection: $brand) {
                             Text("Choose").tag("")
-                            ForEach(states, id: \.self) { Text(Places.name[$0] ?? $0).tag($0) }
+                            ForEach(brands, id: \.self) { Text($0).tag($0) }
                         }
+                        TextField("Address or city", text: $place)
+                        if !brand.isEmpty {
+                            Picker("State", selection: $state) {
+                                Text("Choose").tag("")
+                                ForEach(states, id: \.self) { Text(Places.name[$0] ?? $0).tag($0) }
+                            }
+                        }
+                    } footer: {
+                        Text(guessed ? "Guessed from the area code. The conversation is marked as a guess."
+                             : !brand.isEmpty && states.isEmpty ? "\(brand) has no customer line yet."
+                             : "Where the customer is decides which line they hear from.")
+                            .font(.meta)
                     }
-                } footer: {
-                    Text(guessed ? "Guessed from the area code. The conversation is marked as a guess."
-                         : !brand.isEmpty && states.isEmpty ? "\(brand) has no customer line yet."
-                         : "Where the customer is decides which line they hear from.")
-                        .font(.meta)
-                }
-                .listRowBackground(Theme.card)
+                    .listRowBackground(Theme.card)
 
-                if !brand.isEmpty && !state.isEmpty {
-                    Section { Text("Sends as \(brand) · \(Places.name[state] ?? state)").font(.meta).foregroundStyle(Theme.muted) }
-                        .listRowBackground(Color.clear)
+                    if !brand.isEmpty && !state.isEmpty {
+                        Section { Text("Sends as \(brand) · \(Places.name[state] ?? state)").font(.meta).foregroundStyle(Theme.muted) }
+                            .listRowBackground(Color.clear)
+                    }
                 }
                 if let error {
                     Section { Text(error).font(.meta).foregroundStyle(Theme.rose) }.listRowBackground(Color.clear)
@@ -129,6 +153,8 @@ struct NewMessageSheet: View {
             primed = true
             name = prefill.name; phone = prefill.phone; place = prefill.place
         }
+        // A branch member never sees a line: nothing to load.
+        if let fixed = fixedBrand { brand = fixed; return }
         do { lines = try await API.lines() } catch { self.error = error.localizedDescription }
         if brand.isEmpty, let b = prefill.brand, !(statesFor[b]?.isEmpty ?? true) { brand = b }
         suggest()
@@ -136,6 +162,7 @@ struct NewMessageSheet: View {
 
     /// What the place says, else what the area code says; one state is the state.
     private func suggest() {
+        if fixedBrand != nil { return }
         let s = fromPlace ?? fromArea
         if let s, states.contains(s) { state = s }
         else if states.count == 1 { state = states[0] }
@@ -145,9 +172,13 @@ struct NewMessageSheet: View {
         busy = true
         defer { busy = false }
         do {
-            let r = try await API.startThread(phone: phone, name: name, brand: brand, state: state, guessed: guessed)
+            let fixed = fixedBrand
+            // A branch member: the server uses their brand and falls back to their own state.
+            let sendBrand = fixed ?? brand
+            let sendState = fixed != nil ? (fromPlace ?? fromArea ?? "") : state
+            let r = try await API.startThread(phone: phone, name: name, brand: sendBrand, state: sendState, guessed: guessed)
             let shown = name.trimmingCharacters(in: .whitespaces)
-            onStarted(r.personId, r.threadId, shown.isEmpty ? "New conversation" : shown, brand)
+            onStarted(r.personId, r.threadId, shown.isEmpty ? "New conversation" : shown, sendBrand)
         } catch {
             self.error = error.localizedDescription
         }

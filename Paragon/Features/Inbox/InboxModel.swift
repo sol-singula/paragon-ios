@@ -311,8 +311,9 @@ final class InboxModel {
             }
             // Nobody has it: one row for the number itself, with Text and Call.
             let client = rows.contains { $0.type == "lead" && ($0.score ?? 0) >= 100 }
-            // A branch member never texts or calls a number nobody has (founder, 2026-11-16).
-            if !talked && !client && !BranchMember.on {
+            // A branch member never texts or calls a number nobody has (founder, 2026-11-16),
+            // unless they start as a brand (owner, 2026-11-25).
+            if !talked && !client && BranchMember.canStart {
                 out.insert(SearchHit(id: digits, type: "number", name: LinePick.format(digits),
                                      secondary: found?.name.map { "\($0) · no conversation yet" } ?? "No conversation yet",
                                      status: nil, statusColor: nil, brand: nil), at: 0)
